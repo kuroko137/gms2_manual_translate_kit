@@ -1,4 +1,4 @@
-# gmsmjp_test
+# gms2_manual_translate_kit
 
 ## 概要
 Game Maker Studio 2のマニュアル翻訳所を運用するためのキットです。  
