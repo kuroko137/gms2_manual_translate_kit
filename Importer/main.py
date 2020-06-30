@@ -77,19 +77,25 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
             if compiled_raw_csv_file_patter.match(info.filename) is None:
                 continue
 
-            if not os.path.exists(os.path.split(info.filename)[0]):
-                os.makedirs(os.path.split(info.filename)[0])
-            
-            with open(info.filename, 'wb') as f:
+            base_path = info.filename.replace(input_dir, '')
+            base_path = os.path.splitext(base_path)[0]
+
+
+            path_csv = os.path.join(output_dir + 'csv', base_path) + '.csv'
+
+            if not os.path.exists(os.path.split(path_csv)[0]):
+                os.makedirs(os.path.split(path_csv)[0])
+
+            with open(path_csv, 'wb') as f:
                 f.write(zip_file.read(info.filename))
 
 
-            # CSVへの変更
+            # CSVの整形
 
-            with open(info.filename, 'r', encoding='utf-8', newline='\n') as f_input:
+            with open(path_csv, 'r', encoding='utf-8', newline='\n') as f_input:
                 csv_lines = f_input.read()
 
-            with open(info.filename, 'w+', encoding='utf-8', newline='\n') as f_input:
+            with open(path_csv, 'w+', encoding='utf-8', newline='\n') as f_input:
                 if restore_re_key[0] != '':
                     # ヘッダーを復元
                     csv_lines = re.sub(restore_re_key[0], '', csv_lines)
@@ -99,9 +105,8 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
 
             # CSVファイルをPOファイルに変換
 
-            path_base = info.filename.replace(input_dir, '', 1)
-            path_cnv_po = os.path.join(output_dir + 'po', os.path.splitext(path_base)[0]) + '.po'
-            path_template = os.path.join('repo/' + template_dir_pot, os.path.splitext(path_base)[0]) + '.pot'
+            path_cnv_po = os.path.join(output_dir + 'po', base_path) + '.po'
+            path_template = os.path.join('repo/' + template_dir_pot, base_path) + '.pot'
 
             if not os.path.exists(path_template):
                 print('SKIP CSV TEMPLATE = {0} '.format(path_template))
@@ -110,7 +115,7 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
             if not os.path.exists(os.path.split(path_cnv_po)[0]):
                 os.makedirs(os.path.split(path_cnv_po)[0])
 
-            f_input = open(info.filename, 'rb')
+            f_input = open(path_csv, 'rb')
             f_output = open(path_cnv_po, 'wb+')
             f_template = open(path_template, 'rb')
             
@@ -121,9 +126,9 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
             f_template.close()
             
             
-            # POへの変更
+            # POの整形
             
-            path_template = os.path.join('repo/' + template_dir_pot, os.path.splitext(path_base)[0]) + '.pot'
+            path_template = os.path.join('repo/' + template_dir_pot, base_path) + '.pot'
             
 
             with open(path_cnv_po, 'r', encoding='utf-8', newline='\n') as f_po:
@@ -143,8 +148,8 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
 
             # HTMLへの変換を開始
 
-            path_output = os.path.join(output_dir + 'docs/', os.path.splitext(path_base)[0]) + '.html'
-            path_template = os.path.join('repo/' + template_dir_html, os.path.splitext(path_base)[0]) + '.html'
+            path_output = os.path.join(output_dir + 'docs/', base_path) + '.html'
+            path_template = os.path.join('repo/' + template_dir_html, base_path) + '.html'
             
             if not os.path.exists(path_template):
                 print('SKIP HTML TEMPLATE = {0} '.format(path_template))
@@ -175,7 +180,7 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
                 tr_count = 0
 
                 for _keyword in html_replacer_re_kw:
-                    # HTMLファイルの追加編集
+                    # HTMLファイルの整形
                     if count % 2 == 0:
                         if _keyword in html_lines:
                             html_lines = re.sub(html_replacer_re_kw[count + 1], html_replacer_re_tr[tr_count], html_lines)
@@ -204,7 +209,7 @@ def sub(index_name,
 
     # csvをhtmlに変換
     convert_csv_to_html_from_zip(out_file_path)
-    
+
     print("complete")
 
 def main(paratranz_secret):

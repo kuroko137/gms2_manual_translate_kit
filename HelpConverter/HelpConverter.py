@@ -246,7 +246,6 @@ class App(tkinter.Frame):
                     for key_val in csv_remove_key:
                         # 不要なエントリを削除
                         csv_lines = re.sub(key_val,'',csv_lines)
-                        csv_lines = csv_lines.replace('\r', '') # 改行コードをCRLFからLFに統一
 
                 with open(path_csv, "w+", encoding="utf-8", newline="\n") as f_csv:
                     f_csv.write(csv_lines)

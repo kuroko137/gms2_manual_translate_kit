@@ -27,11 +27,15 @@ jobs:
       - name: Install translate-toolkit
         run: pip install translate-toolkit
       - name: Copy sources
-        run: sudo sh ./Importer/copy.sh
+        run: sudo sh ./Importer/copy_sources.sh
       - name: Run
         run: python ./Importer/main.py
         env:
           PARATRANZ_SECRET: ${{ secrets.PARATRANZ_SECRET }}
           PARATRANZ_CODE: ${{ secrets.PARATRANZ_CODE }}
+      - name: Copy converted
+        run: sudo sh ./Importer/copy_converted.sh
+      - name: Zipper
+        run: python ./Importer/zipper.py
       - name: Push
         run: sudo sh ./Importer/push.sh
