@@ -17,7 +17,7 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   そのうちのcsvフォルダをParaTranzのプロジェクトの最上位にアップロードしてください。残りのフォルダは後述のImporterで使用します。
     
 * リポジトリの構築:
-  * GitHubで新規リポジトリを作成します（リポジトリ名がGitHub PagesのURL名となります）。作成後、キットに含まれているImporterフォルダ、さらにHelp2CSVで生成されたsource_html、source_pot、docsフォルダをリポジトリの最上位にコミットしてください。  
+  * GitHubで新規リポジトリを作成します（リポジトリ名がGitHub PagesのURL名となります）。作成後、キットに含まれているImporterフォルダ、.gitattributesファイル、さらにHelp2CSVで生成されたsource_html、source_pot、docsフォルダをリポジトリの最上位にコミットしてください。  
   * リポジトリのSettingsを開き、OptionsメニューからGitHub Pagesのソースディレクトリを**master branch / docs folder**にセットします。
   * リポジトリのSettingsを開き、Secretsメニューから必要なSecretsを作成します（**NAME: VALUE**）。  
   * **PARATRANZ_SECRET:** - ParaTranzのプロフィールページ、鍵マークから確認できる英数字の文字列（********************************）
@@ -35,7 +35,9 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 * GitHub PagesのURL:
   * ***https://ユーザー名.github.io/リポジトリ名*** がページのURLです。リポジトリ作成直後はページが有効になるまで一定時間かかる場合があります。
   
-* 不要なファイル:
+* 生成されるファイル:
+  * CSV、POディレクトリにはParaTranzの翻訳データがバックアップされます。
+  * GMS2_Japanese-master.zipはGitHub Pagesの中身を圧縮したファイルです。GitHubの仕様により、翻訳済みのHTMLファイルの改行コードがCRLFからLFに強制変換されているため、GitHub外で利用する場合はご注意ください。
   * docs直下にある **.nojekyll** というファイルはHelpConverterでの変換時に追加されたもので、元のアーカイブには存在しないファイルです。  
   これはGitHub Pagesの動作に必要なファイルであり、GitHub外で利用する場合は不要となるため削除してください。
 
