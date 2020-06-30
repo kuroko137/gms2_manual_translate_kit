@@ -1,0 +1,37 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Import from ParaTranz
+
+on:
+  repository_dispatch:
+    types: [test_trigger]
+
+  schedule:
+    - cron:  '0 */3 * * *'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    if: "! contains(github.event.head_commit.message, '[ci skip]')"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip
+      - name: Install translate-toolkit
+        run: pip install translate-toolkit
+      - name: Copy sources
+        run: sudo sh ./Importer/copy.sh
+      - name: Run
+        run: python ./Importer/main.py
+        env:
+          PARATRANZ_SECRET: ${{ secrets.PARATRANZ_SECRET }}
+          PARATRANZ_CODE: ${{ secrets.PARATRANZ_CODE }}
+      - name: Push
+        run: sudo sh ./Importer/push.sh
