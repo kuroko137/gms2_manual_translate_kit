@@ -42,6 +42,8 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   * GMS2_Japanese-master.zipはGitHub Pagesの中身を圧縮したファイルです。GitHubの仕様により、翻訳済みのHTMLファイルの改行コードがCRLFからLFに強制変換されているため、GitHub外で利用する場合はご注意ください。
   * docs直下にある **.nojekyll** というファイルはHelpConverterでの変換時に追加されたもので、元のアーカイブには存在しないファイルです。これはGitHub Pagesの動作に必要なファイルであり、GitHub外で利用する場合は不要となるため削除してください。
 
+- - -
+
 * 手動でコミット/翻訳する必要があるファイル:
 
 |名称|概要|
@@ -66,6 +68,6 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 |GMS2_Japanese-master.zip|GitHub Pagesをアーカイブ化したファイル。翻訳済みファイルの改行コードがLFに変更されているため注意|
 
 ## 謝辞
-* **☆ (ゝω・)v** - **Trasnlation data importer** : ***https://github.com/matanki-saito/paratranz2es***
+* **☆ (ゝω・)v** - [**Trasnlation data importer**](https://github.com/matanki-saito/paratranz2es "Trasnlation data importer")
   * このキットは (ゝω・)vさんのTrasnlation data importerをもとに制作されています。
 
