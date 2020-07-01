@@ -13,7 +13,7 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 
 ## 使用方法
 * 必要ファイルの生成:
-  * Help2CSVを使ってGamemaker Studio 2のインストールディレクトリにあるchm2web/YoYoStudioHelp.zipを開き、変換を実行するとcsv、source_html、source_pot、docsという4つのフォルダが作成されます。
+  * リリースからダウンロードしたHelp2CSVを実行してください。Gamemaker Studio 2のインストールディレクトリにあるchm2web/YoYoStudioHelp.zipを指定し、変換を実行するとcsv、source_html、source_pot、docsという4つのフォルダが作成されます。
   そのうちのcsvフォルダをParaTranzのプロジェクトの最上位にアップロードしてください。残りのフォルダは後述のImporterで使用します。
     
 * リポジトリの構築:
@@ -38,8 +38,7 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 * 生成されるファイル:
   * CSV、POディレクトリにはParaTranzの翻訳データがバックアップされます。
   * GMS2_Japanese-master.zipはGitHub Pagesの中身を圧縮したファイルです。GitHubの仕様により、翻訳済みのHTMLファイルの改行コードがCRLFからLFに強制変換されているため、GitHub外で利用する場合はご注意ください。
-  * docs直下にある **.nojekyll** というファイルはHelpConverterでの変換時に追加されたもので、元のアーカイブには存在しないファイルです。  
-  これはGitHub Pagesの動作に必要なファイルであり、GitHub外で利用する場合は不要となるため削除してください。
+  * docs直下にある **.nojekyll** というファイルはHelpConverterでの変換時に追加されたもので、元のアーカイブには存在しないファイルです。これはGitHub Pagesの動作に必要なファイルであり、GitHub外で利用する場合は不要となるため削除してください。
 
 ### 予備情報
 
@@ -60,9 +59,11 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 |source_pot|ベースhtmlから生成されたpot。Importerによる変換処理時に参照|
 |Importer|ParaTranzからCSVをダウンロードし、HTMLに変換してからdocs以下に出力|
 |.github\workflows|定期実行アクション用のワークフローファイル|
+|.gitattributes|マニュアル内ファイルの改行コードを統一するための設定ファイル|
 |readme.md||
 |csv|ImporterによってParaTranzからダウンロードされたCSVファイル。バックアップ用途|
 |po|ImporterによってCSVファイルから変換されたPOファイル。HTMLの復元時に参照されるほか、OmegaTなど、他のエディタのためのバックアップ用途にも|
+|GMS2_Japanese-master.zip|GitHub Pagesをアーカイブ化したファイル。翻訳済みファイルの改行コードがLFに変更されているため注意|
 
 ## 謝辞
 * **☆ (ゝω・)v** - **Trasnlation data importer** : ***https://github.com/matanki-saito/paratranz2es***
