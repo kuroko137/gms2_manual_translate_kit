@@ -13,23 +13,25 @@ if __name__ == '__main__':
 
     new_zip = new_zip + '.zip'
 
-    l_old = []
-    l_new = []
+    if os.path.isfile(old_zip):
+        
+        l_old = []
+        l_new = []
 
-    with zipfile.ZipFile(old_zip) as zip_file:
-        infos = zip_file.infolist()
+        with zipfile.ZipFile(old_zip) as zip_file:
+            infos = zip_file.infolist()
 
-        for info in infos:
-            l_old.append(zip_file.read(info.filename))
-
-
-    with zipfile.ZipFile(new_zip) as zip_file:
-        infos = zip_file.infolist()
-
-        for info in infos:
-            l_new.append(zip_file.read(info.filename))
+            for info in infos:
+                l_old.append(zip_file.read(info.filename))
 
 
-    if set(l_old) == set(l_new):  
-        print('This is the same zip file as the old one. No changes were detected.')
-        os.remove(new_zip)
+        with zipfile.ZipFile(new_zip) as zip_file:
+            infos = zip_file.infolist()
+
+            for info in infos:
+                l_new.append(zip_file.read(info.filename))
+
+
+        if set(l_old) == set(l_new):  
+            print('This is the same zip file as the old one. No changes were detected.')
+            os.remove(new_zip)
