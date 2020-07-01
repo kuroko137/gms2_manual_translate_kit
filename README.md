@@ -42,6 +42,10 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   * CSV、POディレクトリにはParaTranzの翻訳データがバックアップされます。
   * GMS2_Japanese-master.zipはGitHub Pagesの中身を圧縮したファイルです。GitHubの仕様により、翻訳済みのHTMLファイルの改行コードがCRLFからLFに強制変換されているため、GitHub外で利用する場合はご注意ください。
   * docs直下にある **.nojekyll** というファイルはHelpConverterでの変換時に追加されたもので、元のアーカイブには存在しないファイルです。これはGitHub Pagesの動作に必要なファイルであり、GitHub外で利用する場合は不要となるため削除してください。
+  
+* POファイルのメタ情報:
+  * Importer/main.pyの設定値を編集することでPOファイルに追記されるメタ情報を変更することができます。  
+    （翻訳チーム名＋プロジェクトURL、プロジェクト名）
 
 - - -
 
