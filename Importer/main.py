@@ -1,11 +1,19 @@
 import os
+import sys
 import re
+import regex
 import urllib.request
 import zipfile
-import sys
+
 from pathlib import Path
 from translate.convert.po2html import converthtml
 from translate.convert.csv2po import convertcsv
+
+################# 各種設定 ###############
+
+# 日本語と英数字の間に半角スペースを自動で挿入するかどうか
+# 0で無効、1でスペースを挿入、2でスペースを削除
+Space_Adjustment = 1
 
 input_dir = 'utf8/csv/' # ParaTranz側の翻訳ファイル
 template_dir_html = 'source_html/' # GitPagesリポジトリのテンプレートHTML
@@ -22,13 +30,13 @@ po_replacer_tr = ['"Language: ja_JP\\n"',
 ]
 
 html_replacer_re_kw = [
-' to show toolbars of the Web Online Help System:', 'Click ([^>]+>)here([^>]+>) to show toolbars of the Web Online Help System: ([^>]+>)show toolbars</a>'
+' to show toolbars of the Web Online Help System:', re.compile('Click ([^>]+>)here([^>]+>) to show toolbars of the Web Online Help System: ([^>]+>)show toolbars</a>')
 ]
 html_replacer_re_tr = [
 '\\1こちら\\2をクリックするとWebオンラインヘルプシステムのツールバーを表示します: \\3ツールバーを表示</a>'
 ]
 
-restore_re_key = ['^"location","(source|target)","(target|source)"\n', '"location","source","target"\n']
+restore_re_key = [re.compile('^"location","(source|target)","(target|source)"\n'), '"location","source","target"\n']
 
 
 compiled_raw_csv_file_patter = re.compile(r'^' + input_dir + '.*\.csv$')
@@ -81,6 +89,7 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
             base_path = os.path.splitext(base_path)[0]
 
 
+            # バックアップ用のcsvを生成
             path_csv = os.path.join(output_dir + 'csv', base_path) + '.csv'
 
             if not os.path.exists(os.path.split(path_csv)[0]):
@@ -90,16 +99,46 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
                 f.write(zip_file.read(info.filename))
 
 
-            # CSVの整形
+            # 一時フォルダに整形したCSVを生成
 
             with open(path_csv, 'r', encoding='utf-8', newline='\n') as f_input:
+                # 日本語/英数字の間に半角スペースを挿入・削除
                 csv_lines = f_input.read()
 
-            with open(path_csv, 'w+', encoding='utf-8', newline='\n') as f_input:
+                insert_pat = [
+                regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])((<[^>]+>)*)((\p{Ps})?)([a-zA-Z0-9™])'),
+                regex.compile(r'(([a-zA-Z0-9™])(\p{Pe}?))((<[^>]+>)*)((\p{Ps})?)([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])'),
+                re.compile(r'(、|。|！|？) '),
+                re.compile(r' (、|。|！|？)'),
+                re.compile(r'\\n ')
+                ]
+
+                remove_pat = [
+                regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}]) ?((<[^>]+>)*) ?((\p{Ps})?)([a-zA-Z0-9™])'),
+                regex.compile(r'(([a-zA-Z0-9™])(\p{Pe}?)) ?((<[^>]+>)*)((\p{Ps})?) ?([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])')
+                ]
+
+                if Space_Adjustment == 1:
+                    csv_lines = insert_pat[0].sub(r'\1 \2\4\6', csv_lines)
+                    csv_lines = insert_pat[1].sub(r'\1\4 \6\8', csv_lines)
+                    csv_lines = insert_pat[2].sub(r'\1', csv_lines)
+                    csv_lines = insert_pat[3].sub(r'\1', csv_lines)
+                    csv_lines = insert_pat[4].sub(r'\\n', csv_lines)
+                elif Space_Adjustment == 2:
+                    csv_lines = remove_pat[0].sub(r'\1\2\4\6', csv_lines)
+                    csv_lines = remove_pat[1].sub(r'\1\4\6\8', csv_lines)
+
+                # ヘッダーを復元
                 if restore_re_key[0] != '':
-                    # ヘッダーを復元
-                    csv_lines = re.sub(restore_re_key[0], '', csv_lines)
+                    csv_lines = restore_re_key[0].sub( '', csv_lines)
                     csv_lines = restore_re_key[1] + csv_lines
+
+            path_cnv_csv = os.path.join(output_dir + 'csv_cnv', base_path) + '.csv'
+
+            if not os.path.exists(os.path.split(path_cnv_csv)[0]):
+                os.makedirs(os.path.split(path_cnv_csv)[0])
+
+            with open(path_cnv_csv, 'w+', encoding='utf-8', newline='\n') as f_input:
                 f_input.write(csv_lines)
 
 
@@ -115,7 +154,7 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
             if not os.path.exists(os.path.split(path_cnv_po)[0]):
                 os.makedirs(os.path.split(path_cnv_po)[0])
 
-            f_input = open(path_csv, 'rb')
+            f_input = open(path_cnv_csv, 'rb')
             f_output = open(path_cnv_po, 'wb+')
             f_template = open(path_template, 'rb')
             
@@ -127,14 +166,10 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
             
             
             # POの整形
-            
-            path_template = os.path.join('repo/' + template_dir_pot, base_path) + '.pot'
-            
 
             with open(path_cnv_po, 'r', encoding='utf-8', newline='\n') as f_po:
                 po_lines = f_po.read()
 
-            with open(path_cnv_po, 'w+', encoding='utf-8', newline='\n') as f_po:
                 count = 0
 
                 for _keyword in po_replacer_kw:
@@ -142,7 +177,8 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
                     if po_replacer_tr[count] != '' and _keyword in po_lines:
                         po_lines = po_lines.replace(_keyword, po_replacer_tr[count], 1)
                     count += 1
-                
+
+            with open(path_cnv_po, 'w+', encoding='utf-8', newline='\n') as f_po:                
                 f_po.write(po_lines)
             
 
@@ -173,22 +209,24 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
 
 
             with open(path_output, 'r', encoding='utf-8') as f_output:
+
                 html_lines = f_output.read()
 
-            with open(path_output, 'w+', encoding='utf-8') as f_output:
                 count = 0
                 tr_count = 0
 
+                # HTMLファイルの整形
                 for _keyword in html_replacer_re_kw:
-                    # HTMLファイルの整形
                     if count % 2 == 0:
                         if _keyword in html_lines:
-                            html_lines = re.sub(html_replacer_re_kw[count + 1], html_replacer_re_tr[tr_count], html_lines)
+                            html_lines = html_replacer_re_kw[count + 1].sub(html_replacer_re_tr[tr_count], html_lines)
                     else:
                         tr_count += 1
                     count += 1
 
+            with open(path_output, 'w+', encoding='utf-8') as f_output:
                 f_output.write(html_lines)
+
     return
 
 
