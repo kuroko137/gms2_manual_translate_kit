@@ -3,6 +3,7 @@ import tkinter.filedialog, tkinter.messagebox
 import os
 import shutil
 import zipfile
+import urllib.parse
 from pathlib import Path
 from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
@@ -27,7 +28,7 @@ r'#: YoYoStudioHelp%5Csource%5[^\n]+[\r\n]+msgid "online documentation, web onli
 r'#: YoYoStudioHelp%5Csource%5C_build%5Cindex\.html%2Bhtml\.body\.div:463\-57(\n|\r\n)msgid ""(\n|\r\n)"\(function\(i,s,o,g,r,a,m\)\{i\[\'GoogleAnalyticsObject\'\]=r;i\[r\]=i\[r\]\|\|function\(\)\{ "(\n|\r\n)"\(i\[r\]\.q=i\[r\]\.q\|\|\[\]\)\.push\(arguments\)\},i\[r\]\.l=1\*new Date\(\);a=s\.createElement\(o\)"(\n|\r\n)", m=s\.getElementsByTagName\(o\)\[0\];a\.async=1;a\.src=g;m\.parentNode\."(\n|\r\n)"insertBefore\(a,m\) \}\)\(window,document,\'script\',\'https:\/\/www\.google\-analytics\."(\n|\r\n)"com\/analytics\.js\',\'ga\'\); ga\(\'create\', \'UA\-2711665\-14\', \'auto\'\); ga\(\'send\', "(\n|\r\n)"\'pageview\'\);"(\n|\r\n)msgstr ""(\n|\r\n)'
 ]
 
-csv_remove_key = [r'"location","source","target"[\r\n]+']
+csv_remove_key = ['"location","source","target"']
 
 
 
@@ -39,6 +40,12 @@ class App(tkinter.Frame):
         self.s_import = StringVar(value='...')
         self.s_export = StringVar(value='...')
 
+        # self.b_add_url = BooleanVar(value=True)
+        self.b_add_url = BooleanVar()
+
+        self.s_en_url = StringVar(value='https://docs2.yoyogames.com/')
+        self.s_jp_url = StringVar()
+
         l_import_path = Label(root, text = 'YoYoStudioHelp.zip:\n[../GameMaker Studio 2/chm2web/YoYoStudioHelp.zip]')
         e_import_path = Entry(width = 80, textvariable = self.s_import)
         b_import_path = Button(root, text = 'パスを指定', padx = 5, command = self.SetImportPath)
@@ -46,6 +53,14 @@ class App(tkinter.Frame):
         l_export_path = Label(root, text = '出力先:\n[変換されたcsv/potファイルの出力先]')
         e_export_path = Entry(width = 80, textvariable = self.s_export)
         b_export_path = Button(root, text = 'パスを指定', padx = 5, command = self.SetExportPath)
+
+        # l_add_url = Label(root, text = 'コンテキストに追加')
+        c_add_url = Checkbutton(root, variable = self.b_add_url, text='コンテキストにURLを追加')
+
+        l_en_url = Label(root, text = '英語版マニュアルのURL:')
+        e_en_url = Entry(width = 75, textvariable = self.s_en_url)
+        l_jp_url = Label(root, text = '日本語版マニュアルのURL:')
+        e_jp_url = Entry(width = 75, textvariable = self.s_jp_url)
 
         b_run = Button(root, text = '変換開始', padx = 50, command = self.Run)
 
@@ -63,10 +78,16 @@ class App(tkinter.Frame):
         l_export_path.grid(row = 2, column = 0, sticky = 'nsew', padx = 10)
         e_export_path.grid(row = 3, column = 0, padx = 10, pady = 5)
         b_export_path.grid(row = 3, column = 1, padx = 5, pady = 5)
-        b_run.grid(row = 4, column = 0, padx = 50, pady = 10)
-        self.lb.grid(row = 6, column = 0, sticky = 'nsew', padx = 10, pady = 30)
-        sb1.grid(row = 6, column = 1, sticky = 'ns', padx = 10)
-        sb2.grid(row = 7, column = 0, sticky = 'ew', padx = 10)
+        # l_add_url.grid(row = 4, column = 0, padx = 10, pady = 5)
+        c_add_url.grid(row = 5, column = 0, padx = 10, pady = 5)
+        l_en_url.grid(row = 6, column = 0, sticky = 'nsew', padx = 10)
+        e_en_url.grid(row = 7, column = 0, padx = 10, pady = 5)
+        l_jp_url.grid(row = 8, column = 0, sticky = 'nsew', padx = 10)
+        e_jp_url.grid(row = 9, column = 0, padx = 10, pady = 5)
+        b_run.grid(row = 10, column = 0, padx = 50, pady = 10)
+        self.lb.grid(row = 11, column = 0, sticky = 'nsew', padx = 10, pady = 10)
+        sb1.grid(row = 12, column = 1, sticky = 'ns', padx = 10)
+        sb2.grid(row = 13, column = 0, sticky = 'ew', padx = 10)
 
 
     def SetImportPath(self):
@@ -88,6 +109,10 @@ class App(tkinter.Frame):
         import_path = self.s_import.get()
         export_path = self.s_export.get()
 
+        url_en = self.s_en_url.get()
+        url_jp = self.s_jp_url.get()
+        url_is_add = self.b_add_url.get()
+
         if import_path == '...' or import_path == '':
             tkinter.messagebox.showinfo('アーカイブが未指定', 'アーカイブのパスが指定されていません。\nGame Maker Studio 2 のインストールディレクトリにある chm2web/YoYoStudioHelp.zip を指定してください。')
             return
@@ -98,9 +123,30 @@ class App(tkinter.Frame):
             tkinter.messagebox.showinfo('エラー', '無視ファイルリスト（ignore_files.txt）が存在しません。')
             return
 
+        if not os.path.isfile(ignore_files_path):
+            tkinter.messagebox.showinfo('エラー', '無視ファイルリスト（ignore_files.txt）が存在しません。')
+            return
+
         if export_path == '...' or export_path == '':
             export_path = os.getcwd()
             self.s_export.set(str(export_path))
+
+        if url_is_add == True:
+            en_parse = urllib.parse.urlparse(url_en)
+            jp_parse = urllib.parse.urlparse(url_jp)
+
+            if url_en == '':
+                tkinter.messagebox.showinfo('エラー', '英語版マニュアルのURLが指定されていません。\nURLを指定し直すか、チェックを外してください。')
+                return
+            elif len(en_parse.netloc) == 0 or (en_parse.scheme != 'http' and en_parse.scheme != 'https'):
+                tkinter.messagebox.showinfo('エラー', '英語版マニュアルのURLが不正です。\nhttps://url/ 形式で指定する必要があります。\nURLを指定し直すか、チェックを外してください。')
+                return
+            elif url_jp == '':
+                tkinter.messagebox.showinfo('エラー', '日本語版マニュアルのURLが指定されていません。\nURLを指定し直すか、チェックを外してください。')
+                return
+            elif len(jp_parse.netloc) == 0 or (jp_parse.scheme != 'http' and jp_parse.scheme != 'https'):
+                tkinter.messagebox.showinfo('エラー', '日本語版マニュアルのURLが不正です。\nhttps://url/ 形式で指定する必要があります。\nURLを指定し直すか、チェックを外してください。')
+                return
 
         export_path = os.path.join(export_path, dir_name_output)
 
@@ -241,13 +287,37 @@ class App(tkinter.Frame):
                 f_template.close()
 
                 # CSV ファイルの整形
-                with open(path_csv, "r", encoding="utf-8", newline="\n") as f_csv:
-                    csv_lines = f_csv.read()
-                    for key_val in csv_remove_key:
-                        # 不要なエントリを削除
-                        csv_lines = re.sub(key_val,'',csv_lines)
+                with open(path_csv, "r", encoding="utf-8") as f_csv:
+                    csv_lines = ''
 
-                with open(path_csv, "w+", encoding="utf-8", newline="\n") as f_csv:
+                    if url_is_add == True:
+                        # コンテキストにURL情報をセット
+                        urls = [(url_en + base_dir + '/' + os.path.split(info.filename)[1]), (url_jp + base_dir + '/' + os.path.split(info.filename)[1])]
+                        context = ',"URL_EN : ' + urls[0] + ' \\n\\nURL_JP : ' + urls[1] + '"'
+
+                    while True:
+                        line = f_csv.readline()
+                        if line:
+                            line = line.rstrip('\n')
+
+                            for key_val in csv_remove_key:
+                                # 不要なエントリかどうかのチェック
+                                if key_val in line:
+                                    line = ''
+                                    continue
+                            if line == '':
+                                # 不要なエントリはスキップさせる
+                                continue
+
+                            if url_is_add == True:
+                                # コンテキストを追加
+                                line = line + context
+
+                            csv_lines = csv_lines + line + '\n'
+                        else:
+                            break
+
+                with open(path_csv, "w+", encoding="utf-8") as f_csv:
                     f_csv.write(csv_lines)
 
 
@@ -274,8 +344,8 @@ class App(tkinter.Frame):
 
 def main():
     root = Tk()
-    root.title(u"HelpConverter for GMS2 - 1.00")
-    root.geometry("680x600")
+    root.title(u"HelpConverter for GMS2 - 1.10")
+    root.geometry("680x760")
     frame = App(root)
     root.mainloop()
 
