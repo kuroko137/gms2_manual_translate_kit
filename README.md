@@ -15,6 +15,8 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 * 必要ファイルの生成:
   * リリースからダウンロードしたHelp2CSVを実行してください。Gamemaker Studio 2のインストールディレクトリにあるchm2web/YoYoStudioHelp.zipを指定し、変換を実行するとcsv、source_html、source_pot、docsという4つのフォルダが作成されます。
   そのうちのcsvフォルダをParaTranzのプロジェクトの最上位にアップロードしてください。残りのフォルダは後述のImporterで使用します。
+  * コンテキストの追加オプションはParaTranzのcontext欄に、編集されているページのURLリンク（英語/日本語マニュアル）を追加するオプションです。使用する場合はチェックし、有効なURLを入力してください。  
+  日本語版マニュアルのURL例: ***https://ユーザー名.github.io/リポジトリ名/***
     
 * リポジトリの構築:
   * GitHubで新規リポジトリを作成します（リポジトリ名がGitHub PagesのURL名となります）。作成後、キットに含まれているImporterフォルダ、.gitattributesファイル、さらにHelp2CSVで生成されたsource_html、source_pot、docsフォルダをリポジトリの最上位にコミットしてください。  
