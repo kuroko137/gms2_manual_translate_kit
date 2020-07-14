@@ -13,14 +13,15 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 
 ## 使用方法
 * 必要ファイルの生成:
-  * リリースからダウンロードしたHelp2CSVを実行してください。Gamemaker Studio 2のインストールディレクトリにあるchm2web/YoYoStudioHelp.zipを指定し、変換を実行するとcsv、source_html、source_pot、docsという4つのフォルダが作成されます。  
-  そのうちのcsvフォルダを、ParaTranzのプロジェクトの最上位にアップロードしてください。サブフォルダのファイルを完全にアップロードできなかった場合は、ParaTranzの該当フォルダを開いてファイルだけをアップロードするとうまくいくはずです。  
+  * リリースからダウンロードしたHelp2CSVを実行してください。Gamemaker Studio 2のインストールディレクトリにあるchm2web/YoYoStudioHelp.zipを指定し、変換を実行するとcsv、source_html、source_pot、docsという4つのディレクトリが作成されます。  
+  そのうちのcsvディレクトリを、ParaTranzのプロジェクトの最上位にアップロードしてください。サブディレクトリのファイルを完全にアップロードできなかった場合は、ParaTranzの該当ディレクトリを開いてファイルだけをアップロードするとうまくいくはずです。  
+  * 「ディレクトリ構成の簡易化」オプションはParaTranzでのファイル管理を容易化するためのものです。深層にあるファイルの名前を'ディレクトリ／ファイル名'に変更し、上位のディレクトリに出力させます。  
   * 「コンテキストの追加」オプションはParaTranzのcontext欄に、英語/日本語マニュアルの実ページへのURLリンクを追加するオプションです。このオプションによって、編集中のページがどのように見えるか簡単に確認できるようになります。  
   使用する場合はチェックし、有効なURLを入力してください。  
   日本語版マニュアルのURL例: ***https://ユーザー名.github.io/リポジトリ名/***
     
 * リポジトリの構築:
-  * GitHubで新規リポジトリを作成します（リポジトリ名がGitHub PagesのURL名となります）。作成後、キットに含まれているImporterフォルダ、.gitattributesファイル、さらにHelp2CSVで生成されたsource_html、source_pot、docsフォルダをリポジトリの最上位にコミットしてください。  
+  * GitHubで新規リポジトリを作成します（リポジトリ名がGitHub PagesのURL名となります）。作成後、キットに含まれているImporterディレクトリ、.gitattributesファイル、さらにHelp2CSVで生成されたtr_sources、docsディレクトリをリポジトリの最上位にコミットしてください。  
   * リポジトリのSettingsを開き、OptionsメニューからGitHub Pagesのソースディレクトリを**master branch / docs folder**にセットします。
   * リポジトリのSettingsを開き、Secretsメニューから必要なSecretsを作成します（**NAME: VALUE**）。  
   * **PARATRANZ_SECRET:** - ParaTranzのプロフィールページ、鍵マークから確認できる英数字の文字列（********************************）
@@ -69,14 +70,14 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 |名称|概要|
 |:---:|:---:|
 |docs|GitHub Pagesの実体|
-|source_html|翻訳対象となるベースhtml。Importerによる変換処理時に参照|
-|source_pot|ベースhtmlから生成されたpot。Importerによる変換処理時に参照|
+|tr_sources|翻訳対象となるベースファイル群（html, pot, csv）。Importerによる変換処理時に参照|
 |Importer|ParaTranzからCSVをダウンロードし、HTMLに変換してからdocs以下に出力|
 |.github\workflows|定期実行アクション用のワークフローファイル|
 |.gitattributes|マニュアル内ファイルの改行コードを統一するための設定ファイル|
 |readme.md||
-|csv|ImporterによってParaTranzからダウンロードされたCSVファイル。バックアップ用途|
-|po|ImporterによってCSVファイルから変換されたPOファイル。HTMLの復元時に参照されるほか、OmegaTなど、他のエディタのためのバックアップ用途にも|
+|generated\csv|ImporterによってParaTranzからダウンロードされたCSVファイル。バックアップ用途|
+|generated\csv_cnv|Importerによって整形されたCSVファイル|
+|generated\po_cnv|csv_cnvから変換されたPOファイル。HTMLの復元時に参照されるほか、OmegaTなど、他のエディタのためのバックアップ用途にも|
 |GMS2_Japanese-master.zip|GitHub Pagesをアーカイブ化したファイル。翻訳済みファイルの改行コードがLFに変更されているため注意|
 
 ## 謝辞
