@@ -13,7 +13,7 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 
 ## 使用方法
 * 必要ファイルの生成:
-  * リリースからダウンロードしたHelp2CSVを実行してください。Gamemaker Studio 2のインストールディレクトリにあるchm2web/YoYoStudioHelp.zipを指定し、変換を実行するとcsv、source_html、source_pot、docsという4つのディレクトリが作成されます。  
+  * リリースからダウンロードしたHelp2CSVを実行してください。Gamemaker Studio 2のインストールディレクトリにあるchm2web/YoYoStudioHelp.zipを指定し、変換を実行するとcsv、tr_sources、docs、docs_overrideという4つのディレクトリが作成されます。  
   そのうちのcsvディレクトリを、ParaTranzのプロジェクトの最上位にアップロードしてください。サブディレクトリのファイルを完全にアップロードできなかった場合は、ParaTranzの該当ディレクトリを開いてファイルだけをアップロードするとうまくいくはずです。  
   
   * 「コンテキストの追加」オプションはParaTranzのcontext欄に、英語/日本語マニュアルの実ページへのURLリンクを追加するオプションです。このオプションによって、編集中のページがどのように見えるか簡単に確認できるようになります。  
@@ -23,11 +23,11 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   * 「ディレクトリ構成の簡易化」オプションはParaTranzでのファイル管理を容易化するためのものです。深層にあるファイルの名前を'ディレクトリ／ファイル名'に変更し、上位のディレクトリに出力させます。
     
 * リポジトリの構築:
-  * GitHubで新規リポジトリを作成します（リポジトリ名がGitHub PagesのURL名となります）。作成後、キットに含まれているImporterディレクトリ、.gitattributesファイル、さらにHelp2CSVで生成されたtr_sources、docsディレクトリをリポジトリの最上位にコミットしてください。  
+  * GitHubで新規リポジトリを作成します（リポジトリ名がGitHub PagesのURL名となります）。作成後、キットに含まれているImporterディレクトリ、.gitattributesファイル、さらにHelp2CSVで生成されたtr_sources、docs、docs_overrideディレクトリをリポジトリの最上位にコミットしてください。  
   
   * リポジトリのSettingsを開き、OptionsメニューからGitHub Pagesのソースディレクトリを**master branch / docs folder**にセットします。
   
-  * リポジトリのSettingsを開き、Secretsメニューから必要なSecretsを作成します（**NAME: VALUE**）。  
+  * リポジトリのSettingsを開き、Secretsメニューから必要なSecretsを作成します（**NAME: VALUE**）。
   * **PARATRANZ_SECRET:** - ParaTranzのプロフィールページ、鍵マークから確認できる英数字の文字列（********************************）
   * **PARATRANZ_CODE:** - ParaTranzのプロジェクト番号（projects/***の数字）
   
@@ -54,6 +54,10 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   
   * docs直下にある **.nojekyll** というファイルはHelpConverterでの変換時に追加されたもので、元のアーカイブには存在しないファイルです。これはGitHub Pagesの動作に必要なファイルであり、GitHub外で利用する場合は不要となるため削除してください。
   
+* ParaTranzで管理されないファイルの翻訳
+  * docs_override/docs以下にアップロードされたファイルはImporterの実行時、コミットの直前でdocsに上書きコピーされます。  
+  翻訳したファイルをこのディレクトリに追加することで、ParaTranzの管理対象外となっている.jsファイルや画像ファイルを日本語化することができます。
+ 
 * テキストの整形
   * Importer/main.pyのSpace_Adjustmentを変更することで日本語と英数字とのあいだに自動で半角スペースを挿入することができます。またそれとは逆に、スペースを削除して字間を詰めることもできます。  
     デフォルトでは自動挿入が有効となっています。
@@ -77,6 +81,7 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 |名称|概要|
 |:---:|:---:|
 |docs|GitHub Pagesの実体|
+|docs_override|Importerの実行時、docsに上書きコピーされるファイル群|
 |tr_sources|翻訳対象となるベースファイル群（html, pot, csv）。Importerによる変換処理時に参照|
 |Importer|ParaTranzからCSVをダウンロードし、HTMLに変換してからdocs以下に出力|
 |.github\workflows|定期実行アクション用のワークフローファイル|
