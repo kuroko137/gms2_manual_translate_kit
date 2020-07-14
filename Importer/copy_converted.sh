@@ -1,8 +1,11 @@
 #!/bin/sh
 
-cp Converted/docs ./ -a -r -f
-cp Converted/po ./ -a -r -f
-cp Converted/csv ./ -a -r -f
+rm -rf generated
+cp Converted/ ./generated -a -r -f
+cp generated/docs ./ -a -r -f
+rm -rf generated/docs
+
+cp docs_override/docs ./ -a -r -f
 
 mkdir -p GMS2_Japanese-master/
 cp docs GMS2_Japanese-master/ -a -r -f
