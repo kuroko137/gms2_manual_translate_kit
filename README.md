@@ -14,22 +14,22 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 ## 使用方法
 * 必要ファイルの生成:
   * リリースからダウンロードしたHelp2CSVを実行してください。Gamemaker Studio 2のインストールディレクトリにあるchm2web/YoYoStudioHelp.zipを指定し、変換を実行するとcsv、tr_sources、docs、docs_overrideという4つのディレクトリが作成されます。  
-  そのうちのcsvディレクトリを、ParaTranzのプロジェクトの最上位にアップロードしてください。サブディレクトリのファイルを完全にアップロードできなかった場合は、ParaTranzの該当ディレクトリを開いてファイルだけをアップロードするとうまくいくはずです。  
+  そのうちの**csv**ディレクトリを、**ParaTranz**のプロジェクトの最上位にアップロードしてください。サブディレクトリのファイルを完全にアップロードできなかった場合は、ParaTranzの該当ディレクトリを開いてファイルだけをアップロードするとうまくいくはずです。  
   
-  * 「コンテキストの追加」オプションはParaTranzのcontext欄に、英語/日本語マニュアルの実ページへのURLリンクを追加するオプションです。このオプションによって、編集中のページがどのように見えるか簡単に確認できるようになります。  
+  * **コンテキストの追加** オプションはParaTranzのcontext欄に、英語/日本語マニュアルの実ページへのURLリンクを追加するオプションです。このオプションによって、編集中のページがどのように見えるか簡単に確認できるようになります。  
   使用する場合はチェックし、有効なURLを入力してください。  
   日本語版マニュアルのURL例: ***https://ユーザー名.github.io/リポジトリ名/***
 
-  * 「ディレクトリ構成の簡易化」オプションはParaTranzでのファイル管理を容易化するためのものです。深層にあるファイルの名前を'ディレクトリ／ファイル名'に変更し、上位のディレクトリに出力させます。
+  * **ディレクトリ構成の簡易化** オプションはParaTranzでのファイル管理を容易化するためのものです。深層にあるファイルの名前を'ディレクトリ／ファイル名'に変更し、上位のディレクトリに出力させます。
     
 * リポジトリの構築:
-  * GitHubで新規リポジトリを作成します（リポジトリ名がGitHub PagesのURL名となります）。作成後、キットに含まれているImporterディレクトリ、.gitattributesファイル、さらにHelp2CSVで生成されたtr_sources、docs、docs_overrideディレクトリをリポジトリの最上位にコミットしてください。  
+  * GitHubで新規リポジトリを作成します（リポジトリ名がGitHub PagesのURL名となります）。作成後、キットに含まれている**Importer**ディレクトリ、**.gitattributes**ファイル、さらにHelp2CSVで生成された**tr_sources**、**docs**、**docs_override**ディレクトリをリポジトリの最上位にコミットしてください。  
   
   * リポジトリのSettingsを開き、OptionsメニューからGitHub Pagesのソースディレクトリを**master branch / docs folder**にセットします。
   
-  * リポジトリのSettingsを開き、Secretsメニューから必要なSecretsを作成します（**NAME: VALUE**）。
-  * **PARATRANZ_SECRET:** - ParaTranzのプロフィールページ、鍵マークから確認できる英数字の文字列（********************************）
-  * **PARATRANZ_CODE:** - ParaTranzのプロジェクト番号（projects/***の数字）
+  * リポジトリのSettingsを開き、Secretsメニューから必要なSecretsを作成します（**NAME: VALUE**）  
+  **PARATRANZ_SECRET:** - ParaTranzのプロフィールページ、鍵マークから確認できる英数字の文字列（********************************）  
+  **PARATRANZ_CODE:** - ParaTranzのプロジェクト番号（projects/***の数字）
   
 * ワークフローの作成と実行:
   * リポジトリのActionsページを開き、**New workflow** > **set up a workflow yourself**でワークフローの作成ページを開きます。  
@@ -50,12 +50,12 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 * 生成されるファイル:
   * CSV、POディレクトリにはParaTranzの翻訳データがバックアップされます。
   
-  * GMS2_Japanese-master.zipはGitHub Pagesの中身を圧縮したファイルです。GitHubの仕様により、翻訳済みのHTMLファイルの改行コードがCRLFからLFに強制変換されているため、GitHub外で利用する場合はご注意ください。
+  * **GMS2_Japanese-master.zip** はGitHub Pagesの中身を圧縮したファイルです。GitHubの仕様により、翻訳済みのHTMLファイルの改行コードがCRLFからLFに強制変換されているため、GitHub外で利用する場合はご注意ください。
   
   * docs直下にある **.nojekyll** というファイルはHelpConverterでの変換時に追加されたもので、元のアーカイブには存在しないファイルです。これはGitHub Pagesの動作に必要なファイルであり、GitHub外で利用する場合は不要となるため削除してください。
   
 * ParaTranzで管理されないファイルの翻訳
-  * docs_override/docs以下にアップロードされたファイルはImporterの実行時、コミットの直前でdocsに上書きコピーされます。  
+  * **docs_override/docs** 以下にアップロードされたファイルはImporterの実行時、コミットの直前でdocsに上書きコピーされます。  
   翻訳したファイルをこのディレクトリに追加することで、ParaTranzの管理対象外となっている.jsファイルや画像ファイルを日本語化することができます。
  
 * テキストの整形
@@ -81,7 +81,7 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 |名称|概要|
 |:---:|:---:|
 |docs|GitHub Pagesの実体|
-|docs_override|Importerの実行時、docsに上書きコピーされるファイル群|
+|docs_override\docs|Importerの実行時、docsに上書きコピーされるファイル群|
 |tr_sources|翻訳対象となるベースファイル群（html, pot, csv）。Importerによる変換処理時に参照|
 |Importer|ParaTranzからCSVをダウンロードし、HTMLに変換してからdocs以下に出力|
 |.github\workflows|定期実行アクション用のワークフローファイル|
