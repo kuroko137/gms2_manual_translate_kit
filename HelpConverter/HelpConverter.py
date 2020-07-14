@@ -15,6 +15,7 @@ dir_name_output = 'output'
 dir_name_tmp = os.path.join('tmp', 'YoYoStudioHelp')
 
 dir_name_docs = 'docs'
+dir_name_override = 'docs_override/docs'
 dir_name_po = 'po'
 dir_name_csv = 'csv'
 dir_name_source_html = 'tr_sources/source_html'
@@ -250,6 +251,7 @@ class App(tkinter.Frame):
 
         # 各ディレクトリのパスを定義
         export_path = os.path.join(export_path, dir_name_output)
+        override_dir = os.path.join(export_path, dir_name_override)
         html_output_dir = os.path.join(export_path, dir_name_source_html)
         tmp_output_dir = os.path.join(export_path, dir_name_tmp)
         # pot_output_dir = os.path.join(export_path, dir_name_source_pot)
@@ -423,6 +425,10 @@ class App(tkinter.Frame):
 
                 if export_count % 10 == 0: # 10ファイル処理したらアップデート
                     self.update()
+
+
+        if not os.path.exists(override_dir):
+            os.makedirs(override_dir)
 
         # .nojekyllを生成
         jerky_path = os.path.join(docs_output_dir, '.nojekyll')
