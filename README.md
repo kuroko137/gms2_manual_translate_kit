@@ -43,16 +43,16 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   
 * アップデート:
   * Gamemaker Studio 2のアップデートによってマニュアルに変更が加えられた場合、関連ファイルをHelp2CSVで再生成したファイルに置き換えてください。  
-  ファイルの増減があった場合はsource_html、source_pot、docs、およびcsv、poディレクトリ内のファイルをいったん削除してやり直しても差し支えありません。
+  ファイルの増減があった場合はtr_sources、docs、およびgeneratedディレクトリ内のファイルをいったん削除してやり直しても差し支えありません。
 
 ### 予備情報
   
 * 生成されるファイル:
-  * CSV、POディレクトリにはParaTranzの翻訳データがバックアップされます。
+  * generated/CSVにはParaTranzの翻訳データが、残りのディレクトリには変換後の翻訳データがバックアップされます。
   
   * **GMS2_Japanese-master.zip**はGitHub Pagesの中身を圧縮したファイルです。GitHubの仕様により、翻訳済みのHTMLファイルの改行コードがCRLFからLFに強制変換されているため、GitHub外で利用する場合はご注意ください。
   
-  * docs直下にある**.nojekyll**というファイルはHelpConverterでの変換時に追加されたもので、元のアーカイブには存在しないファイルです。これはGitHub Pagesの動作に必要なファイルであり、GitHub外で利用する場合は不要となるため削除してください。
+  * docs直下に置かれる**.nojekyll**というファイルはHelpConverterでの変換時に追加されたもので、元のアーカイブには存在しないファイルです。これはGitHub Pagesの動作に必要なファイルであり、GitHub外で利用する場合は不要となるため削除してください。
   
 * ParaTranzで管理されないファイルの翻訳
   * **docs_override/docs**以下にアップロードされたファイルはImporterの実行時、コミットの直前でdocsに上書きコピーされます。  
@@ -65,16 +65,21 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 * POファイルのメタ情報:
   * Importer/main.pyの設定値を編集することでPOファイルに追記されるメタ情報を変更することができます。  
     （翻訳チーム名＋プロジェクトURL、プロジェクト名）
+  
+* Discordへの通知:
+  * **DISCORD_WEBHOOK**というSecretsを作成してDiscordのウェブフックURLを登録すると、Github Pagesが更新されたときに指定したチャンネルへ通知が送られます。
+  importer.ymlを編集することで通知メッセージの内容を変更可能です。
 
 - - -
 
-* 手動でコミット/翻訳する必要があるファイル:
+* 手動でコミット/翻訳する必要があるファイル（docs_overrideへのコミットが必要）:
 
 |名称|概要|
 |:---:|:---:|
 |docs/files/treearr.js|ツリーのトピック名|
 |docs/files/helpindex.js|トピックの選択ダイアログ|
 |docs/files/search.js|検索時のエラーメッセージ類|
+|docs/*.png, *.gif|各種画像ファイル|
 
 * リポジトリ構成:
 
