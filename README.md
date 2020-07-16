@@ -65,6 +65,10 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 * POファイルのメタ情報:
   * Importer/main.pyの設定値を編集することでPOファイルに追記されるメタ情報を変更することができます。  
     （翻訳チーム名＋プロジェクトURL、プロジェクト名）
+  
+* Discordへの通知:
+  * **DISCORD_WEBHOOK**というSecretsを作成し、DiscordのウェブフックURLを登録するとGithub Pagesが更新されたときに指定したチャンネルへ通知を送ります。
+  importer.ymlを編集することで通知メッセージの内容を変更可能です。
 
 - - -
 
