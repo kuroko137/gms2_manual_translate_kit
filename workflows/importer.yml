@@ -31,13 +31,22 @@ jobs:
       - name: Copy sources
         run: sudo sh ./Importer/copy_sources.sh
       - name: Run
-        run: python ./Importer/main.py
+        run: python ./Importer/main.py # CSV > HTMLの変換実行
         env:
           PARATRANZ_SECRET: ${{ secrets.PARATRANZ_SECRET }}
           PARATRANZ_CODE: ${{ secrets.PARATRANZ_CODE }}
       - name: Copy converted
         run: sudo sh ./Importer/copy_converted.sh
       - name: Zipper
-        run: python ./Importer/zipper.py
+        run: python ./Importer/zipper.py # マニュアルの内容をアーカイブ化
       - name: Push
-        run: sudo sh ./Importer/push.sh
+        run: sudo sh ./Importer/push.sh # 変更があればコミット&プッシュ
+      - name: Discord notification
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        if: ${{ env.action_state != 'yellow' && env.DISCORD_WEBHOOK}}
+        uses: Ilshidur/action-discord@master # Discordへの更新通知
+        with:
+          # https://git.io/で生成した短縮URLを入れると便利かもしれません
+          # args: 'ParaTranzの翻訳をオンラインヘルプに反映: {{ EVENT_PAYLOAD.head_commit.timestamp }} - https://git.io/*****'
+          args: 'ParaTranzの翻訳をオンラインヘルプに反映: {{ EVENT_PAYLOAD.head_commit.timestamp }}'
