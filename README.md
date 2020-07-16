@@ -67,18 +67,19 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
     （翻訳チーム名＋プロジェクトURL、プロジェクト名）
   
 * Discordへの通知:
-  * **DISCORD_WEBHOOK**というSecretsを作成し、DiscordのウェブフックURLを登録するとGithub Pagesが更新されたときに指定したチャンネルへ通知を送ります。
+  * **DISCORD_WEBHOOK**というSecretsを作成し、DiscordのウェブフックURLを登録すると、Github Pagesが更新されたときに指定したチャンネルへ通知を送ります。
   importer.ymlを編集することで通知メッセージの内容を変更可能です。
 
 - - -
 
-* 手動でコミット/翻訳する必要があるファイル:
+* 手動でコミット/翻訳する必要があるファイル（docs_overrideへのコミットが必要）:
 
 |名称|概要|
 |:---:|:---:|
 |docs/files/treearr.js|ツリーのトピック名|
 |docs/files/helpindex.js|トピックの選択ダイアログ|
 |docs/files/search.js|検索時のエラーメッセージ類|
+|docs/*.png|各種画像ファイル|
 
 * リポジトリ構成:
 
