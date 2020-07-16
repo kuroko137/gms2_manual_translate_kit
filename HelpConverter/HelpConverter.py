@@ -112,6 +112,9 @@ class App(tkinter.Frame):
         # 目印としてコード行に識別子を挿入
         lines = re.sub(r'(<[^<]+class="code"[^>]*>)', r'\1{ANY_CODE} ', lines)
 
+        # 目印として画像のテキスト情報に識別子を挿入
+        lines = re.sub(r'alt="([^"]+)"', r'alt="{IMG_TXT} \1"', lines)
+
         # ノーブレークスペースをダミータグに置換
         new_lines = ''
         separated = re.split(r'((&nbsp;)+)', lines)
@@ -449,7 +452,7 @@ class App(tkinter.Frame):
 
 def main():
     root = Tk()
-    root.title(u"HelpConverter for GMS2 - 1.10")
+    root.title(u"HelpConverter for GMS2 - 1.20")
     root.geometry("680x700")
     frame = App(root)
     root.mainloop()

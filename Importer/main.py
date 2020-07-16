@@ -216,6 +216,9 @@ def format_html(lines):
     # コードの識別子を削除
     lines = re.sub(r'{ANY_CODE} ?', '', lines)
 
+    # 画像テキストの識別子を削除
+    lines = re.sub(r'{IMG_TXT} ?', '', lines)
+
     # URLのドットを復元
     lines = re.sub(r'{\-dot\-}', r'.', lines)
 
