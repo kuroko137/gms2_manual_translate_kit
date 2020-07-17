@@ -434,7 +434,7 @@ class App(tkinter.Frame):
             os.makedirs(override_dir)
 
         # .nojekyllを生成
-        jerky_path = os.path.join(docs_output_dir, '.nojekyll')
+        jerky_path = os.path.join(override_dir, '.nojekyll')
         with open(jerky_path, "w+") as f:
             f.write('')
 
