@@ -51,25 +51,26 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   ファイルの増減があった場合はtr_sources、docs、およびgeneratedディレクトリ内のファイルをいったん削除してやり直しても差し支えありません。  
   
   * 2020/07/17現在、ParaTranzにおけるファイルの更新/翻訳のインポートはディレクトリ単位で行うことができないため、各ディレクトリを直接開いてファイルのみアップロードする必要があります。
-
+  
+* ParaTranzの管理外ファイルの翻訳
+  * **override/docs**以下にアップロードされたファイルはImporterの実行時、コミットの直前でdocsに上書きコピーされます。翻訳したファイルをこのディレクトリに追加することで、ParaTranzの管理対象外となっている.jsファイルや画像ファイルを日本語化することができます。
+  * 機能を有効とするには、overrideディレクトリの直下に_VERSIONファイルをコミットする必要があります。
+  このファイルはリポジトリ直下の_VERSIONファイルと比較されます。記述されているバージョンがリポジトリ直下のものより古い場合は機能が無効となり、コピーが行われません。
+  
+* DnDアクション/イベント名の翻訳
+  * importer/main.pyのGenerate_FullTranslationオプションをTrueに設定すると、ParaTranzのenglish.csvから生成した辞書をもとにマニュアル中のDnDアクション名を自動翻訳（単純置換）することができます。  
+  * 自動翻訳が行われたマニュアルはGMS2_Japanese_Alt-master.zipという二次アーカイブに含められ、Github Pagesと通常用のアーカイブ（GMS2_Japanese-master.zip）には影響を与えません。  
+  * override_extraディレクトリは二次アーカイブ用のoverrideディレクトリであり、overrideに続いて上書きコピーを行います。こちらも機能させるにはoverride_extraディレクトリの直下に_VERSIONファイルのコミットが必要です。  
+  * イベント名は自動翻訳されないため、このディレクトリに手動で翻訳したHTMLをコミットする必要があります。
+  
 ### 予備情報
  
-* タグつきのエントリ
-  * **{IMG_TXT}** 画像の代替テキスト（alt属性）に対応するエントリです。  
-  * **{ANY_CODE}** GML向けのサンプルコードなど、何らかのコードに対応するエントリです。  
-  おもに文脈情報として利用するためのもので、そのほとんどは翻訳不要ですが、中にはコメント行が含まれているものもあり、そういったエントリは一部を翻訳する必要があります。
+* エントリへの追加タグ
+  * **{IMG_TXT}** 画像の代替テキスト（alt属性）に付加されるタグです。  
+  * **{ANY_CODE}** GML向けのサンプルコードなど、何らかのコードに付加されるタグです。  
+  このタグを付加されたエントリはおもに文脈情報として利用するためのもので、そのほとんどは翻訳不要です。ただし中にはコメント行が含まれているエントリもあり、そうしたものは翻訳する必要があります。
+  * **{CTR_S}, {CTR_N}** 見出しのDnD名を対訳表示するためのタグです。  
   
-* 生成されるファイル:
-  * generated/CSVにはParaTranzの翻訳データが、残りのディレクトリには変換後の翻訳データがバックアップされます。
-  
-  * **GMS2_Japanese-master.zip**はGitHub Pagesの中身を圧縮したファイルです。GitHubの仕様により、翻訳済みのHTMLファイルの改行コードがCRLFからLFに強制変換されているため、GitHub外で利用する場合はご注意ください。
-  
-  * docs直下に置かれる**.nojekyll**というファイルはHelpConverterでの変換時に追加されたもので、元のアーカイブには存在しないファイルです。これはGitHub Pagesの動作に必要なファイルであり、GitHub外で利用する場合は不要となるため削除してください。
-  
-* ParaTranzで管理されないファイルの翻訳
-  * **docs_override/docs**以下にアップロードされたファイルはImporterの実行時、コミットの直前でdocsに上書きコピーされます。  
-  翻訳したファイルをこのディレクトリに追加することで、ParaTranzの管理対象外となっている.jsファイルや画像ファイルを日本語化することができます。
- 
 * テキストの整形
   * Importer/main.pyのSpace_Adjustmentを変更することで日本語と英数字とのあいだに自動で半角スペースを挿入することができます。またそれとは逆に、スペースを削除して字間を詰めることもできます。  
     デフォルトでは自動挿入が有効となっています。
@@ -78,13 +79,22 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   * Importer/main.pyの設定値を編集することでPOファイルに追記されるメタ情報を変更することができます。  
     （翻訳チーム名＋プロジェクトURL、プロジェクト名）
   
+* 生成されるファイル:
+  * generated/CSVにはParaTranzの翻訳データが、残りのディレクトリには変換後の翻訳データがバックアップされます。
+  
+  * **GMS2_Japanese-master.zip**は翻訳されたマニュアルをアーカイブ化したファイルです。
+  
+  * **GMS2_Japanese_Alt-master.zip**は上記に加え、DnDアクション/イベント名が翻訳されています。
+  
+  * docs直下に置かれる**.nojekyll**というファイルはHelpConverterでの変換時に追加されたもので、元のアーカイブには存在しないファイルです。これはGitHub Pagesの動作に必要なファイルであり、GitHub外で利用する場合は不要となるため削除してください。
+  
 * Discordへの通知:
   * **DISCORD_WEBHOOK**というSecretsを作成してDiscordのウェブフックURLを登録すると、Github Pagesが更新されたときに指定したチャンネルへ通知が送られます。
   importer.ymlを編集することで通知メッセージの内容を変更可能です。
 
 - - -
 
-* 手動でコミット/翻訳する必要があるファイル（docs_overrideへのコミットが必要）:
+* 手動でコミット/翻訳する必要があるファイル（override/docsへのコミットが必要）:
 
 |名称|概要|
 |:---:|:---:|
@@ -98,16 +108,15 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 |名称|概要|
 |:---:|:---:|
 |docs|GitHub Pagesの実体|
-|docs_override\docs|Importerの実行時、docsに上書きコピーされるファイル群|
-|tr_sources|翻訳対象となるベースファイル群（html, pot, csv）。Importerによる変換処理時に参照|
-|Importer|ParaTranzからCSVをダウンロードし、HTMLに変換してからdocs以下に出力|
-|.github\workflows|定期実行アクション用のワークフローファイル|
 |.gitattributes|マニュアル内ファイルの改行コードを統一するための設定ファイル|
-|readme.md||
-|generated\csv|ImporterによってParaTranzからダウンロードされたCSVファイル。バックアップ用途|
-|generated\csv_cnv|Importerによって整形されたCSVファイル|
-|generated\po_cnv|csv_cnvから変換されたPOファイル。HTMLの復元時に参照されるほか、OmegaTなど、他のエディタのためのバックアップ用途にも|
-|GMS2_Japanese-master.zip|GitHub Pagesをアーカイブ化したファイル。翻訳済みファイルの改行コードがLFに変更されているため注意|
+|.github/workflows|Github Actionsのワークフローファイル|
+|Importer|ParaTranzの翻訳をGithub Pagesに反映するためのワークフロー用ツール|
+|tr_sources|翻訳対象となるベースファイル群（html, pot, csv）。Importerによる変換処理時に参照|
+|_VERSION|マニュアルのバージョン|
+|override/docs|Importerの実行時、docsに上書きコピーされるファイル群|
+|override/_VERSION|overrideのバージョン|
+|override_extra/docs|overrideに続いて上書きコピーされるファイル群|
+|override_extra/_VERSION|override_extraのバージョン|
 
 ## 謝辞
 * **☆ (ゝω・)v** - [**Trasnlation data importer**](https://github.com/matanki-saito/paratranz2es "Trasnlation data importer")
