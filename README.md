@@ -60,8 +60,8 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 * DnDアクション/イベント名の翻訳
   * importer/main.pyのGenerate_FullTranslationオプションをTrueに設定すると、ParaTranzのenglish.csvから生成した辞書をもとにマニュアル中のDnDアクション名を自動翻訳（単純置換）することができます。  
   * 自動翻訳が行われたマニュアルはGMS2_Japanese_Alt-master.zipという二次アーカイブに含められ、Github Pagesと通常用のアーカイブ（GMS2_Japanese-master.zip）には影響を与えません。  
-  * override_extraディレクトリは二次アーカイブ用のoverrideディレクトリであり、overrideに続いて上書きコピーを行います。こちらも機能させるにはoverride_extraディレクトリの直下に_VERSIONファイルのコミットが必要です。  
-  * イベント名は自動翻訳されないため、このディレクトリに手動で翻訳したHTMLをコミットする必要があります。
+  * override_extraディレクトリは二次アーカイブ用のoverrideディレクトリであり、overrideに続いて上書きコピーを行います。こちらも機能させるにはoverride_extraディレクトリの直下に_VERSIONファイルをコミットする必要があります。  
+  * イベント名は自動翻訳されないため、このディレクトリに手動でイベント名を翻訳したHTMLをコミットする必要があります。
   
 ### 予備情報
  
@@ -121,4 +121,3 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 ## 謝辞
 * **☆ (ゝω・)v** - [**Trasnlation data importer**](https://github.com/matanki-saito/paratranz2es "Trasnlation data importer")
   * このキットは (ゝω・)vさんのTrasnlation data importerをもとに制作されています。
-
