@@ -65,7 +65,7 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   
   * 自動翻訳が行われたマニュアルはGMS2_Japanese_Alt-master.zipという二次アーカイブに含められ、Github Pagesと通常用のアーカイブ（GMS2_Japanese-master.zip）には影響を与えません。  
   
-  * override_extraディレクトリは二次アーカイブ用のoverrideディレクトリであり、overrideに続いて上書きコピーを（二次アーカイブに）行います。こちらも機能させるにはoverride_extraディレクトリの直下に_VERSIONファイルをコミットする必要があります。  
+  * override_extraディレクトリは二次アーカイブ用のoverrideディレクトリであり、overrideに続いて（二次アーカイブにのみ）上書きコピーを行います。こちらも機能させるにはoverride_extraディレクトリの直下に_VERSIONファイルをコミットする必要があります。  
   
   * イベント名は自動翻訳されないため、このディレクトリに手動でイベント名を翻訳したHTMLをコミットする必要があります。
   
