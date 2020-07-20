@@ -3,20 +3,26 @@
 time=$(TZ=UTC-9 date '+%F %R')
 
 ZIP_PATH='Converted/GMS2_Japanese-master.zip'
-NO_CHANGES=0
+ZIP_EX_PATH='Converted/GMS2_Japanese_Alt-master.zip'
+FOUND_CHANGES=0
 
 if [ -e $ZIP_PATH ]; then
   cp Converted/GMS2_Japanese-master.zip ./ -a -f
-else
-  NO_CHANGES=1 # •ÏX‚ªŒ©‚Â‚©‚ç‚¸A¶¬‚³‚ê‚½ƒA[ƒJƒCƒu‚ªíœ‚³‚ê‚½‚½‚ß‰½‚àƒRƒ~ƒbƒg‚µ‚È‚¢
+  FOUND_CHANGES=1
+fi
+if [ -e $ZIP_EX_PATH ]; then
+  cp Converted/GMS2_Japanese_Alt-master.zip ./ -a -f
+  FOUND_CHANGES=1
 fi
 
 rm -rf Converted
 rm -rf repo
 rm -rf tmp
 rm -rf GMS2_Japanese-master
+rm -rf GMS2_Japanese_Alt-master
 
-if [ $NO_CHANGES -eq 0 ]; then
+if [ $FOUND_CHANGES -eq 1 ]; then
+  # ç”Ÿæˆã•ã‚ŒãŸã‚‚ã®ã‚’ã‚³ãƒŸãƒƒãƒˆ&ãƒ—ãƒƒã‚·ãƒ¥
   git pull origin master
   git add -A
   git status
@@ -24,6 +30,7 @@ if [ $NO_CHANGES -eq 0 ]; then
   git push
   echo '::set-env name=action_state::green'
 else
+  # å¤‰æ›´ãŒè¦‹ã¤ã‹ã‚‰ãšã€ç”Ÿæˆã•ã‚ŒãŸã‚¢ãƒ¼ã‚«ã‚¤ãƒ–ãŒå‰Šé™¤ã•ã‚ŒãŸãŸã‚ä½•ã‚‚ã‚³ãƒŸãƒƒãƒˆã—ãªã„
   echo 'No changes were detected. Processing is complete.'
   echo '::set-env name=action_state::yellow'
 fi

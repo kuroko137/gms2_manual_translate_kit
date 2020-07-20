@@ -8,14 +8,22 @@ from pathlib import Path
 from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 
+title = 'HelpConverter for GMS2 - 1.30'
+
+# DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
+c_translation_evnames = True
+ev_dirname = 'source/_build/2_interface/1_editors/events'
+dnd_dirname = 'source/_build/3_scripting/2_drag_and_drop_reference'
 
 ignore_files_path = './ignore_files.txt'
+last_used_path = './last_used.txt'
 
 dir_name_output = 'output'
 dir_name_tmp = os.path.join('tmp', 'YoYoStudioHelp')
 
 dir_name_docs = 'docs'
-dir_name_override = 'docs_override/docs'
+dir_name_override = 'override/docs'
+dir_name_override_ex = 'override_extra/docs'
 dir_name_po = 'po'
 dir_name_csv = 'csv'
 dir_name_source_html = 'tr_sources/source_html'
@@ -36,38 +44,72 @@ re.compile(r'("?[^"\r\n]+\.html\+[^:]+:[0-9]+\-[0-9]+[",]+\(function\(i,s,o,g,r,
 ]
 
 
+lastused_data = []
+
+def create_last_used_txt():
+    with open(last_used_path, "w+") as f:
+        entries = ['import_path=:...', 'export_path=:...', 'en_url=:https://docs2.yoyogames.com/', 'jp_url=:', 'gms_version=:0', 'simplified=:True', 'add_url=:False']
+        lines = '\n'.join(entries)
+        f.write(lines)
+    return
+
+def set_lastused_data():
+
+    result = []
+
+    f = open(last_used_path, 'r')
+
+    while True:
+        line = f.readline()
+        line = line.rstrip('\n')
+        if line:
+            result.append(line)
+        else:
+            break
+    f.close()
+
+    return result
+
+
 class App(tkinter.Frame):
 
     def __init__(self, root):
-        super().__init__(root)
+        super().__init__(root, height=680, width=680)
+        root.title(title)
 
-        self.s_import = StringVar(value='...')
-        self.s_export = StringVar(value='...')
-        self.b_add_url = BooleanVar()
-        self.s_en_url = StringVar(value='https://docs2.yoyogames.com/')
-        self.s_jp_url = StringVar()
-        self.b_simple_structure = BooleanVar(value=True)
+
+        self.s_import = StringVar(value=self.readlastused('import_path'))
+        self.s_export = StringVar(value=self.readlastused('export_path'))
+        self.b_add_url = BooleanVar(value=self.readlastused('add_url'))
+        self.s_en_url = StringVar(value=self.readlastused('en_url'))
+        self.s_jp_url = StringVar(value=self.readlastused('jp_url'))
+        self.b_simple_structure = BooleanVar(value=self.readlastused('simplified'))
+        self.i_gmsversion = IntVar(value=self.readlastused('gms_version'))
+
 
         l_import_path = Label(root, text = 'YoYoStudioHelp.zip:\n[../GameMaker Studio 2/chm2web/YoYoStudioHelp.zip]')
-        e_import_path = Entry(width = 80, textvariable = self.s_import)
-        b_import_path = Button(root, text = 'パスを指定', padx = 5, command = self.SetImportPath)
+        e_import_path = Entry(textvariable = self.s_import)
+        b_import_path = Button(root, text = 'パスを指定', command = self.SetImportPath)
 
         l_export_path = Label(root, text = '出力先:\n[変換されたcsv/potファイルの出力先]')
-        e_export_path = Entry(width = 80, textvariable = self.s_export)
-        b_export_path = Button(root, text = 'パスを指定', padx = 5, command = self.SetExportPath)
+        e_export_path = Entry(textvariable = self.s_export)
+        b_export_path = Button(root, text = 'パスを指定', command = self.SetExportPath)
+
+        l_gms_version = Label(root, text = 'GMS2のバージョン（小数点なしのメジャーVer）')
+        e_gms_version = Entry(textvariable = self.i_gmsversion)
 
         c_add_url = Checkbutton(root, variable = self.b_add_url, text='コンテキストにURLを追加')
 
         l_en_url = Label(root, text = '英語版マニュアルのURL:')
-        e_en_url = Entry(width = 75, textvariable = self.s_en_url)
+        e_en_url = Entry(textvariable = self.s_en_url)
         l_jp_url = Label(root, text = '日本語版マニュアルのURL:')
-        e_jp_url = Entry(width = 75, textvariable = self.s_jp_url)
+        e_jp_url = Entry(textvariable = self.s_jp_url)
 
         c_simple_structure = Checkbutton(root, variable = self.b_simple_structure, text='ディレクトリ構成を簡易化')
 
         b_run = Button(root, text = '変換開始', padx = 50, command = self.Run)
 
-        self.lb = Listbox(root, height = 10)
+        self.lb = Listbox(root)
 
         sb1 = Scrollbar(root, orient = 'v', command = self.lb.yview)
         sb2 = Scrollbar(root, orient = 'h', command = self.lb.xview)
@@ -75,22 +117,67 @@ class App(tkinter.Frame):
         self.lb.configure(yscrollcommand = sb1.set)
         self.lb.configure(xscrollcommand = sb2.set)
 
-        l_import_path.grid(row = 0, column = 0, sticky = 'nsew', padx = 10)
-        e_import_path.grid(row = 1, column = 0, padx = 10, pady = 5)
-        b_import_path.grid(row = 1, column = 1, padx = 5, pady = 5)
-        l_export_path.grid(row = 2, column = 0, sticky = 'nsew', padx = 10)
-        e_export_path.grid(row = 3, column = 0, padx = 10)
-        b_export_path.grid(row = 3, column = 1, padx = 5)
-        c_simple_structure.grid(row = 5, column = 0, padx = 10, pady = 10)
-        c_add_url.grid(row = 6, column = 0, padx = 10, pady = 5)
-        l_en_url.grid(row = 7, column = 0, sticky = 'nsew', padx = 10)
-        e_en_url.grid(row = 8, column = 0, padx = 10, pady = 5)
-        l_jp_url.grid(row = 9, column = 0, sticky = 'nsew', padx = 10)
-        e_jp_url.grid(row = 10, column = 0, padx = 10, pady = 5)
-        b_run.grid(row = 11, column = 0, padx = 50, pady = 10)
-        self.lb.grid(row = 12, column = 0, sticky = 'nsew', padx = 10, pady = 10)
-        sb1.grid(row = 13, column = 1, sticky = 'ns', padx = 10)
-        sb2.grid(row = 14, column = 0, sticky = 'ew', padx = 10)
+        l_import_path.place(rely=0, relwidth=1.0)
+        e_import_path.place(rely=0.07, relx=0.02, relwidth=0.84)
+        b_import_path.place(rely=0.06, relx=0.87, width=80)
+        l_export_path.place(rely=0.11, relwidth=1.0)
+        e_export_path.place(rely=0.18, relx=0.02, relwidth=0.84)
+        b_export_path.place(rely=0.17, relx=0.87, width=80)
+
+        l_gms_version.place(rely=0.25, relx=0.20)
+        e_gms_version.place(rely=0.25, relx=0.615, width=50)
+        c_simple_structure.place(rely=0.30, relx=0.20)
+        c_add_url.place(rely=0.30, relx=0.50)
+
+        l_en_url.place(rely=0.35, relwidth=1.0)
+        e_en_url.place(rely=0.40, relx=0.04, relwidth=0.81)
+        l_jp_url.place(rely=0.45, relwidth=1.0)
+        e_jp_url.place(rely=0.50, relx=0.04, relwidth=0.81)
+
+        b_run.place(rely=0.55, relx=0.35, width=150)
+        self.lb.place(rely=0.62, relx=0.02, relwidth=0.84, relheight=0.3)
+        sb1.place(rely=0.62, relx=0.9, relheight=0.3)
+        sb2.place(rely=0.95, relx=0.02, relwidth=0.84)
+
+
+    def writelastused(self):
+
+        key = ['import_path', 'export_path', 'add_url', 'en_url', 'jp_url', 'simplified', 'gms_version']
+        val = [self.s_import.get(), self.s_export.get(), self.b_add_url.get(), self.s_en_url.get(), self.s_jp_url.get(), self.b_simple_structure.get(), self.i_gmsversion.get()]
+
+        lines = ''
+        with open(last_used_path, "r") as f:
+
+            while True:
+                line = f.readline()
+                if line:
+                    separated = re.split('=:', line)
+
+                    for idx in range(len(key)):
+
+                        if separated[0] == key[idx]:
+                            separated[1] = val[idx]
+
+                    line = '=:'.join(map(str, separated))
+                    lines += line + '\n'
+                else:
+                    break
+
+        if lines:
+            with open(last_used_path, "w") as f:
+                f.write(lines)
+
+        return
+
+    def readlastused(self, key):
+
+        global lastused_data
+
+        for line in lastused_data:
+            separated = re.split('=:', line)
+            if separated[0] == key:
+                return separated[1]
+        return
 
 
     def SetImportPath(self):
@@ -107,13 +194,21 @@ class App(tkinter.Frame):
         self.s_export.set(str(val))
 
 
-    def format_html(self, lines): # HTMLの整形
+    def format_html(self, lines, base_dir): # HTMLの整形
 
         # 目印としてコード行に識別子を挿入
         lines = re.sub(r'(<[^<]+class="code"[^>]*>)', r'\1{ANY_CODE} ', lines)
 
         # 目印として画像のテキスト情報に識別子を挿入
-        lines = re.sub(r'alt="([^"]+)"', r'alt="{IMG_TXT} \1"', lines)
+        lines = re.sub(r'(alt=[\r\n]*")([^>]+">)', r'\1{IMG_TXT} \2', lines)
+
+        # 対訳を付加するエントリにタグを挿入
+        if c_translation_evnames:
+            if dnd_dirname in base_dir:
+                # lines = re.sub(r'(<td class="text"><a href=[^>]+>)([^<]+)', r'\1{CTR_N} \2', lines)
+                lines = re.sub(r'(<h2><img style="vertical-align:middle" src=[^>]+>)([^<]+)', r'\1{CTR_S}\2', lines)
+            # elif ev_dirname in base_dir:
+            #     lines = re.sub(r'(<label class="collapse"[^>]+>)([^<]+)</label>', r'\1\2</label>', lines)
 
         # ノーブレークスペースをダミータグに置換
         new_lines = ''
@@ -202,6 +297,8 @@ class App(tkinter.Frame):
         url_jp = self.s_jp_url.get()
         url_is_add = self.b_add_url.get()
 
+        gms_version = self.i_gmsversion.get()
+
         if import_path == '...' or import_path == '':
             tkinter.messagebox.showinfo('アーカイブが未指定', 'アーカイブのパスが指定されていません。\nGame Maker Studio 2 のインストールディレクトリにある chm2web/YoYoStudioHelp.zip を指定してください。')
             return
@@ -236,6 +333,9 @@ class App(tkinter.Frame):
             elif len(jp_parse.netloc) == 0 or (jp_parse.scheme != 'http' and jp_parse.scheme != 'https'):
                 tkinter.messagebox.showinfo('エラー', '日本語版マニュアルのURLが不正です。\nhttps://url/ 形式で指定する必要があります。\nURLを指定し直すか、チェックを外してください。')
                 return
+            elif gms_version == 0:
+                tkinter.messagebox.showinfo('エラー', 'バージョン情報が空です。\nでGMS本体のバージョンを小数点なしで指定してください。\n（例: 2.2.5.378 > 225）')
+                return
 
 
         # 無視するファイルを追加
@@ -251,10 +351,13 @@ class App(tkinter.Frame):
                 break
         f.close()
 
+        self.writelastused()
+        self.lb.delete(0, tkinter.END)
 
         # 各ディレクトリのパスを定義
         export_path = os.path.join(export_path, dir_name_output)
         override_dir = os.path.join(export_path, dir_name_override)
+        override_ex_dir = os.path.join(export_path, dir_name_override_ex)
         html_output_dir = os.path.join(export_path, dir_name_source_html)
         tmp_output_dir = os.path.join(export_path, dir_name_tmp)
         # pot_output_dir = os.path.join(export_path, dir_name_source_pot)
@@ -323,7 +426,7 @@ class App(tkinter.Frame):
                 # HTMLの整形
 
                 with open(path_html, "r", encoding="utf_8_sig", newline="\n") as f_html:
-                    html_lines = self.format_html(f_html.read())
+                    html_lines = self.format_html(f_html.read(), base_dir)
                 with open(path_html, "w+", encoding="utf_8_sig", newline="\n") as f_html:
                     f_html.write(html_lines)
 
@@ -433,9 +536,24 @@ class App(tkinter.Frame):
         if not os.path.exists(override_dir):
             os.makedirs(override_dir)
 
+        if not os.path.exists(override_ex_dir):
+            os.makedirs(override_ex_dir)
+
+        # バージョンファイルを生成
+
+        version_path = os.path.join(export_path, '_VERSION')
+        with open(version_path, "w+") as f:
+            lines = str(gms_version)
+            f.write(lines)
+
         # .nojekyllを生成
         jerky_path = os.path.join(override_dir, '.nojekyll')
         with open(jerky_path, "w+") as f:
+            f.write('')
+
+        # .gitkeepを生成
+        gitkeep_path = os.path.join(override_ex_dir, '.gitkeep')
+        with open(gitkeep_path, "w+") as f:
             f.write('')
 
         # 不要となったディレクトリを削除
@@ -451,10 +569,16 @@ class App(tkinter.Frame):
 
 
 def main():
+
+    if not os.path.isfile(last_used_path):
+        create_last_used_txt()
+
+    global lastused_data
+    lastused_data = set_lastused_data()
+
     root = Tk()
-    root.title(u"HelpConverter for GMS2 - 1.20")
-    root.geometry("680x700")
     frame = App(root)
+    frame.pack()
     root.mainloop()
 
 if __name__ == '__main__':

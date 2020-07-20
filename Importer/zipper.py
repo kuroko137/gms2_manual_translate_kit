@@ -4,34 +4,49 @@ import os
 import zipfile
 
 zip_root = './GMS2_Japanese-master'
-new_zip = './Converted/GMS2_Japanese-master'
 old_zip = './GMS2_Japanese-master.zip'
+new_zip = './Converted/GMS2_Japanese-master'
+
+zip_ex_root = './GMS2_Japanese_Alt-master'
+old_ex_zip = './GMS2_Japanese_Alt-master.zip'
+new_ex_zip = './Converted/GMS2_Japanese_Alt-master'
 
 
-if __name__ == '__main__':
-    shutil.make_archive(new_zip, 'zip', root_dir=zip_root) # ƒ}ƒjƒ…ƒAƒ‹‚Ì“à—e‚ğƒA[ƒJƒCƒu‰»
+def zipper(root_dir, old_path, new_path):
 
-    new_zip = new_zip + '.zip'
+    if not os.path.exists(root_dir):
+        return
 
-    if os.path.isfile(old_zip): # ŒÃ‚¢ƒA[ƒJƒCƒu‚Ì‘¶İŠm”F
+    shutil.make_archive(new_path, 'zip', root_dir=root_dir) # ãƒãƒ‹ãƒ¥ã‚¢ãƒ«ã®å†…å®¹ã‚’ã‚¢ãƒ¼ã‚«ã‚¤ãƒ–åŒ–
+
+    new_path = new_path + '.zip'
+
+    if os.path.isfile(old_path): # å¤ã„ã‚¢ãƒ¼ã‚«ã‚¤ãƒ–ã®å­˜åœ¨ç¢ºèª
         
         l_old = []
         l_new = []
 
-        with zipfile.ZipFile(old_zip) as zip_file:
+        with zipfile.ZipFile(old_path) as zip_file:
             infos = zip_file.infolist()
 
             for info in infos:
                 l_old.append(zip_file.read(info.filename))
 
 
-        with zipfile.ZipFile(new_zip) as zip_file:
+        with zipfile.ZipFile(new_path) as zip_file:
             infos = zip_file.infolist()
 
             for info in infos:
                 l_new.append(zip_file.read(info.filename))
 
 
-        if set(l_old) == set(l_new): # ŒÃ‚¢ƒA[ƒJƒCƒu‚Æ“à—e‚ª“¯‚¶‚¾‚Á‚½‚½‚ßíœ
-            print('This is the same zip file as the old one. No changes were detected.')
-            os.remove(new_zip)
+        if set(l_old) == set(l_new): # å¤ã„ã‚¢ãƒ¼ã‚«ã‚¤ãƒ–ã¨å†…å®¹ãŒåŒã˜ã ã£ãŸãŸã‚å‰Šé™¤
+            print('{0} is the same zip file as the old one. No changes were detected.'.format(os.path.split(new_path)[1]))
+            os.remove(new_path)
+
+    return
+
+if __name__ == '__main__':
+
+    zipper(zip_root, old_zip, new_zip)
+    zipper(zip_ex_root, old_ex_zip, new_ex_zip)

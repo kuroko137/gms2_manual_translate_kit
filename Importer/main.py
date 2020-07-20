@@ -15,20 +15,11 @@ from translate.convert.csv2po import convertcsv
 # 0で無効、1でスペースを挿入、2でスペースを削除
 Space_Adjustment = 1
 
-# DnDとイベント名を和訳したマニュアルを通常のマニュアルとは別に追加で生成するかどうか
-# Github Pagesには変更を与えず、アーカイブファイルとしてのみ出力されます
-Generate_FullTranslated = 0
-ev_dirname = 'source/_build/2_interface/1_editors/events'
+# DnDアクション名を自動置換して翻訳するかどうか
+# Github Pagesには変更を与えず、専用のアーカイブファイル（GMS2_Japanese_Alt-master.zip）としてのみ出力されます
+Generate_FullTranslation = False
 dnd_dirname = 'source/_build/3_scripting/2_drag_and_drop_reference'
-
-override_dir = 'docs_override/' # GitPagesに上書きするファイル群
-template_html_dir = 'tr_sources/source_html/' # GitPagesリポジトリのテンプレートHTML
-template_pot_dir = 'tr_sources/source_pot/' # GitPagesリポジトリのテンプレートPOT
-template_csv_dir = 'tr_sources/source_csv/' # GitPagesリポジトリのテンプレートCSV
-
-input_dir = 'utf8/csv/' # ParaTranz側の翻訳ファイル
-ide_translation_path = 'utf8/english.csv' # ParaTranz側のIDE言語ファイル
-output_dir = 'Converted/'
+# ev_dirname = 'source/_build/2_interface/1_editors/events'
 
 po_replacer_kw = ['"Language: zh_CN\\n"', 
 '"Language-Team: LANGUAGE <LL@li.org>\\n"', 
@@ -43,17 +34,25 @@ html_replacer_re_kw = [
 ' to show toolbars of the Web Online Help System:', re.compile('Click ([^>]+>)here([^>]+>) to show toolbars of the Web Online Help System: ([^>]+>)show toolbars</a>')
 ]
 html_replacer_re_tr = [
-'\\1こちら\\2をクリックするとWebオンラインヘルプのツールバーを表示します: \\3ツールバーを表示</a>'
+r'\1こちら\2をクリックするとWebオンラインヘルプのツールバーを表示します: \3ツールバーを表示</a>'
 ]
 
-restore_re_key = [re.compile('^"location","(source|target)","(target|source)"\n'), '"location","source","target"\n']
+template_html_dir = 'tr_sources/source_html/' # GitPagesリポジトリのテンプレートHTML
+template_pot_dir = 'tr_sources/source_pot/' # GitPagesリポジトリのテンプレートPOT
+template_csv_dir = 'tr_sources/source_csv/' # GitPagesリポジトリのテンプレートCSV
 
+input_dir = 'utf8/csv/' # ParaTranz側の翻訳ファイル
+ide_translation_path = 'utf8/english.csv' # ParaTranz側のIDE言語ファイル
+output_dir = 'Converted/'
+output_ex_dir = 'Converted_EX/'
+
+restore_re_key = [re.compile('^"location","(source|target)","(target|source)"\n'), '"location","source","target"\n']
 
 compiled_raw_csv_file_patter = re.compile(r'^' + input_dir + '.*\.csv$')
 
 
-dict_eventname = []
 dict_dndname = []
+# dict_eventname = []
 
 
 ##########################################
@@ -92,7 +91,10 @@ def download_trans_zip_from_paratranz(project_id,
 
 def set_tr_dict(paratranz_zip_path):
 
-    # IDEの言語ファイルからDnD, イベント名の自動置き換え辞書を作成
+    if Generate_FullTranslation == False:
+        return
+
+    # IDEの言語ファイルからDnD、イベント名の自動置き換え辞書を作成
     with zipfile.ZipFile(paratranz_zip_path) as zip_file:
 
         if not os.path.exists(os.path.split(ide_translation_path)[0]):
@@ -108,10 +110,10 @@ def set_tr_dict(paratranz_zip_path):
 
             matched = ''
 
-            if re.match(r'"?Event_[^,]+"?,', m):
-                matched = 'ev'
-            elif re.match(r'"?GMStd[^,\r\n]+_Name"?,', m):
+            if re.match(r'"?GMStd[^,\r\n]+_Name"?,', m):
                 matched = 'dnd'
+            # elif re.match(r'"?Event_[^,]+"?,', m):
+            #     matched = 'ev'
 
             if matched:
                 m = m.rstrip('\n')
@@ -120,13 +122,16 @@ def set_tr_dict(paratranz_zip_path):
                 dict_var = re.split(r'\t', m)
                 del dict_var[0]
 
-                if matched == 'ev':
-                    dict_eventname.append(dict_var)
-                else:
-                    dict_dndname.append(dict_var)
+                if dict_var[0] == dict_var[1]:
+                    continue
 
-        dict_eventname.sort(key=lambda x: len(x[0]), reverse=True)
+                if matched == 'dnd':
+                    dict_dndname.append(dict_var)
+                # else:
+                #     dict_eventname.append(dict_var)
+
         dict_dndname.sort(key=lambda x: len(x[0]), reverse=True)
+        # dict_eventname.sort(key=lambda x: len(x[0]), reverse=True)
 
     return
 
@@ -143,9 +148,45 @@ def restore_csv_commentout(source_lines, new_lines):
 
     return lines
 
-def format_csv(lines, base_path):
+def format_csv(lines, base_path, mode):
+
+    # アクション/イベント名を自動置き換え
+
+    if mode != '':
+        lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', lines)
+        new_lines = ''
+        l_split = lines.splitlines(True)
+
+        for line in l_split:
+            s = re.split(r'\t', line)
+
+            if len(s) < 3:
+                line = ','.join(s)
+                new_lines += line
+                continue
+
+            if mode == 'dnd':
+                idx = 0
+                for tr in dict_dndname:
+
+                    if tr[0] in s[2] and len(tr) >= 2:
+
+                        if '{CTR_N}' in s[2]: # スペースつき対訳置換
+                            s[2] = re.sub(r'{CTR_N} +' + tr[0], tr[1] + ' (' + tr[0] + ')', s[2])
+                        elif '{CTR_S}' in s[2]: # スペースなし対訳置換
+                            s[2] = re.sub(r'{CTR_S} +' + tr[0], ' ' + tr[1] + ' (' + tr[0] + ')', s[2])
+                        else:
+                            s[2] = s[2].replace(tr[0], tr[1])
+                        break
+
+                    idx += 1
+
+            line = ','.join(s)
+            new_lines += line
+        lines = new_lines
 
     # 日本語/英数字の間に半角スペースを挿入・削除
+
     insert_pat = [ # 挿入パターン
     regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])((<[^>]+>)*)((\p{Ps})?)([a-zA-Z0-9™])'),
     regex.compile(r'(([a-zA-Z0-9™])(\p{Pe}?))((<[^>]+>)*)((\p{Ps})?)([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])'),
@@ -219,6 +260,10 @@ def format_html(lines):
     # 画像テキストの識別子を削除
     lines = re.sub(r'{IMG_TXT} ?', '', lines)
 
+    # 対訳識別子を削除
+    lines = re.sub(r'{CTR_N} ?', '', lines)
+    lines = re.sub(r'{CTR_S}', '', lines)
+
     # URLのドットを復元
     lines = re.sub(r'{\-dot\-}', r'.', lines)
 
@@ -256,108 +301,124 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
             if compiled_raw_csv_file_patter.match(info.filename) is None:
                 continue
 
-            base_path = info.filename.replace(input_dir, '')
-            base_path = os.path.splitext(base_path)[0]
+
+            exoport_mode = ['']
+
+            if Generate_FullTranslation:
+                if info.filename.find(dnd_dirname) > 0:
+                    exoport_mode.append('dnd')
+
+                # if ev_dirname.match(info.filename):
+                #    mode.append('ev')
 
 
-            # ParaTranzのバックアップ用csvを生成
-            path_csv = os.path.join(output_dir + 'csv', base_path) + '.csv'
+            for mode in exoport_mode:
 
-            if not os.path.exists(os.path.split(path_csv)[0]):
-                os.makedirs(os.path.split(path_csv)[0])
+                base_path = info.filename.replace(input_dir, '')
+                base_path = os.path.splitext(base_path)[0]
 
-            with open(path_csv, 'wb') as f:
-                f.write(zip_file.read(info.filename))
+                if mode != '':
+                    dist_dir = output_ex_dir
+                else:
+                    dist_dir = output_dir
 
+                # ParaTranzのバックアップ用csvを生成
+                path_csv = os.path.join(dist_dir + 'csv', base_path) + '.csv'
 
-            # base_path = base_path.encode('cp437').decode('cp932')
-            base_path = base_path.replace('／', chr(47)) # 置き換えられたファイル名の'／'をパスとしての'/'に復元
+                if not os.path.exists(os.path.split(path_csv)[0]):
+                    os.makedirs(os.path.split(path_csv)[0])
 
-            path_csv_csv = os.path.join(output_dir + 'csv_cnv', base_path) + '.csv'
-            path_source_csv = os.path.join('repo/' + template_csv_dir, base_path) + '.csv'
+                with open(path_csv, 'wb') as f:
+                    f.write(zip_file.read(info.filename))
 
+                # base_path = base_path.encode('cp437').decode('cp932')
+                base_path = base_path.replace('／', chr(47)) # 置き換えられたファイル名の'／'をパスとしての'/'に復元
 
-            # コメントアウトしたCSV行を復元
-            with open(path_source_csv, 'r', encoding='utf_8_sig', newline='\n') as f_source:
-                source_lines = f_source.read().splitlines()
-
-            with open(path_csv, 'r', encoding='utf_8_sig', newline='\n') as f_input:
-                new_lines = f_input.read().splitlines()
-
-            csv_lines = restore_csv_commentout(source_lines, new_lines)
-
-            with open(path_csv, 'w+', encoding='utf_8_sig', newline='\n') as f_input:
-                f_input.write(csv_lines)
+                path_csv_csv = os.path.join(dist_dir + 'csv_cnv', base_path) + '.csv'
+                path_source_csv = os.path.join('repo/' + template_csv_dir, base_path) + '.csv'
 
 
-            # 整形したCSVを生成
-            with open(path_csv, 'r', encoding='utf_8_sig', newline='\n') as f_input:
-                csv_lines = format_csv(f_input.read(), base_path)
+                # コメントアウトしたCSV行を復元
+                with open(path_source_csv, 'r', encoding='utf_8_sig', newline='\n') as f_source:
+                    source_lines = f_source.read().splitlines()
 
-            if not os.path.exists(os.path.split(path_csv_csv)[0]):
-                os.makedirs(os.path.split(path_csv_csv)[0])
+                with open(path_csv, 'r', encoding='utf_8_sig', newline='\n') as f_input:
+                    new_lines = f_input.read().splitlines()
 
-            with open(path_csv_csv, 'w+', encoding='utf_8_sig', newline='\n') as f_input:
-                f_input.write(csv_lines)
+                csv_lines = restore_csv_commentout(source_lines, new_lines)
+
+                with open(path_csv, 'w+', encoding='utf_8_sig', newline='\n') as f_input:
+                    f_input.write(csv_lines)
 
 
-            # CSVファイルをPOファイルに変換
-            path_cnv_po = os.path.join(output_dir + 'po_cnv', base_path) + '.po'
-            path_template = os.path.join('repo/' + template_pot_dir, base_path) + '.pot'
+                # 整形したCSVを生成
+                with open(path_csv, 'r', encoding='utf_8_sig', newline='\n') as f_input:
+                    csv_lines = format_csv(f_input.read(), base_path, mode)
 
-            if not os.path.exists(path_template):
-                print('SKIP CSV TEMPLATE = {0} '.format(path_template))
-                continue
+                if not os.path.exists(os.path.split(path_csv_csv)[0]):
+                    os.makedirs(os.path.split(path_csv_csv)[0])
+
+                with open(path_csv_csv, 'w+', encoding='utf_8_sig', newline='\n') as f_input:
+                    f_input.write(csv_lines)
+
+
+                # CSVファイルをPOファイルに変換
+                path_cnv_po = os.path.join(dist_dir + 'po_cnv', base_path) + '.po'
+                path_template = os.path.join('repo/' + template_pot_dir, base_path) + '.pot'
+
+                if not os.path.exists(path_template):
+                    print('SKIP CSV TEMPLATE = {0} '.format(path_template))
+                    continue
+                    
+                if not os.path.exists(os.path.split(path_cnv_po)[0]):
+                    os.makedirs(os.path.split(path_cnv_po)[0])
+
+                f_input = open(path_csv_csv, 'rb')
+                f_output = open(path_cnv_po, 'wb+')
+                f_template = open(path_template, 'rb')
                 
-            if not os.path.exists(os.path.split(path_cnv_po)[0]):
-                os.makedirs(os.path.split(path_cnv_po)[0])
+                convertcsv(f_input, f_output, f_template, charset='utf_8_sig') # Translate-KitによるCSV > POの変換処理
 
-            f_input = open(path_csv_csv, 'rb')
-            f_output = open(path_cnv_po, 'wb+')
-            f_template = open(path_template, 'rb')
-            
-            convertcsv(f_input, f_output, f_template, charset='utf_8_sig') # Translate-KitによるCSV > POの変換処理
+                f_input.close()
+                f_output.close()
+                f_template.close()
+                
+                
+                # POの整形
+                with open(path_cnv_po, 'r', encoding='utf_8_sig', newline='\n') as f_po:
+                    po_lines = format_po(f_po.read())
+                with open(path_cnv_po, 'w+', encoding='utf_8_sig', newline='\n') as f_po:
+                    f_po.write(po_lines)
+                
 
-            f_input.close()
-            f_output.close()
-            f_template.close()
-            
-            
-            # POの整形
-            with open(path_cnv_po, 'r', encoding='utf_8_sig', newline='\n') as f_po:
-                po_lines = format_po(f_po.read())
-            with open(path_cnv_po, 'w+', encoding='utf_8_sig', newline='\n') as f_po:                
-                f_po.write(po_lines)
-            
+                # HTMLへの変換を開始
+                path_output = os.path.join(dist_dir + 'docs/', base_path) + '.html'
+                path_template = os.path.join('repo/' + template_html_dir, base_path) + '.html'
+                
+                if not os.path.exists(path_template):
+                    print('SKIP HTML TEMPLATE = {0} '.format(path_template))
+                    continue
+                
+                if not os.path.exists(os.path.split(path_output)[0]):
+                    os.makedirs(os.path.split(path_output)[0])
+                
+                f_po = open(path_cnv_po, 'rb')
+                f_output = open(path_output, 'wb+')
+                f_template = open(path_template, 'rb')
+                
+                print('converting: {0} to .html'.format(path_cnv_po))
+                converthtml(f_po, f_output, f_template) # Translate-KitによるPO > HTMLの変換処理
 
-            # HTMLへの変換を開始
-            path_output = os.path.join(output_dir + 'docs/', base_path) + '.html'
-            path_template = os.path.join('repo/' + template_html_dir, base_path) + '.html'
-            
-            if not os.path.exists(path_template):
-                print('SKIP HTML TEMPLATE = {0} '.format(path_template))
-                continue
-            
-            if not os.path.exists(os.path.split(path_output)[0]):
-                os.makedirs(os.path.split(path_output)[0])
-            
-            f_po = open(path_cnv_po, 'rb')
-            f_output = open(path_output, 'wb+')
-            f_template = open(path_template, 'rb')
-            
-            print('converting: {0} to .html'.format(path_cnv_po))
-            converthtml(f_po, f_output, f_template) # Translate-KitによるPO > HTMLの変換処理
-
-            f_po.close()
-            f_output.close()
-            f_template.close()
+                f_po.close()
+                f_output.close()
+                f_template.close()
 
 
-            # HTMLの整形
-            with open(path_output, 'r', encoding='utf_8_sig') as f_output:
-                html_lines = format_html(f_output.read())
-            with open(path_output, 'w+', encoding='utf_8_sig') as f_output:
-                f_output.write(html_lines)
+                # HTMLの整形
+                with open(path_output, 'r', encoding='utf_8_sig') as f_output:
+                    html_lines = format_html(f_output.read())
+                with open(path_output, 'w+', encoding='utf_8_sig') as f_output:
+                    f_output.write(html_lines)
 
     return
 
@@ -377,6 +438,8 @@ def sub(index_name,
                                                           out_file_path=out_file_path)
         print("download data")
 
+    # 辞書データを取得
+    set_tr_dict(out_file_path)
     # csvをhtmlに変換
     convert_csv_to_html_from_zip(out_file_path)
 
