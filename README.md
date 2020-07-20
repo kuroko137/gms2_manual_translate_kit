@@ -47,20 +47,26 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   * ***https://ユーザー名.github.io/リポジトリ名*** がページのURLです。リポジトリ作成直後はページが有効になるまで一定時間かかる場合があります。
   
 * アップデート:
-  * Gamemaker Studio 2のアップデートによってマニュアルに変更が加えられた場合、リポジトリの関連ファイルをHelp2CSVで再生成したファイルに置き換えてください。  
+  * Gamemaker Studio 2のアップデートによってマニュアルに変更が加えられた場合、リポジトリの関連ファイルをHelp2CSVで再生成したファイルに置き換えてください。
   ファイルの増減があった場合はtr_sources、docs、およびgeneratedディレクトリ内のファイルをいったん削除してやり直しても差し支えありません。  
+  
+  * それぞれの_VERSIONファイルが更新されるまでoverride、override_extraのコピー機能は無効となります。
   
   * 2020/07/17現在、ParaTranzにおけるファイルの更新/翻訳のインポートはディレクトリ単位で行うことができないため、各ディレクトリを直接開いてファイルのみアップロードする必要があります。
   
 * ParaTranzの管理外ファイルの翻訳
   * **override/docs**以下にアップロードされたファイルはImporterの実行時、コミットの直前でdocsに上書きコピーされます。翻訳したファイルをこのディレクトリに追加することで、ParaTranzの管理対象外となっている.jsファイルや画像ファイルを日本語化することができます。
+  
   * 機能を有効とするには、overrideディレクトリの直下に_VERSIONファイルをコミットする必要があります。
   このファイルはリポジトリ直下の_VERSIONファイルと比較されます。記述されているバージョンがリポジトリ直下のものより古い場合は機能が無効となり、コピーが行われません。
   
 * DnDアクション/イベント名の翻訳
   * importer/main.pyのGenerate_FullTranslationオプションをTrueに設定すると、ParaTranzのenglish.csvから生成した辞書をもとにマニュアル中のDnDアクション名を自動翻訳（単純置換）することができます。  
+  
   * 自動翻訳が行われたマニュアルはGMS2_Japanese_Alt-master.zipという二次アーカイブに含められ、Github Pagesと通常用のアーカイブ（GMS2_Japanese-master.zip）には影響を与えません。  
+  
   * override_extraディレクトリは二次アーカイブ用のoverrideディレクトリであり、overrideに続いて上書きコピーを行います。こちらも機能させるにはoverride_extraディレクトリの直下に_VERSIONファイルをコミットする必要があります。  
+  
   * イベント名は自動翻訳されないため、このディレクトリに手動でイベント名を翻訳したHTMLをコミットする必要があります。
   
 ### 予備情報
@@ -121,3 +127,4 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 ## 謝辞
 * **☆ (ゝω・)v** - [**Trasnlation data importer**](https://github.com/matanki-saito/paratranz2es "Trasnlation data importer")
   * このキットは (ゝω・)vさんのTrasnlation data importerをもとに制作されています。
+
