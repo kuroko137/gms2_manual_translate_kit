@@ -15,8 +15,6 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 * 必要ファイルの生成:
   * リリースからダウンロードしたHelpConverterを実行し、以下を参考に必要なファイルを生成してください。
   
-  * **YoYoStudioHelp.zip**はGamemaker Studio 2のインストールディレクトリ、chm2web/YoYoStudioHelp.zipにあります。
-  
   * **バージョン**にはGMS2のメジャーバージョンを小数点なしで指定してください（例: 2.2.5.378の場合は225）  
   
   * **ディレクトリ構成の簡易化**オプションはParaTranzでのファイル管理を容易化するためのものです。深層にあるファイルの名前を'ディレクトリ／ファイル名'に変更し、上位のディレクトリに出力させます。
@@ -26,17 +24,17 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   日本語版マニュアルのURL例: ***https://ユーザー名.github.io/リポジトリ名/***
     
 * ParaTranzへのアップロード:
-  * HelpConverterで生成された**csv**ディレクトリを、**ParaTranz**のプロジェクトの最上位にアップロードしてください。
-  サブディレクトリのファイルを完全にアップロードできなかった場合は、ParaTranzの該当ディレクトリを開いてファイルだけをアップロードするとうまくいくはずです。  
+  * HelpConverterで生成された**csv**ディレクトリを**ParaTranz**のプロジェクトの最上位にアップロードしてください。
+  サブディレクトリのファイルをすべてアップロードできなかった場合は、ParaTranzの該当ディレクトリを開いてファイルだけをアップロードするとうまくいくはずです。  
     
 * リポジトリの構築:
   * GitHubで新規リポジトリを作成します（リポジトリ名がGitHub PagesのURL名となります）。作成後、キットに含まれている**Importer**ディレクトリ、**.gitattributes**ファイル、さらにHelp2CSVで生成された **_VERSION** ファイル、および**tr_sources**、**docs**、**override**、**override_extra**ディレクトリをリポジトリの最上位にコミットしてください。  
   
   * リポジトリのSettingsを開き、OptionsメニューからGitHub Pagesのソースディレクトリを**master branch / docs folder**にセットします。
   
-  * リポジトリのSettingsを開き、Secretsメニューから必要なSecretsを作成します（**NAME: VALUE**）
-  **PARATRANZ_SECRET:** - ParaTranzのプロフィールページ、鍵マークから確認できる英数字の文字列（********************************）
-  **PARATRANZ_CODE:** - ParaTranzのプロジェクト番号（projects/***の数字）
+  * リポジトリのSettingsを開き、Secretsメニューから必要なSecretsを作成します（**NAME: VALUE**）  
+  **PARATRANZ_SECRET:** - ParaTranzのプロフィールページ、鍵マークから確認できる英数字の文字列（********************************）  
+  **PARATRANZ_CODE:** - ParaTranzのプロジェクト番号（projects/***の数字）  
   
 * ワークフローの作成と実行:
   * リポジトリのActionsページを開き、**New workflow** > **set up a workflow yourself**でワークフローの作成ページを開きます。  
