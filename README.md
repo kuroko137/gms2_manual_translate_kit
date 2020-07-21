@@ -126,6 +126,8 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 |override/_VERSION|overrideのバージョン|
 |override_extra/docs|overrideに続いて上書きコピーされるファイル群|
 |override_extra/_VERSION|override_extraのバージョン|
+|generated|Importerによって生成されたバックアップ用の翻訳ファイル群|
+|generated/dict|イベント名/DnDアクション名の対訳辞書。[**Speeeeed**](https://www.vector.co.jp/soft/win95/util/se142895.html)などの置き換えソフト用|
 
 ## 謝辞
 * **☆ (ゝω・)v** - [**Trasnlation data importer**](https://github.com/matanki-saito/paratranz2es "Trasnlation data importer")
