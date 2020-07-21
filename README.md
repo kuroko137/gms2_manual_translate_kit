@@ -94,6 +94,9 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   
   * docs直下に置かれる**.nojekyll**というファイルはHelpConverterでの変換時に追加されたもので、元のアーカイブには存在しないファイルです。これはGitHub Pagesの動作に必要なファイルであり、GitHub外で利用する場合は不要となるため削除してください。
   
+  * DnDアクション名の自動翻訳が行われるHTMLファイルは/3_scripting/2_drag_and_drop_reference以下のファイルのみです。
+  また、すでにoverride_extraの同じ場所にHTMLが存在する場合、自動翻訳は行われず、すでにあるHTMLが優先されます。
+  
 * Discordへの通知:
   * **DISCORD_WEBHOOK**というSecretsを作成してDiscordのウェブフックURLを登録すると、Github Pagesが更新されたときに指定したチャンネルへ通知が送られます。
   importer.ymlを編集することで通知メッセージの内容を変更可能です。
