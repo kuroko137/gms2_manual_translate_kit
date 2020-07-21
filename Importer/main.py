@@ -52,7 +52,7 @@ compiled_raw_csv_file_patter = re.compile(r'^' + input_dir + '.*\.csv$')
 
 
 dict_dndname = []
-# dict_eventname = []
+dict_eventname = []
 
 
 ##########################################
@@ -94,16 +94,24 @@ def set_tr_dict(paratranz_zip_path):
     if Generate_FullTranslation == False:
         return
 
+    dict_dndname = []
+    dict_eventname = []
+    dict_output_dnd = []
+    dict_output_ev = []
+
     # IDEの言語ファイルからDnD、イベント名の自動置き換え辞書を作成
     with zipfile.ZipFile(paratranz_zip_path) as zip_file:
 
-        if not os.path.exists(os.path.split(ide_translation_path)[0]):
-            os.makedirs(os.path.split(ide_translation_path)[0])
+        ide_output_dir = os.path.join(output_dir)
+        ide_output_path = os.path.join(ide_output_dir, os.path.split(ide_translation_path)[1])
 
-        with open(ide_translation_path, 'wb') as f:
+        if not os.path.exists(ide_output_dir):
+            os.makedirs(ide_output_dir)
+
+        with open(ide_output_path, 'wb') as f:
             f.write(zip_file.read(ide_translation_path))
 
-        with open(ide_translation_path, 'r', encoding='utf_8_sig', newline='\n') as f:
+        with open(ide_output_path, 'r', encoding='utf_8_sig', newline='\n') as f:
             ide_lines = f.readlines()
 
         for m in ide_lines:
@@ -112,26 +120,51 @@ def set_tr_dict(paratranz_zip_path):
 
             if re.match(r'"?GMStd[^,\r\n]+_Name"?,', m):
                 matched = 'dnd'
-            # elif re.match(r'"?Event_[^,]+"?,', m):
-            #     matched = 'ev'
+            elif re.match(r'"?Event_[^,]+"?,', m):
+                matched = 'ev'
 
             if matched:
                 m = m.rstrip('\n')
                 m = m.replace('"', '')
                 m = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', m)
                 dict_var = re.split(r'\t', m)
+
                 del dict_var[0]
 
+                if len(dict_var) < 2:
+                    continue
                 if dict_var[0] == dict_var[1]:
                     continue
 
                 if matched == 'dnd':
                     dict_dndname.append(dict_var)
-                # else:
-                #     dict_eventname.append(dict_var)
+                else:
+                    dict_eventname.append(dict_var)
 
-        dict_dndname.sort(key=lambda x: len(x[0]), reverse=True)
-        # dict_eventname.sort(key=lambda x: len(x[0]), reverse=True)
+    # 辞書を長さ順でソート
+    dict_dndname = sorted(dict_dndname, key=lambda x: len(x[0]), reverse=True)
+    dict_eventname = sorted(dict_eventname, key=lambda x: len(x[0]), reverse=True)
+
+    # 辞書を外部ファイルに書き出し
+    for line in dict_dndname:
+        dict_output_dnd.append('\t'.join(line))
+    for line in dict_eventname:
+        dict_output_ev.append('\t'.join(line))
+
+    path_dict_dir = os.path.join(output_dir, 'dict')
+    if not os.path.exists(path_dict_dir):
+        os.makedirs(path_dict_dir)
+    
+    path_dnd_dict = os.path.join(path_dict_dir, 'dict_dndname.txt')
+    with open(path_dnd_dict, 'w+', encoding='utf_8_sig') as f:
+        lines = '\n'.join(dict_output_dnd)
+        f.write(lines)
+
+    path_ev_dict = os.path.join(path_dict_dir, 'dict_eventname.txt')
+    with open(path_ev_dict, 'w+', encoding='utf_8_sig') as f:
+        lines = '\n'.join(dict_output_ev)
+        f.write(lines)
+
 
     return
 
