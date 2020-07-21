@@ -334,7 +334,7 @@ class App(tkinter.Frame):
                 tkinter.messagebox.showinfo('エラー', '日本語版マニュアルのURLが不正です。\nhttps://url/ 形式で指定する必要があります。\nURLを指定し直すか、チェックを外してください。')
                 return
             elif gms_version == 0:
-                tkinter.messagebox.showinfo('エラー', 'バージョン情報が空です。\nでGMS本体のバージョンを小数点なしで指定してください。\n（例: 2.2.5.378 > 225）')
+                tkinter.messagebox.showinfo('エラー', 'バージョン情報が空です。\nGMS本体のバージョンを小数点なしで指定してください。\n（例: 2.2.5.378 > 225）')
                 return
 
 

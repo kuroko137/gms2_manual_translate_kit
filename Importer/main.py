@@ -15,9 +15,9 @@ from translate.convert.csv2po import convertcsv
 # 0で無効、1でスペースを挿入、2でスペースを削除
 Space_Adjustment = 1
 
-# DnDアクション名を自動置換して翻訳するかどうか
-# Github Pagesには変更を与えず、専用のアーカイブファイル（GMS2_Japanese_Alt-master.zip）としてのみ出力されます
-Generate_FullTranslation = False
+# DnDアクション名を自動翻訳（単純置換）するかどうか
+# Github Pagesには変更を与えず、専用のアーカイブファイル（GMS2_Japanese_Alt-master.zip）にのみ出力されます
+Generate_FullTranslation = True
 dnd_dirname = 'source/_build/3_scripting/2_drag_and_drop_reference'
 # ev_dirname = 'source/_build/2_interface/1_editors/events'
 
@@ -150,44 +150,12 @@ def restore_csv_commentout(source_lines, new_lines):
 
 def format_csv(lines, base_path, mode):
 
-    # アクション/イベント名を自動置き換え
-
-    if mode != '':
-        lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', lines)
-        new_lines = ''
-        l_split = lines.splitlines(True)
-
-        for line in l_split:
-            s = re.split(r'\t', line)
-
-            if len(s) < 3:
-                line = ','.join(s)
-                new_lines += line
-                continue
-
-            if mode == 'dnd':
-                idx = 0
-                for tr in dict_dndname:
-
-                    if tr[0] in s[2] and len(tr) >= 2:
-
-                        if '{CTR_N}' in s[2]: # スペースつき対訳置換
-                            s[2] = re.sub(r'{CTR_N} +' + tr[0], tr[1] + ' (' + tr[0] + ')', s[2])
-                        elif '{CTR_S}' in s[2]: # スペースなし対訳置換
-                            s[2] = re.sub(r'{CTR_S} +' + tr[0], ' ' + tr[1] + ' (' + tr[0] + ')', s[2])
-                        else:
-                            s[2] = s[2].replace(tr[0], tr[1])
-                        break
-
-                    idx += 1
-
-            line = ','.join(s)
-            new_lines += line
-        lines = new_lines
-
-    # 日本語/英数字の間に半角スペースを挿入・削除
-
-    insert_pat = [ # 挿入パターン
+    # 正規表現パターン定義
+    insert_pat = [ # 半角スペースの挿入パターン
+    regex.compile(r'([^ \p{Ps}\p{Pe}">])((<[^>]+>)*)(<b>)((<[^>]+>)*)'),
+    regex.compile(r'((<[^>]+>)*)(</b>)((<[^>]+>)*)([^ \p{Ps}\p{Pe}"<])'),
+    regex.compile(r'([^ \p{Ps}\p{Pe}">])((<[^>]+>)*)(<a href=[^>]+>)((<[^>]+>)*)'),
+    regex.compile(r'((<[^>]+>)*)(</a>)((<[^>]+>)*)([^ \p{Ps}\p{Pe}"<])'),
     regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])((<[^>]+>)*)((\p{Ps})?)([a-zA-Z0-9™])'),
     regex.compile(r'(([a-zA-Z0-9™])(\p{Pe}?))((<[^>]+>)*)((\p{Ps})?)([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])'),
     re.compile(r'(、|。|！|？) '),
@@ -195,21 +163,63 @@ def format_csv(lines, base_path, mode):
     re.compile(r'\\n ')
     ]
 
-    remove_pat = [ # 削除パターン
+    remove_pat = [ # 半角スペースの削除パターン
     regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}]) ?((<[^>]+>)*) ?((\p{Ps})?)([a-zA-Z0-9™])'),
     regex.compile(r'(([a-zA-Z0-9™])(\p{Pe}?)) ?((<[^>]+>)*)((\p{Ps})?) ?([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])')
     ]
 
-    if Space_Adjustment == 1: # 半角スペースを挿入する場合
-        lines = insert_pat[0].sub(r'\1 \2\4\6', lines)
-        lines = insert_pat[1].sub(r'\1\4 \6\8', lines)
-        lines = insert_pat[2].sub(r'\1', lines)
-        lines = insert_pat[3].sub(r'\1', lines)
-        lines = insert_pat[4].sub(r'\\n', lines)
 
-    elif Space_Adjustment == 2: # 半角スペースを削除する場合
-        lines = remove_pat[0].sub(r'\1\2\4\6', lines)
-        lines = remove_pat[1].sub(r'\1\4\6\8', lines)
+    # 一行ごとの処理
+    lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', lines)
+    new_lines = ''
+    l_split = lines.splitlines(True)
+
+    for line in l_split:
+        s = re.split(r'\t', line)
+
+        if len(s) < 3: # 翻訳がないため処理をしない
+            line = ','.join(s)
+            new_lines += line
+            continue
+
+        # 日本語/英数字、および<b>, <a href>タグの間に半角スペースを挿入・削除
+        if Space_Adjustment == 1: # 半角スペースを挿入する場合
+            s[2] = insert_pat[0].sub(r'\1 \2\4\5', s[2])
+            s[2] = insert_pat[1].sub(r'\1\3\4 \6', s[2])
+            s[2] = insert_pat[2].sub(r'\1 \2\4\5', s[2])
+            s[2] = insert_pat[3].sub(r'\1\3\4 \6', s[2])
+            s[2] = insert_pat[4].sub(r'\1 \2\4\6', s[2])
+            s[2] = insert_pat[5].sub(r'\1\4 \6\8', s[2])
+            s[2] = insert_pat[6].sub(r'\1', s[2])
+            s[2] = insert_pat[7].sub(r'\1', s[2])
+            s[2] = insert_pat[8].sub(r'\\n', s[2])
+
+        elif Space_Adjustment == 2: # 半角スペースを削除する場合
+            s[2] = remove_pat[0].sub(r'\1\2\4\6', s[2])
+            s[2] = remove_pat[1].sub(r'\1\4\6\8', s[2])
+
+
+        # アクション/イベント名を自動置き換え
+        if mode == 'dnd':
+            idx = 0
+            for tr in dict_dndname:
+
+                if tr[0] in s[2] and len(tr) >= 2:
+
+                    if '{CTR_N}' in s[2]: # スペースつき対訳置換
+                        s[2] = re.sub(r'{CTR_N} +' + tr[0], tr[1] + ' (' + tr[0] + ')', s[2])
+                    elif '{CTR_S}' in s[2]: # スペースなし対訳置換
+                        s[2] = re.sub(r'{CTR_S} +' + tr[0], ' ' + tr[1] + ' (' + tr[0] + ')', s[2])
+                    else:
+                        s[2] = s[2].replace(tr[0], tr[1])
+                    break
+
+                idx += 1
+
+        line = ','.join(s)
+        new_lines += line
+    lines = new_lines
+
 
     # コメント列を復元（エントリ破損防止）
     lines = re.sub(r'([\r\n]+)', r',""\1', lines)
