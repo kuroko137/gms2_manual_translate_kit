@@ -94,8 +94,8 @@ def set_tr_dict(paratranz_zip_path):
     if Generate_FullTranslation == False:
         return
 
-    dict_dndname = []
-    dict_eventname = []
+    global dict_dndname
+    global dict_eventname
     dict_output_dnd = []
     dict_output_ev = []
 
@@ -234,7 +234,6 @@ def format_csv(lines, base_path, mode):
 
         # アクション/イベント名を自動置き換え
         if mode == 'dnd':
-            idx = 0
             for tr in dict_dndname:
 
                 if tr[0] in s[2] and len(tr) >= 2:
@@ -246,8 +245,6 @@ def format_csv(lines, base_path, mode):
                     else:
                         s[2] = s[2].replace(tr[0], tr[1])
                     break
-
-                idx += 1
 
         line = ','.join(s)
         new_lines += line
