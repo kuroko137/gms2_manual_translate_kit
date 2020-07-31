@@ -28,7 +28,7 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   サブディレクトリのファイルをすべてアップロードできなかった場合は、ParaTranzの該当ディレクトリを開いてファイルだけをアップロードするとうまくいくはずです。  
     
 * リポジトリの構築:
-  * GitHubで新規リポジトリを作成します（リポジトリ名がGitHub PagesのURL名となります）。作成後、キットに含まれている**Importer**ディレクトリ、**.gitattributes**ファイル、さらにHelp2CSVで生成された **_VERSION** ファイル、および**tr_sources**、**docs**、**override**、**override_extra**ディレクトリをリポジトリの最上位にコミットしてください。  
+  * GitHubで新規リポジトリを作成します（リポジトリ名がGitHub PagesのURL名となります）。作成後、キットに含まれている**Importer**フォルダ、**.gitattributes**ファイル、さらにHelp2CSVで生成された **repository** フォルダの中にあるすべてのフォルダ/ファイルをリポジトリの最上位にコミットしてください。  
   
   * リポジトリのSettingsを開き、OptionsメニューからGitHub Pagesのソースディレクトリを**master branch / docs folder**にセットします。
   
