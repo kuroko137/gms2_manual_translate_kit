@@ -11,7 +11,7 @@ from translate.convert.po2csv import convertcsv
 title = 'HelpConverter for GMS2 - 1.30'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
-c_translation_evnames = True
+ctr_evnames = True
 ev_dirname = 'source/_build/2_interface/1_editors/events'
 dnd_dirname = 'source/_build/3_scripting/2_drag_and_drop_reference'
 
@@ -19,21 +19,16 @@ ignore_files_path = './ignore_files.txt'
 last_used_path = './last_used.txt'
 
 dir_name_output = 'output'
-dir_name_tmp = os.path.join('tmp', 'YoYoStudioHelp')
+dir_name_repository = 'repository'
 
+dir_name_po = 'po'
+dir_name_csv = 'csv'
 dir_name_docs = 'docs'
 dir_name_override = 'override/docs'
 dir_name_override_ex = 'override_extra/docs'
-dir_name_po = 'po'
-dir_name_csv = 'csv'
 dir_name_source_html = 'tr_sources/source_html'
 dir_name_source_pot = 'tr_sources/source_pot'
 dir_name_source_csv = 'tr_sources/source_csv'
-
-po_replace_fullpath_key = [
-re.compile(r'^#: [^\r\n]+%5CYoYoStudioHelp%5'), r'#: YoYoStudioHelp%5',
-re.compile(r'^msgctxt [^\r\n]+YoYoStudioHelp\\'), r'msgctxt "YoYoStudioHelp\\'
-]
 
 
 csv_source_remove_key = [re.compile(r'("location","source","target"[\r\n]+)')]
@@ -203,7 +198,7 @@ class App(tkinter.Frame):
         lines = re.sub(r'(alt=[\r\n]*")([^>]+">)', r'\1{IMG_TXT} \2', lines)
 
         # 対訳を付加するエントリにタグを挿入
-        if c_translation_evnames:
+        if ctr_evnames:
             if dnd_dirname in base_dir:
                 # lines = re.sub(r'(<td class="text"><a href=[^>]+>)([^<]+)', r'\1{CTR_N} \2', lines)
                 lines = re.sub(r'(<h2><img style="vertical-align:middle" src=[^>]+>)([^<]+)', r'\1{CTR_S}\2', lines)
@@ -242,6 +237,14 @@ class App(tkinter.Frame):
         new_lines = ''
         separated = lines.splitlines(True)
         pat = [re.compile(r'^#: ([^\r\n]+)$'), re.compile(r'^msgctxt ([^\r\n]+)$')]
+
+        archive_name = os.path.splitext(os.path.basename(self.s_import.get()))[0]
+        archive_name_decoded = urllib.parse.quote(archive_name)
+
+        po_replace_fullpath_key = [
+        re.compile(r'^#: [^\r\n]+%5C' + archive_name_decoded + r'%5'), r'#: ' + archive_name_decoded + r'%5',
+        re.compile(r'^msgctxt [^\r\n]+' + archive_name + r'\\'), r'msgctxt "' + archive_name + r'\\'
+        ]
 
         for m in separated:
             # 文字列位置のパスを相対パスに整形
@@ -356,15 +359,14 @@ class App(tkinter.Frame):
 
         # 各ディレクトリのパスを定義
         export_path = os.path.join(export_path, dir_name_output)
-        override_dir = os.path.join(export_path, dir_name_override)
-        override_ex_dir = os.path.join(export_path, dir_name_override_ex)
-        html_output_dir = os.path.join(export_path, dir_name_source_html)
-        tmp_output_dir = os.path.join(export_path, dir_name_tmp)
         # pot_output_dir = os.path.join(export_path, dir_name_source_pot)
         po_output_dir = os.path.join(export_path, dir_name_po)
         csv_output_dir = os.path.join(export_path, dir_name_csv)
-        source_csv_output_dir = os.path.join(export_path, dir_name_source_csv)
-        docs_output_dir = os.path.join(export_path, dir_name_docs)
+        source_csv_output_dir = os.path.join(export_path, dir_name_repository, dir_name_source_csv)
+        html_output_dir = os.path.join(export_path, dir_name_repository, dir_name_source_html)
+        docs_output_dir = os.path.join(export_path, dir_name_repository, dir_name_docs)
+        override_dir = os.path.join(export_path, dir_name_repository, dir_name_override)
+        override_ex_dir = os.path.join(export_path, dir_name_repository, dir_name_override_ex)
         zip_output_dir = os.path.join(export_path, os.path.splitext(os.path.split(import_path)[1])[0])
 
         if os.path.exists(csv_output_dir):
@@ -424,7 +426,6 @@ class App(tkinter.Frame):
 
 
                 # HTMLの整形
-
                 with open(path_html, "r", encoding="utf_8_sig", newline="\n") as f_html:
                     html_lines = self.format_html(f_html.read(), base_dir)
                 with open(path_html, "w+", encoding="utf_8_sig", newline="\n") as f_html:
@@ -432,7 +433,7 @@ class App(tkinter.Frame):
 
 
                 # HTML > POファイルの変換処理
-                path_pot = os.path.join(export_path, dir_name_source_pot, base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.pot'
+                path_pot = os.path.join(export_path, dir_name_repository, dir_name_source_pot, base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.pot'
                 path_po = os.path.join(export_path, dir_name_po, base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.po'
 
                 if not os.path.exists(os.path.split(path_po)[0]):
@@ -490,7 +491,7 @@ class App(tkinter.Frame):
                 if path_csv == '':
                     path_csv = os.path.join(export_path, dir_name_csv, base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.csv'
 
-                path_source_csv = os.path.join(export_path, dir_name_source_csv, base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.csv'
+                path_source_csv = os.path.join(export_path, dir_name_repository, dir_name_source_csv, base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.csv'
 
 
                 # PO > CSV ファイルの変換処理
@@ -541,13 +542,13 @@ class App(tkinter.Frame):
 
         # バージョンファイルを生成
 
-        version_path = os.path.join(export_path, '_VERSION')
+        version_path = os.path.join(export_path, dir_name_repository, '_VERSION')
         with open(version_path, "w+") as f:
             lines = str(gms_version)
             f.write(lines)
 
         # .nojekyllを生成
-        jerky_path = os.path.join(override_dir, '.nojekyll')
+        jerky_path = os.path.join(docs_output_dir, '.nojekyll')
         with open(jerky_path, "w+") as f:
             f.write('')
 
@@ -556,9 +557,11 @@ class App(tkinter.Frame):
         with open(gitkeep_path, "w+") as f:
             f.write('')
 
+        gitkeep_path = os.path.join(override_dir, '.gitkeep')
+        with open(gitkeep_path, "w+") as f:
+            f.write('')
+
         # 不要となったディレクトリを削除
-        if os.path.exists(tmp_output_dir):
-            shutil.rmtree(tmp_output_dir)
         if os.path.exists(html_output_dir):
             shutil.rmtree(html_output_dir)
         os.rename(zip_output_dir, html_output_dir) 
