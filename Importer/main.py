@@ -12,11 +12,12 @@ from translate.convert.csv2po import convertcsv
 ################# 各種設定 ###############
 
 # 日本語と英数字の間に半角スペースを自動で挿入するかどうか
-# 0で無効、1でスペースを挿入、2でスペースを削除
+#  0で無効、1でスペースを挿入、2でスペースを削除
 Space_Adjustment = 1
 
-# DnDアクション名を自動翻訳（単純置換）するかどうか
-# Github Pagesには変更を与えず、専用のアーカイブファイル（GMS2_Japanese_Alt-master.zip）にのみ出力されます
+# IDEおよびマニュアルの二次ファイルを生成するかどうか
+#  これらはオーバーライドデータと専用の辞書により、イベント名、DnDアクション名を日本語に置き換えたものです。
+#  Github Pagesには影響せず、それぞれ別々のアーカイブ/csvとして出力されます。
 Generate_FullTranslation = True
 dnd_dirname = 'source/_build/3_scripting/2_drag_and_drop_reference'
 
@@ -33,7 +34,7 @@ output_ide_dirname = 'ide'
 output_manual_dirname = 'manual'
 
 ide_alt_path = 'japanese_alt.csv' # IDEの二次言語ファイル出力名
-ide_overrides_path = 'override_extra/ide_overrides.csv' # ↑の部分オーバーライドcsv
+ide_overrides_path = 'override_extra/ide_overrides.csv' # IDEのオーバーライドcsv
 
 dict_dnd_path = 'override_extra/dict/dict_dnd.dict' # マニュアルの置換辞書（DnDアクション名）
 dict_ev_all_path = 'override_extra/dict/dict_event_all.dict' # マニュアルの置換辞書（イベント名とその他）
@@ -84,7 +85,7 @@ def generate_ide_translations(paratranz_zip_path):
         with open(ide_output_path, 'wb') as f:
             f.write(zip_file.read(ide_path))
 
-        if not os.path.exists(ide_overrides_path):
+        if Generate_FullTranslation == False or not os.path.exists(ide_overrides_path):
             return
 
         with open(ide_overrides_path, 'r', encoding='utf_8_sig', newline='\n') as f:
@@ -95,8 +96,6 @@ def generate_ide_translations(paratranz_zip_path):
                 d = d.rstrip('\r\n')
                 dict_var = re.split(r'\t', d)
                 override_dict.append(dict_var)
-
-        print('override_dict = {0}'.format(override_dict))
 
         lines = []
         new_lines = []
@@ -116,7 +115,6 @@ def generate_ide_translations(paratranz_zip_path):
             for d in override_dict:
                 d_finder = d[0] + ','
                 if m.startswith(d_finder):
-                    print('found!',d[0],m)
                     m = ','.join(d)
                     Found = True
                     break
@@ -235,8 +233,6 @@ def read_dict(path):
 
     result = sorted(result, key=lambda x: len(x[0]), reverse=True)
 
-    print('dict_var = {0}'.format(result))
-
     return result
 
 def set_dict():
@@ -273,8 +269,6 @@ def replace_by_dict(m, tr_dict):
                 re_m = regex.sub(r'{CTR_S} +' + tr[0], ' ' + tr[1] + ' (' + tr[0] + ')', m, flags=re_flags)
 
             if m != re_m:
-                print('tr = {0}'.format(tr))
-                print('m = {0} > {1}'.format(m, re_m))
                 m = re_m
                 break
 
@@ -638,7 +632,7 @@ def sub(index_name,
                                                           out_file_path=out_file_path)
         print("download data")
 
-    # IDEの翻訳をバックアップ + 派生版を生成
+    # IDEの言語ファイルをバックアップ + 二次ファイルを生成
     generate_ide_translations(out_file_path)
 
     # テンプレート辞書を生成
