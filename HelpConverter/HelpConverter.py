@@ -24,8 +24,8 @@ dir_name_repository = 'repository'
 dir_name_po = 'po'
 dir_name_csv = 'csv'
 dir_name_docs = 'docs'
-dir_name_override = 'override/docs'
-dir_name_override_ex = 'override_extra/docs'
+dir_name_override = 'override'
+dir_name_override_ex = 'override_extra'
 dir_name_source_html = 'tr_sources/source_html'
 dir_name_source_pot = 'tr_sources/source_pot'
 dir_name_source_csv = 'tr_sources/source_csv'
@@ -365,8 +365,9 @@ class App(tkinter.Frame):
         source_csv_output_dir = os.path.join(export_path, dir_name_repository, dir_name_source_csv)
         html_output_dir = os.path.join(export_path, dir_name_repository, dir_name_source_html)
         docs_output_dir = os.path.join(export_path, dir_name_repository, dir_name_docs)
-        override_dir = os.path.join(export_path, dir_name_repository, dir_name_override)
-        override_ex_dir = os.path.join(export_path, dir_name_repository, dir_name_override_ex)
+        override_docs_dir = os.path.join(export_path, dir_name_repository, dir_name_override, 'docs')
+        override_ex_docs_dir = os.path.join(export_path, dir_name_repository, dir_name_override_ex, 'docs')
+        override_ex_dict_dir = os.path.join(export_path, dir_name_repository, dir_name_override_ex, 'dict')
         zip_output_dir = os.path.join(export_path, os.path.splitext(os.path.split(import_path)[1])[0])
 
         if os.path.exists(csv_output_dir):
@@ -534,11 +535,14 @@ class App(tkinter.Frame):
                     self.update()
 
 
-        if not os.path.exists(override_dir):
-            os.makedirs(override_dir)
+        if not os.path.exists(override_docs_dir):
+            os.makedirs(override_docs_dir)
 
-        if not os.path.exists(override_ex_dir):
-            os.makedirs(override_ex_dir)
+        if not os.path.exists(override_ex_docs_dir):
+            os.makedirs(override_ex_docs_dir)
+
+        if not os.path.exists(override_ex_dict_dir):
+            os.makedirs(override_ex_dict_dir)
 
         # バージョンファイルを生成
 
@@ -553,11 +557,15 @@ class App(tkinter.Frame):
             f.write('')
 
         # .gitkeepを生成
-        gitkeep_path = os.path.join(override_ex_dir, '.gitkeep')
+        gitkeep_path = os.path.join(override_ex_docs_dir, '.gitkeep')
         with open(gitkeep_path, "w+") as f:
             f.write('')
 
-        gitkeep_path = os.path.join(override_dir, '.gitkeep')
+        gitkeep_path = os.path.join(override_ex_dict_dir, '.gitkeep')
+        with open(gitkeep_path, "w+") as f:
+            f.write('')
+
+        gitkeep_path = os.path.join(override_docs_dir, '.gitkeep')
         with open(gitkeep_path, "w+") as f:
             f.write('')
 

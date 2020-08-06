@@ -19,7 +19,25 @@ Space_Adjustment = 1
 # Github Pagesには変更を与えず、専用のアーカイブファイル（GMS2_Japanese_Alt-master.zip）にのみ出力されます
 Generate_FullTranslation = True
 dnd_dirname = 'source/_build/3_scripting/2_drag_and_drop_reference'
-# ev_dirname = 'source/_build/2_interface/1_editors/events'
+
+input_dir = 'utf8/csv/' # ParaTranz側の翻訳ファイル
+ide_path = 'utf8/english.csv' # ParaTranz側のIDE言語ファイル
+
+template_html_dir = 'repo/tr_sources/source_html/' # GitPagesリポジトリのテンプレートHTML
+template_pot_dir = 'repo/tr_sources/source_pot/' # GitPagesリポジトリのテンプレートPOT
+template_csv_dir = 'repo/tr_sources/source_csv/' # GitPagesリポジトリのテンプレートCSV
+
+output_dir = 'Converted/'
+output_ex_dir = 'Converted_EX/'
+output_ide_dirname = 'ide'
+output_manual_dirname = 'manual'
+
+ide_alt_path = 'japanese_alt.csv' # IDEの二次言語ファイル出力名
+ide_overrides_path = 'override_extra/ide_overrides.csv' # ↑の部分オーバーライドcsv
+
+dict_dnd_path = 'override_extra/dict/dict_dnd.dict' # マニュアルの置換辞書（DnDアクション名）
+dict_ev_all_path = 'override_extra/dict/dict_event_all.dict' # マニュアルの置換辞書（イベント名とその他）
+
 
 po_replacer_kw = ['"Language: zh_CN\\n"', 
 '"Language-Team: LANGUAGE <LL@li.org>\\n"', 
@@ -37,136 +55,230 @@ html_replacer_re_tr = [
 r'\1こちら\2をクリックするとWebオンラインヘルプのツールバーを表示します: \3ツールバーを表示</a>'
 ]
 
-template_html_dir = 'tr_sources/source_html/' # GitPagesリポジトリのテンプレートHTML
-template_pot_dir = 'tr_sources/source_pot/' # GitPagesリポジトリのテンプレートPOT
-template_csv_dir = 'tr_sources/source_csv/' # GitPagesリポジトリのテンプレートCSV
-
-input_dir = 'utf8/csv/' # ParaTranz側の翻訳ファイル
-ide_translation_path = 'utf8/english.csv' # ParaTranz側のIDE言語ファイル
-output_dir = 'Converted/'
-output_ex_dir = 'Converted_EX/'
-
 restore_re_key = [re.compile('^"location","(source|target)","(target|source)"\n'), '"location","source","target"\n']
 
 compiled_raw_csv_file_patter = re.compile(r'^' + input_dir + '.*\.csv$')
 
 
-dict_dndname = []
-dict_eventname = []
+dict_dnd = []
+dict_event_all = []
 
 
 ##########################################
 
-def download_trans_zip_from_paratranz(project_id,
-                                      secret,
-                                      out_file_path,
-                                      base_url="https://paratranz.cn"):
-    """
-    paratranzからzipをダウンロードする
-    :param project_id:
-    :param secret:
-    :param base_url:
-    :param out_file_path:
-    :return:
-    """
 
-    request_url = "{}/api/projects/{}/artifacts/download".format(base_url, project_id)
-    req = urllib.request.Request(request_url)
-    req.add_header("Authorization", secret)
-
-    my_file = open(out_file_path, "wb")
-    dl_failed = 0
-    try:
-        my_file.write(urllib.request.urlopen(req).read())
-    except IOError:
-        print('IOError')
-        dl_failed = 1
-
-    if dl_failed == 1:
-        print('Failed to download from paratranz')
-        sys.exit(1)
-
-    return out_file_path
-
-
-def set_tr_dict(paratranz_zip_path):
-
-    if Generate_FullTranslation == False:
-        return
-
-    global dict_dndname
-    global dict_eventname
-    dict_output_dnd = []
-    dict_output_ev = []
-
-    # IDEの言語ファイルからDnD、イベント名の自動置き換え辞書を作成
+def generate_ide_translations(paratranz_zip_path):
+    # IDEの言語ファイルをバックアップし、さらに二次ファイルを生成
     with zipfile.ZipFile(paratranz_zip_path) as zip_file:
 
-        ide_output_dir = os.path.join(output_dir)
-        ide_output_path = os.path.join(ide_output_dir, os.path.split(ide_translation_path)[1])
+        lines = ''
+        ide_output_dir = os.path.join(output_dir, output_ide_dirname, 'orig_bak')
+        ide_output_path = os.path.join(ide_output_dir, os.path.split(ide_path)[1])
+        ide_output_alt_path = os.path.join(output_dir, output_ide_dirname, os.path.split(ide_alt_path)[1])
+
+        override_dict = []
 
         if not os.path.exists(ide_output_dir):
             os.makedirs(ide_output_dir)
 
         with open(ide_output_path, 'wb') as f:
-            f.write(zip_file.read(ide_translation_path))
+            f.write(zip_file.read(ide_path))
+
+        if not os.path.exists(ide_overrides_path):
+            return
+
+        with open(ide_overrides_path, 'r', encoding='utf_8_sig', newline='\n') as f:
+            lines = f.readlines()
+
+            for d in lines:
+                d = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', d)
+                d = d.rstrip('\r\n')
+                dict_var = re.split(r'\t', d)
+                override_dict.append(dict_var)
+
+        print('override_dict = {0}'.format(override_dict))
+
+        lines = []
+        new_lines = []
 
         with open(ide_output_path, 'r', encoding='utf_8_sig', newline='\n') as f:
-            ide_lines = f.readlines()
+            lines = f.read().splitlines(False)
 
-        for m in ide_lines:
+        new_lines.append('Name,English,Translation,Restrictions,Comment')
 
-            matched = ''
+        for m in lines:
 
-            if re.match(r'"?GMStd[^,\r\n]+_Name"?,', m):
-                matched = 'dnd'
-            elif re.match(r'"?Event_[^,]+"?,', m):
-                matched = 'ev'
+            Found = False
 
-            if matched:
-                m = m.rstrip('\n')
-                m = m.replace('"', '')
-                m = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', m)
-                dict_var = re.split(r'\t', m)
+            m = re.sub(r'"(["]+)', r'\1', m)
+            m = m.replace('"""', '""')
 
-                del dict_var[0]
+            for d in override_dict:
+                d_finder = d[0] + ','
+                if m.startswith(d_finder):
+                    print('found!',d[0],m)
+                    m = ','.join(d)
+                    Found = True
+                    break
 
-                if len(dict_var) < 2:
-                    continue
-                if dict_var[0] == dict_var[1]:
-                    continue
+            if Found == False:
+                m = m + ',,'
 
-                if matched == 'dnd':
-                    dict_dndname.append(dict_var)
-                else:
-                    dict_eventname.append(dict_var)
+            new_lines.append(m)
+
+
+        with open(ide_output_alt_path, 'w+', encoding='utf_8_sig', newline='\n') as f:
+            f.write('\r\n'.join(new_lines))
+
+    return
+
+def generate_dict_template(paratranz_zip_path):
+
+    tmp_dnd = []
+    tmp_event_all = []
+
+    # バックアップしたIDEの言語ファイルからDnD、イベント名の辞書テンプレートを生成
+
+    ide_lines = ''
+    ide_output_path = os.path.join(output_dir, output_ide_dirname, 'orig_bak', os.path.split(ide_path)[1])
+
+    if not os.path.exists(ide_output_path):
+        return
+
+    with open(ide_output_path, 'r', encoding='utf_8_sig', newline='\n') as f:
+        ide_lines = f.readlines()
+
+    for m in ide_lines:
+
+        matched = ''
+
+        if re.match(r'"?GMStd[^,\r\n]+_Name"?,', m):
+            matched = 'dnd'
+        elif re.match(r'"?Event_[^,]+"?,', m):
+            matched = 'ev'
+
+        if matched:
+            m = m.rstrip('\n')
+            m = m.replace('"', '')
+            m = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', m)
+            dict_var = re.split(r'\t', m)
+
+            del dict_var[0]
+
+            if len(dict_var) < 2:
+                continue
+            if dict_var[0] == dict_var[1]:
+                continue
+
+            dict_var.append(r'((?:^|(?:[^a-zA-Z\p{S}\-_:;\.\,\/\% ])) *)(' + re.escape(dict_var[0]) + r')( *(?:$|(?:[^a-zA-Z\p{S}\-_:;\.\,\/\% ])))')
+            dict_var.append(r'\1' + dict_var[1] + r'\3')
+            dict_var.append(r'i')
+
+            if matched == 'dnd':
+                tmp_dnd.append(dict_var)
+            else:
+                tmp_event_all.append(dict_var)
 
     # 辞書を長さ順でソート
-    dict_dndname = sorted(dict_dndname, key=lambda x: len(x[0]), reverse=True)
-    dict_eventname = sorted(dict_eventname, key=lambda x: len(x[0]), reverse=True)
+    tmp_dnd = sorted(tmp_dnd, key=lambda x: len(x[0]), reverse=True)
+    tmp_event_all = sorted(tmp_event_all, key=lambda x: len(x[0]), reverse=True)
 
     # 辞書を外部ファイルに書き出し
-    for line in dict_dndname:
+    dict_output_dnd = []
+    dict_output_ev = []
+
+    for line in tmp_dnd:
         dict_output_dnd.append('\t'.join(line))
-    for line in dict_eventname:
+    for line in tmp_event_all:
         dict_output_ev.append('\t'.join(line))
 
-    path_dict_dir = os.path.join(output_dir, 'dict')
+    path_dict_dir = os.path.join(output_dir, output_ide_dirname, 'dict_template')
     if not os.path.exists(path_dict_dir):
         os.makedirs(path_dict_dir)
     
-    path_dnd_dict = os.path.join(path_dict_dir, 'dict_dndname.txt')
+    path_dnd_dict = os.path.join(path_dict_dir, 'dict_dnd.dict')
     with open(path_dnd_dict, 'w+', encoding='utf_8_sig') as f:
         lines = '\n'.join(dict_output_dnd)
         f.write(lines)
 
-    path_ev_dict = os.path.join(path_dict_dir, 'dict_eventname.txt')
+    path_ev_dict = os.path.join(path_dict_dir, 'dict_event_all.dict')
     with open(path_ev_dict, 'w+', encoding='utf_8_sig') as f:
         lines = '\n'.join(dict_output_ev)
         f.write(lines)
 
-
     return
+
+def read_dict(path):
+    result = []
+
+    if os.path.exists(path):
+        with open(path, 'r', encoding='utf_8_sig', newline='\n') as f:
+            lines = f.read().splitlines()
+
+            for line in lines:
+                dict_var = re.split(r'\t', line)
+
+                if len(dict_var) < 1:
+                    continue
+                if dict_var[0] == dict_var[1]:
+                    continue
+
+                re_flags = 0
+                if len(dict_var) >= 5 and 'i' in dict_var[4]:
+                    re_flags = re.IGNORECASE # 大文字・小文字の区別を無効にする
+
+                if len(dict_var) >= 3: # 正規表現パターンが存在する場合はコンパイル
+                    dict_var[2] = regex.compile(dict_var[2], flags=re_flags)
+                result.append(dict_var)
+    else:
+        return False
+
+    result = sorted(result, key=lambda x: len(x[0]), reverse=True)
+
+    print('dict_var = {0}'.format(result))
+
+    return result
+
+def set_dict():
+    global dict_dnd
+    global dict_event_all
+
+    dict_dnd = read_dict(dict_dnd_path)
+    dict_event_all = read_dict(dict_ev_all_path)
+
+    if dict_dnd == False or dict_event_all == False:
+        print('No dictionary files were found.')
+        return False
+
+    return True
+
+def replace_by_dict(m, tr_dict):
+
+    for tr in tr_dict:
+
+        re_flags = 0
+        if len(tr) >= 5 and 'i' in tr[4]:
+            re_flags = re.IGNORECASE # 大文字・小文字の区別を無効にする
+
+        if len(tr) >= 2:
+
+            if len(tr) >= 4:
+                re_m = tr[2].sub(tr[3], m) # パターンが存在する場合は正規表現置換
+            else:
+                re_m = m.replace(tr[0], tr[1]) # 単純置換
+
+            if '{CTR_N}' in re_m: # スペースつき対訳置換
+                re_m = regex.sub(r'{CTR_N} +' + tr[0], tr[1] + ' (' + tr[0] + ')', m, flags=re_flags)
+            elif '{CTR_S}' in re_m: # スペースなし対訳置換
+                re_m = regex.sub(r'{CTR_S} +' + tr[0], ' ' + tr[1] + ' (' + tr[0] + ')', m, flags=re_flags)
+
+            if m != re_m:
+                print('tr = {0}'.format(tr))
+                print('m = {0} > {1}'.format(m, re_m))
+                m = re_m
+                break
+
+    return m
 
 
 def restore_csv_commentout(source_lines, new_lines):
@@ -180,6 +292,7 @@ def restore_csv_commentout(source_lines, new_lines):
     lines = '\n'.join(new_lines)
 
     return lines
+
 
 def format_csv(lines, base_path, mode):
 
@@ -210,41 +323,57 @@ def format_csv(lines, base_path, mode):
     for line in l_split:
         s = re.split(r'\t', line)
 
+        SKIP = False
+
         if len(s) < 3: # 翻訳がないため処理をしない
+            SKIP = True
+        elif '{ANY_CODE}' in s[2]: # コード行には何もしない
+            SKIP = True
+
+        if SKIP == True:
             line = ','.join(s)
             new_lines += line
-            continue
+            continue            
+
+        base = s[2] # 翻訳行
 
         # 日本語/英数字、および<b>, <a href>タグの間に半角スペースを挿入・削除
         if Space_Adjustment == 1: # 半角スペースを挿入する場合
-            s[2] = insert_pat[0].sub(r'\1 \2\4\5', s[2])
-            s[2] = insert_pat[1].sub(r'\1\3\4 \6', s[2])
-            s[2] = insert_pat[2].sub(r'\1 \2\4\5', s[2])
-            s[2] = insert_pat[3].sub(r'\1\3\4 \6', s[2])
-            s[2] = insert_pat[4].sub(r'\1 \2\4\6', s[2])
-            s[2] = insert_pat[5].sub(r'\1\4 \6\8', s[2])
-            s[2] = insert_pat[6].sub(r'\1', s[2])
-            s[2] = insert_pat[7].sub(r'\1', s[2])
-            s[2] = insert_pat[8].sub(r'\\n', s[2])
+            base = insert_pat[0].sub(r'\1 \2\4\5', base)
+            base = insert_pat[1].sub(r'\1\3\4 \6', base)
+            base = insert_pat[2].sub(r'\1 \2\4\5', base)
+            base = insert_pat[3].sub(r'\1\3\4 \6', base)
+            base = insert_pat[4].sub(r'\1 \2\4\6', base)
+            base = insert_pat[5].sub(r'\1\4 \6\8', base)
+            base = insert_pat[6].sub(r'\1', base)
+            base = insert_pat[7].sub(r'\1', base)
+            base = insert_pat[8].sub(r'\\n', base)
 
         elif Space_Adjustment == 2: # 半角スペースを削除する場合
-            s[2] = remove_pat[0].sub(r'\1\2\4\6', s[2])
-            s[2] = remove_pat[1].sub(r'\1\4\6\8', s[2])
+            base = remove_pat[0].sub(r'\1\2\4\6', base)
+            base = remove_pat[1].sub(r'\1\4\6\8', base)
 
+        # 翻訳行をタグで分離
+        notags = re.split(r'((?:<[^>]+>)|(?:\([a-zA-Z0-9 ]+\))|(?:（[a-zA-Z0-9 ]+）)|(?:\[[a-zA-Z0-9 ]+\]))', base)
+        notags_cnv = []
 
-        # アクション/イベント名を自動置き換え
-        if mode == 'dnd':
-            for tr in dict_dndname:
+        for m in notags:
 
-                if tr[0] in s[2] and len(tr) >= 2:
+            if m == None:
+                continue
+            elif m.startswith('<') or m.startswith(r'\(') or m.startswith('（') or m.startswith(r'\['):
+                notags_cnv.append(m)
+                continue
 
-                    if '{CTR_N}' in s[2]: # スペースつき対訳置換
-                        s[2] = re.sub(r'{CTR_N} +' + tr[0], tr[1] + ' (' + tr[0] + ')', s[2])
-                    elif '{CTR_S}' in s[2]: # スペースなし対訳置換
-                        s[2] = re.sub(r'{CTR_S} +' + tr[0], ' ' + tr[1] + ' (' + tr[0] + ')', s[2])
-                    else:
-                        s[2] = s[2].replace(tr[0], tr[1])
-                    break
+            # アクション/イベント名を自動置き換え
+            if mode == 'dnd':
+                m = replace_by_dict(m, dict_dnd)
+            elif mode == 'ev':
+                m = replace_by_dict(m, dict_event_all)
+
+            notags_cnv.append(m)
+
+        s[2] = ''.join(notags_cnv)
 
         line = ','.join(s)
         new_lines += line
@@ -331,6 +460,38 @@ def format_html(lines):
     return new_lines
 
 
+def download_trans_zip_from_paratranz(project_id,
+                                      secret,
+                                      out_file_path,
+                                      base_url="https://paratranz.cn"):
+    """
+    paratranzからzipをダウンロードする
+    :param project_id:
+    :param secret:
+    :param base_url:
+    :param out_file_path:
+    :return:
+    """
+
+    request_url = "{}/api/projects/{}/artifacts/download".format(base_url, project_id)
+    req = urllib.request.Request(request_url)
+    req.add_header("Authorization", secret)
+
+    my_file = open(out_file_path, "wb")
+    dl_failed = 0
+    try:
+        my_file.write(urllib.request.urlopen(req).read())
+    except IOError:
+        print('IOError')
+        dl_failed = 1
+
+    if dl_failed == 1:
+        print('Failed to download from paratranz')
+        sys.exit(1)
+
+    return out_file_path
+
+
 def convert_csv_to_html_from_zip(paratranz_zip_path):
 
     with zipfile.ZipFile(paratranz_zip_path) as zip_file:
@@ -347,9 +508,8 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
             if Generate_FullTranslation:
                 if info.filename.find(dnd_dirname) > 0:
                     exoport_mode.append('dnd')
-
-                # if ev_dirname.match(info.filename):
-                #    mode.append('ev')
+                else:
+                    exoport_mode.append('ev')
 
 
             for mode in exoport_mode:
@@ -358,12 +518,12 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
                 base_path = os.path.splitext(base_path)[0]
 
                 if mode != '':
-                    dist_dir = output_ex_dir
+                    dist_dir = os.path.join(output_ex_dir, output_manual_dirname)
                 else:
-                    dist_dir = output_dir
+                    dist_dir = os.path.join(output_dir, output_manual_dirname)
 
                 # ParaTranzのバックアップ用csvを生成
-                path_csv = os.path.join(dist_dir + 'csv', base_path) + '.csv'
+                path_csv = os.path.join(dist_dir, 'csv', base_path) + '.csv'
 
                 if not os.path.exists(os.path.split(path_csv)[0]):
                     os.makedirs(os.path.split(path_csv)[0])
@@ -374,8 +534,8 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
                 # base_path = base_path.encode('cp437').decode('cp932')
                 base_path = base_path.replace('／', chr(47)) # 置き換えられたファイル名の'／'をパスとしての'/'に復元
 
-                path_csv_csv = os.path.join(dist_dir + 'csv_cnv', base_path) + '.csv'
-                path_source_csv = os.path.join('repo/' + template_csv_dir, base_path) + '.csv'
+                path_csv_csv = os.path.join(dist_dir, 'csv_cnv', base_path) + '.csv'
+                path_source_csv = os.path.join(template_csv_dir, base_path) + '.csv'
 
 
                 # コメントアウトしたCSV行を復元
@@ -403,8 +563,8 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
 
 
                 # CSVファイルをPOファイルに変換
-                path_cnv_po = os.path.join(dist_dir + 'po_cnv', base_path) + '.po'
-                path_template = os.path.join('repo/' + template_pot_dir, base_path) + '.pot'
+                path_cnv_po = os.path.join(dist_dir, 'po_cnv', base_path) + '.po'
+                path_template = os.path.join(template_pot_dir, base_path) + '.pot'
 
                 if not os.path.exists(path_template):
                     print('SKIP CSV TEMPLATE = {0} '.format(path_template))
@@ -432,8 +592,8 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
                 
 
                 # HTMLへの変換を開始
-                path_output = os.path.join(dist_dir + 'docs/', base_path) + '.html'
-                path_template = os.path.join('repo/' + template_html_dir, base_path) + '.html'
+                path_output = os.path.join(dist_dir, 'docs', base_path) + '.html'
+                path_template = os.path.join(template_html_dir, base_path) + '.html'
                 
                 if not os.path.exists(path_template):
                     print('SKIP HTML TEMPLATE = {0} '.format(path_template))
@@ -478,8 +638,16 @@ def sub(index_name,
                                                           out_file_path=out_file_path)
         print("download data")
 
-    # 辞書データを取得
-    set_tr_dict(out_file_path)
+    # IDEの翻訳をバックアップ + 派生版を生成
+    generate_ide_translations(out_file_path)
+
+    # テンプレート辞書を生成
+    generate_dict_template(out_file_path)
+    # 辞書データを登録
+    global Generate_FullTranslation
+
+    if set_dict() == False:
+        Generate_FullTranslation = False
     # csvをhtmlに変換
     convert_csv_to_html_from_zip(out_file_path)
 

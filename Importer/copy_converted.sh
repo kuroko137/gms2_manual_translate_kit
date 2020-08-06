@@ -3,8 +3,8 @@
 
 rm -rf generated
 cp Converted/ ./generated -a -r -f
-cp generated/docs ./ -a -r -f
-rm -rf generated/docs
+cp generated/manual/docs ./ -a -r -f
+rm -rf generated/manual/docs
 
 GENERATE_EX=0
 
@@ -19,6 +19,8 @@ if [ -r ./_VERSION ]; then
   
     if [ $OVERRIDE_VER -ge $BASE_VER ]; then
       cp ./override/docs ./ -a -r -f
+    else
+      echo OVERRIDE is OUTDATED. No override is done.
     fi
   fi
   
@@ -29,11 +31,13 @@ if [ -r ./_VERSION ]; then
   
     if [ $OVERRIDE_VER -ge $BASE_VER ]; then
       if [ -e Converted_EX ]; then
-        cp ./Converted_EX/docs/ ./ex_tmp -a -r -f
+        cp ./Converted_EX/manual/docs/ ./ex_tmp -a -r -f
       fi
       cp ./override_extra/docs/* ./ex_tmp/ -a -r -f
       rm -rf ./ex_tmp/.gitkeep
       GENERATE_EX=1
+    else
+      echo OVERRIDE_EXTRA is OUTDATED. No override is done.
     fi
   fi
 fi
