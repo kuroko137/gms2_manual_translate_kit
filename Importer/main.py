@@ -18,7 +18,7 @@ Space_Adjustment = 1
 # IDEおよびマニュアルの二次ファイルを生成するかどうか
 #  これらはオーバーライドデータと専用の辞書により、イベント名、DnDアクション名を日本語に置き換えたものです。
 #  Github Pagesには影響せず、それぞれ別々のアーカイブ/csvとして出力されます。
-Generate_FullTranslation = True
+Generate_FullTranslation = False
 dnd_dirname = 'source/_build/3_scripting/2_drag_and_drop_reference'
 
 input_dir = 'utf8/csv/' # ParaTranz側の翻訳ファイル
