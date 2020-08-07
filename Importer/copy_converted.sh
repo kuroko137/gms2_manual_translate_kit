@@ -1,9 +1,11 @@
 #!/bin/sh
 
+if [ ! -e ./generated ]; then
+  mkdir -p ./generated
+fi
 
-rm -rf generated
-cp Converted/ ./generated -a -r -f
-cp generated/manual/docs ./ -a -r -f
+cp ./Converted/* ./generated -arf
+cp generated/manual/docs ./ -arf
 rm -rf generated/manual/docs
 
 GENERATE_EX=0
@@ -18,7 +20,7 @@ if [ -r ./_VERSION ]; then
     echo OVERRIDE_VER=$OVERRIDE_VER
   
     if [ $OVERRIDE_VER -ge $BASE_VER ]; then
-      cp ./override/docs ./ -a -r -f
+      cp ./override/docs ./ -arf
     else
       echo OVERRIDE is OUTDATED. No override is done.
     fi
@@ -30,11 +32,11 @@ if [ -r ./_VERSION ]; then
     echo OVERRIDE_EX_VER=$OVERRIDE_VER
   
     if [ $OVERRIDE_VER -ge $BASE_VER ]; then
-      if [ -e Converted_EX ]; then
-        cp ./Converted_EX/manual/docs/ ./ex_tmp -a -r -f
-      fi
-      cp ./override_extra/docs/* ./ex_tmp/ -a -r -f
-      rm -rf ./ex_tmp/.gitkeep
+      mkdir -p ./ex_tmp
+      cp ./Converted_EX/manual/docs ./ex_tmp/docs -arf
+      cp ./override_extra/docs ./ex_tmp -arf # 連続で同じ場所にコピーするとコピー先が変化するため直下にコピー
+      rm -rf ./ex_tmp/docs/gitkeep
+      cp ./Converted_EX/ide ./Converted -arf
       GENERATE_EX=1
     else
       echo OVERRIDE_EXTRA is OUTDATED. No override is done.
@@ -44,15 +46,15 @@ fi
 
 
 mkdir -p ./GMS2_Japanese-master
-cp ./docs ./GMS2_Japanese-master -a -r -f
+cp ./docs ./GMS2_Japanese-master -arf
 rm -rf ./GMS2_Japanese-master/docs/.nojekyll
 mv ./GMS2_Japanese-master/docs ./GMS2_Japanese-master/GMS2_Japanese-master
 
 
 if [ $GENERATE_EX -eq 1 ]; then
   mkdir -p ./GMS2_Japanese_Alt-master
-  cp ./docs ./GMS2_Japanese_Alt-master -a -r -f
-  cp ./ex_tmp/* ./GMS2_Japanese_Alt-master/docs -a -r -f
+  cp ./docs/ ./GMS2_Japanese_Alt-master -arf
+  cp ./ex_tmp/docs ./GMS2_Japanese_Alt-master -arf
   rm -rf ./GMS2_Japanese_Alt-master/docs/.nojekyll
   mv ./GMS2_Japanese_Alt-master/docs ./GMS2_Japanese_Alt-master/GMS2_Japanese_Alt-master
 fi

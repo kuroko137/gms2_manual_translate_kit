@@ -73,9 +73,9 @@ def generate_ide_translations(paratranz_zip_path):
     with zipfile.ZipFile(paratranz_zip_path) as zip_file:
 
         lines = ''
-        ide_output_dir = os.path.join(output_dir, output_ide_dirname, 'orig_bak')
+        ide_output_dir = os.path.join(output_dir, output_ide_dirname, 'original')
         ide_output_path = os.path.join(ide_output_dir, os.path.split(ide_path)[1])
-        ide_output_alt_path = os.path.join(output_dir, output_ide_dirname, os.path.split(ide_alt_path)[1])
+        ide_output_alt_path = os.path.join(output_ex_dir, output_ide_dirname, os.path.split(ide_alt_path)[1])
 
         override_dict = []
 
@@ -124,6 +124,8 @@ def generate_ide_translations(paratranz_zip_path):
 
             new_lines.append(m)
 
+        if not os.path.exists(os.path.split(ide_output_alt_path)[0]):
+            os.makedirs(os.path.split(ide_output_alt_path)[0])
 
         with open(ide_output_alt_path, 'w+', encoding='utf_8_sig', newline='\n') as f:
             f.write('\r\n'.join(new_lines))
@@ -138,7 +140,7 @@ def generate_dict_template(paratranz_zip_path):
     # バックアップしたIDEの言語ファイルからDnD、イベント名の辞書テンプレートを生成
 
     ide_lines = ''
-    ide_output_path = os.path.join(output_dir, output_ide_dirname, 'orig_bak', os.path.split(ide_path)[1])
+    ide_output_path = os.path.join(output_dir, output_ide_dirname, 'original', os.path.split(ide_path)[1])
 
     if not os.path.exists(ide_output_path):
         return
@@ -190,7 +192,7 @@ def generate_dict_template(paratranz_zip_path):
     for line in tmp_event_all:
         dict_output_ev.append('\t'.join(line))
 
-    path_dict_dir = os.path.join(output_dir, output_ide_dirname, 'dict_template')
+    path_dict_dir = os.path.join(output_dir, 'dict_template')
     if not os.path.exists(path_dict_dir):
         os.makedirs(path_dict_dir)
     
