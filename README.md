@@ -77,11 +77,11 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
     （翻訳チーム名＋プロジェクトURL、プロジェクト名）
   
 * 生成されるファイル:
-  * generated/CSVにはParaTranzの翻訳データが、残りのディレクトリには変換後の翻訳データがバックアップされます。
+  * generated/manual/csvにはParaTranzのマニュアル翻訳データが、残りのディレクトリには変換後の翻訳データがバックアップされます。
+  * generated/ide/originalにはParaTranzのIDE翻訳データがバックアップされます。
   
   * **GMS2_Japanese-master.zip**は翻訳されたマニュアルをアーカイブ化したファイルです。
-  
-  * **GMS2_Japanese_Alt-master.zip**は上記に加え、DnDアクション/イベント名が翻訳されています。
+  * **GMS2_Japanese_Alt-master.zip**は上記の二次ファイルであり、DnDアクション/イベント名も翻訳されます。
   
   * docs直下に置かれる**.nojekyll**というファイルはHelpConverterでの変換時に追加されたもので、元のアーカイブには存在しないファイルです。これはGitHub Pagesの動作に必要なファイルであり、GitHub外で利用する場合は不要となるため削除してください。
   
@@ -90,25 +90,24 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   importer.ymlを編集することで通知メッセージの内容を変更可能です。
   
 ### 二次ファイル
-以下の機能を利用することで、DnDアクション名とイベント名を日本語化した二次ファイルを生成することができます。  
-いずれも有効にするにはimporter/main.pyの**Generate_FullTranslation**をTrueに設定する必要があります。  
+以下の機能を利用することで、DnDアクション名とイベント名を日本語化した二次ファイルを生成することができます。いずれも有効にするにはimporter/main.pyの**Generate_FullTranslation**をTrueに設定する必要があります。  
   
 * 自動置換:  
   * ユーザー辞書を参照し、キーワードの自動置換をマニュアル全体に行う機能です。ユーザー辞書はdict_dnd.dict（DnDアクション名）、dict_event_all.dict（イベント名等）の2つに分けられ、これらを**override_extra/dict**にコミットする必要があります。  
   
   * GitHub Actionsが実行されると、IDEの翻訳データから生成された辞書のサンプルがgenerated/dict_templateに作られます。こちらをベースに辞書を調整していくといいでしょう。  
   * dict_dnd.dictによる自動置換は/3_scripting/2_drag_and_drop_reference以下のHTMLファイルにのみ行われ、dict_event_all.dictはそれ以外のすべてのHTMLファイルに行われます。  
-  * フォーマット:  
+  * フォーマット:
     - 原文    TAB    訳文    TAB    正規表現パターン_原文    TAB    正規表現パターン_訳文    TAB    i （小/大文字の区別を無視） 
-    - SAMPLE	サンプル	( ?)SAMPLE( ?)	\1サンプル\2	i  
     >> 正規表現パターン、小/大文字の区別無視フラグは省略可能です。正規表現パターンを省略した場合はかわりに単純置換が行われます。
+    - SAMPLE	サンプル	( ?)SAMPLE( ?)	\1サンプル\2	i  
   
 * オーバーライド:  
-  * override_extra/docs以下にコミットされたファイルを上書きコピーする機能です。有効とするにはoverride_extraの直下に_VERSIONファイルをコミットする必要があります。前述した通常用のoverrideディレクトリに次いで上書きが行われ、こちらは二次ファイルにのみ適用されます。
+  * **override_extra/docs**以下にアップロードされたファイルを上書きコピーする機能です。前述した通常用のoverrideディレクトリに次いで上書きが行われ、こちらは二次ファイルにのみ適用されます。有効とするにはoverride_extraの直下に_VERSIONファイルをコミットする必要があります。
   
-  * マニュアルだけでなく、IDEの二次ファイルも生成できます。override_extra直下に**ide_overrides.csv**というcsvを作成し、上書きしたいエントリの内容をそのまま書き込んでください。
+  * マニュアルだけでなく、IDEの二次ファイルも生成できます。override_extra直下に**ide_overrides.csv**というcsvを作成し、上書きさせるエントリの内容をそのまま記述してください。
   
-  * オーバーライドは自動置換よりも優先されるため、override_extra/docs以下に置かれているHTMLファイルには自動置換が適用されません。  
+  * オーバーライドは自動置換よりも優先されるため、override_extra/docs以下に置かれているHTMLファイルには辞書による自動置換が適用されません。  
 
 - - -
 
