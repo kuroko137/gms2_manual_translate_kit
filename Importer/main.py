@@ -37,7 +37,7 @@ ide_alt_path = 'japanese_alt.csv' # IDEの二次言語ファイル出力名
 ide_overrides_path = 'override_extra/ide_overrides.csv' # IDEのオーバーライドcsv
 
 dict_dnd_path = 'override_extra/dict/dict_dnd.dict' # マニュアルの置換辞書（DnDアクション名）
-dict_ev_all_path = 'override_extra/dict/dict_event_all.dict' # マニュアルの置換辞書（イベント名とその他）
+dict_ev_all_path = 'override_extra/dict/dict_misc.dict' # マニュアルの置換辞書（イベント名とその他）
 
 
 po_replacer_kw = ['"Language: zh_CN\\n"', 
@@ -62,7 +62,7 @@ compiled_raw_csv_file_patter = re.compile(r'^' + input_dir + '.*\.csv$')
 
 
 dict_dnd = []
-dict_event_all = []
+dict_misc = []
 
 
 ##########################################
@@ -201,7 +201,7 @@ def generate_dict_template(paratranz_zip_path):
         lines = '\n'.join(dict_output_dnd)
         f.write(lines)
 
-    path_ev_dict = os.path.join(path_dict_dir, 'dict_event_all.dict')
+    path_ev_dict = os.path.join(path_dict_dir, 'dict_misc.dict')
     with open(path_ev_dict, 'w+', encoding='utf_8_sig') as f:
         lines = '\n'.join(dict_output_ev)
         f.write(lines)
@@ -239,12 +239,12 @@ def read_dict(path):
 
 def set_dict():
     global dict_dnd
-    global dict_event_all
+    global dict_misc
 
     dict_dnd = read_dict(dict_dnd_path)
-    dict_event_all = read_dict(dict_ev_all_path)
+    dict_misc = read_dict(dict_ev_all_path)
 
-    if dict_dnd == False or dict_event_all == False:
+    if dict_dnd == False or dict_misc == False:
         print('No dictionary files were found.')
         return False
 
@@ -365,7 +365,7 @@ def format_csv(lines, base_path, mode):
             if mode == 'dnd':
                 m = replace_by_dict(m, dict_dnd)
             elif mode == 'ev':
-                m = replace_by_dict(m, dict_event_all)
+                m = replace_by_dict(m, dict_misc)
 
             notags_cnv.append(m)
 
