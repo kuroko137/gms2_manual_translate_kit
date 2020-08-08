@@ -77,11 +77,9 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
     （翻訳チーム名＋プロジェクトURL、プロジェクト名）
   
 * 生成されるファイル:
-  * generated/manual/csvにはParaTranzのマニュアル翻訳データが、残りのディレクトリには変換後の翻訳データがバックアップされます。
-  * generated/ide/originalにはParaTranzのIDE翻訳データがバックアップされます。
+  * generated/manual/csvにはParaTranzのマニュアル翻訳データが、残りのディレクトリにはそれを変換したものがバックアップされます。また、generated/ide/originalにはIDEの翻訳データがバックアップされます。
   
-  * **GMS2_Japanese-master.zip**は翻訳されたマニュアルをアーカイブ化したファイルです。
-  * **GMS2_Japanese_Alt-master.zip**は上記の二次ファイルであり、DnDアクション/イベント名も翻訳されます。
+  * **GMS2_Japanese-master.zip**は翻訳されたマニュアルをアーカイブ化したファイルです。**GMS2_Japanese_Alt-master.zip**はその二次ファイルであり、DnDアクション/イベント名も翻訳されます。
   
   * docs直下に置かれる**.nojekyll**というファイルはHelpConverterでの変換時に追加されたもので、元のアーカイブには存在しないファイルです。これはGitHub Pagesの動作に必要なファイルであり、GitHub外で利用する場合は不要となるため削除してください。
   
