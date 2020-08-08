@@ -91,26 +91,24 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   
 ### 二次ファイル
 以下の機能を利用することで、DnDアクション名とイベント名を日本語化した二次ファイルを生成することができます。  
-いずれも有効にするにはimporter/main.pyの**Generate_FullTranslation**をTrueに設定する必要があります。
+いずれも有効にするにはimporter/main.pyの**Generate_FullTranslation**をTrueに設定する必要があります。  
   
-* 自動置換  
-  * ユーザー辞書を参照し、キーワードの自動置換をマニュアル全体に行う機能です。
-  
-  * ユーザー辞書はdict_dnd.dict（DnDアクション名）、dict_event_all.dict（イベント名等）の2つに分けられ、これらを**override_extra/dict**にコミットする必要があります。
+* 自動置換:  
+  * ユーザー辞書を参照し、キーワードの自動置換をマニュアル全体に行う機能です。ユーザー辞書はdict_dnd.dict（DnDアクション名）、dict_event_all.dict（イベント名等）の2つに分けられ、これらを**override_extra/dict**にコミットする必要があります。  
   
   * GitHub Actionsが実行されると、IDEの翻訳データから生成された辞書のサンプルがgenerated/dict_templateに作られます。こちらをベースに辞書を調整していくといいでしょう。  
-  * dict_dnd.dictによる自動置換は/3_scripting/2_drag_and_drop_reference以下のHTMLファイルにのみ行われ、dict_event_all.dictはそれ以外のすべてのHTMLファイルに行われます。
+  * dict_dnd.dictによる自動置換は/3_scripting/2_drag_and_drop_reference以下のHTMLファイルにのみ行われ、dict_event_all.dictはそれ以外のすべてのHTMLファイルに行われます。  
   * フォーマット:  
     - 原文    TAB    訳文    TAB    正規表現パターン_原文    TAB    正規表現パターン_訳文    TAB    i （小/大文字の区別を無視） 
     - SAMPLE	サンプル	( ?)SAMPLE( ?)	\1サンプル\2	i  
     >> 正規表現パターン、小/大文字の区別無視フラグは省略可能です。正規表現パターンを省略した場合はかわりに単純置換が行われます。
   
-* オーバーライド  
-  * override_extra/docs以下にコミットされたファイルの上書きコピーを行う機能です。有効とするにはoverride_extraの直下に_VERSIONファイルをコミットする必要があります。前述した通常用のoverrideディレクトリに次いで上書きが行われ、こちらは二次ファイルにのみ適用されます。
+* オーバーライド:  
+  * override_extra/docs以下にコミットされたファイルを上書きコピーする機能です。有効とするにはoverride_extraの直下に_VERSIONファイルをコミットする必要があります。前述した通常用のoverrideディレクトリに次いで上書きが行われ、こちらは二次ファイルにのみ適用されます。
   
-  * オーバーライドを利用することでマニュアルだけでなく、IDEの二次ファイルも生成できます。override_extra直下に**ide_overrides.csv**というcsvを作成し、上書きしたいエントリの内容をそのまま書き込んでください。
+  * マニュアルだけでなく、IDEの二次ファイルも生成できます。override_extra直下に**ide_overrides.csv**というcsvを作成し、上書きしたいエントリの内容をそのまま書き込んでください。
   
-  * オーバーライドは自動置換よりも優先して行われるため、すでにoverride_extra/docsの同じ場所にHTMLが存在する場合、自動翻訳は行われず、すでにあるHTMLが優先されます  
+  * オーバーライドは自動置換よりも優先されるため、override_extra/docs以下に置かれているHTMLファイルには自動置換が適用されません。  
 
 - - -
 
@@ -140,13 +138,12 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 |override_extra/ide_overrides.csv|IDEのオーバーライドcsv|
 |override_extra/dict/dict_dnd.dict|自動置換の辞書ファイル（DnDアクション名）|
 |override_extra/dict/dict_event_all.dict|自動置換の辞書ファイル|
-|generated|Importerによって生成されたバックアップ用の翻訳ファイル群|
-|generated/ide/japanese_alt.csv|生成された二次IDE言語ファイル|
+|generated/manual|マニュアル用csvのバックアップ|
 |generated/ide/original|ParaTranzからバックアップされたIDE言語ファイル|
 |generated/ide/dict_template|自動置換の辞書サンプル|
+|generated/ide/japanese_alt.csv|二次IDE言語ファイル|
 
 
 ## 謝辞
 * **☆ (ゝω・)v** - [**Trasnlation data importer**](https://github.com/matanki-saito/paratranz2es "Trasnlation data importer")
   * このキットは (ゝω・)vさんのTrasnlation data importerをもとに制作されています。
-
