@@ -135,10 +135,16 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 |_VERSION|マニュアルのバージョン|
 |override/docs|Importerの実行時、docsに上書きコピーされるファイル群|
 |override/_VERSION|overrideのバージョン|
-|override_extra/docs|overrideに続いて上書きコピーされるファイル群|
+|override_extra/docs|二次ファイル用。overrideに続いて上書きコピーされるファイル群|
 |override_extra/_VERSION|override_extraのバージョン|
+|override_extra/ide_overrides.csv|IDEのオーバーライドcsv|
+|override_extra/dict/dict_dnd.dict|自動置換の辞書ファイル（DnDアクション名）|
+|override_extra/dict/dict_event_all.dict|自動置換の辞書ファイル|
 |generated|Importerによって生成されたバックアップ用の翻訳ファイル群|
-|generated/dict|イベント名/DnDアクション名の対訳辞書。[**Speeeeed**](https://www.vector.co.jp/soft/win95/util/se142895.html)などの置き換えソフト用|
+|generated/ide/japanese_alt.csv|生成された二次IDE言語ファイル|
+|generated/ide/original|ParaTranzからバックアップされたIDE言語ファイル|
+|generated/ide/dict_template|自動置換の辞書サンプル|
+
 
 ## 謝辞
 * **☆ (ゝω・)v** - [**Trasnlation data importer**](https://github.com/matanki-saito/paratranz2es "Trasnlation data importer")
