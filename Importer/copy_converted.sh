@@ -21,6 +21,7 @@ if [ -r ./_VERSION ]; then
   
     if [ $OVERRIDE_VER -ge $BASE_VER ]; then
       cp ./override/docs ./ -arf
+      find ./docs -name 'git_noadd_*' | xargs rm
     else
       echo OVERRIDE is OUTDATED. No override is done.
     fi
@@ -35,6 +36,7 @@ if [ -r ./_VERSION ]; then
       mkdir -p ./ex_tmp
       cp ./Converted_EX/manual/docs ./ex_tmp/docs -arf
       cp ./override_extra/docs ./ex_tmp -arf # 連続で同じ場所にコピーするとコピー先が変化するため直下にコピー
+      find ./ex_tmp -name 'git_noadd_*' | xargs rm
       rm -rf ./ex_tmp/docs/gitkeep
       cp ./Converted_EX/ide ./Converted -arf
       GENERATE_EX=1
