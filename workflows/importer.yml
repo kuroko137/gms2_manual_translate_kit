@@ -42,7 +42,7 @@ jobs:
       - name: Push
         run: sudo sh ./Importer/push.sh # 変更があればコミット&プッシュ
       - name: Set COMMIT_DATE
-        run: echo ::set-env name=COMMIT_DATE::$(echo "${{ github.event.head_commit.timestamp }}" | tr '\n' ' ')
+        run: echo ::set-env name=COMMIT_DATE::$(TZ=UTC-9 date '+%Y-%m-%d %H:%M:%S' | tr '\n' ' ')
       - name: Discord notification
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
@@ -50,5 +50,5 @@ jobs:
         uses: Ilshidur/action-discord@master # Discordへの更新通知
         with:
           # https://git.io/で生成した短縮URLを入れると便利かもしれません
-          # args: 'ParaTranzの翻訳をオンラインヘルプに反映 - https://git.io/***** ${{ env.COMMIT_DATE }}'
-          args: 'ParaTranzの翻訳をオンラインヘルプに反映 ${{ env.COMMIT_DATE }}'
+          # args: 'ParaTranzの翻訳をオンラインヘルプに反映: ${{ env.COMMIT_DATE }} - https://git.io/*****'
+          args: 'ParaTranzの翻訳をオンラインヘルプに反映: ${{ env.COMMIT_DATE }}'
