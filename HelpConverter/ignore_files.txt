@@ -1,12 +1,1 @@
-frameset_wrapperc.html
-frameset_wrapperi.html
-frameset_wrappers.html
-helpblankpage.html
-helpcontents.html
-helpleftcon.html
-helpleftind.html
-helpleftsch.html
-index.html
-pageheader.html
-Images/Dark_Skin/pageheader.html
-Images/Light_Skin/pageheader.html
+index1.htm
