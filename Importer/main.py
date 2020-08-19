@@ -19,7 +19,7 @@ Space_Adjustment = 1
 #  これらはオーバーライドデータと専用の辞書により、イベント名、DnDアクション名を日本語に置き換えたものです。
 #  Github Pagesには影響せず、それぞれ別々のアーカイブ/csvとして出力されます。
 Generate_FullTranslation = False
-dnd_dirname = 'source/_build/3_scripting/2_drag_and_drop_reference'
+dnd_dirname = 'Drag_And_Drop/Drag_And_Drop_Reference/'
 
 input_dir = 'utf8/csv/' # ParaTranz側の翻訳ファイル
 ide_path = 'utf8/english.csv' # ParaTranz側のIDE言語ファイル
@@ -123,6 +123,8 @@ def generate_ide_translations(paratranz_zip_path):
                 m = m + ',,'
 
             new_lines.append(m)
+
+        new_lines.append('') # 改行用
 
         if not os.path.exists(os.path.split(ide_output_alt_path)[0]):
             os.makedirs(os.path.split(ide_output_alt_path)[0])
@@ -294,8 +296,8 @@ def format_csv(lines, base_path, mode):
 
     # 正規表現パターン定義
     insert_pat = [ # 半角スペースの挿入パターン
-    regex.compile(r'([^ \p{Ps}\p{Pe}">])((<[^>]+>)*)(<b>)((<[^>]+>)*)'),
-    regex.compile(r'((<[^>]+>)*)(</b>)((<[^>]+>)*)([^ \p{Ps}\p{Pe}"<])'),
+    regex.compile(r'([^ \p{Ps}\p{Pe}">])((<[^>]+>)*)(<b>|<strong>)((<[^>]+>)*)'),
+    regex.compile(r'((<[^>]+>)*)(</b>|</strong>)((<[^>]+>)*)([^ \p{Ps}\p{Pe}"<])'),
     regex.compile(r'([^ \p{Ps}\p{Pe}">])((<[^>]+>)*)(<a href=[^>]+>)((<[^>]+>)*)'),
     regex.compile(r'((<[^>]+>)*)(</a>)((<[^>]+>)*)([^ \p{Ps}\p{Pe}"<])'),
     regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])((<[^>]+>)*)((\p{Ps})?)([a-zA-Z0-9™])'),
@@ -385,11 +387,11 @@ def format_csv(lines, base_path, mode):
         lines = restore_re_key[1] + lines
 
     # キーを復元
-    orig_key = 'YoYoStudioHelp'
+    orig_key = 'YoYoStudioRoboHelp'
     if os.path.split(base_path)[0]:
         orig_key = orig_key + chr(47) + os.path.split(base_path)[0]
     orig_key = orig_key.replace(chr(47), chr(92) + chr(92))
-    lines = re.sub(r'([^"\r\n]+\.html\+[^:]+:[0-9]+\-[0-9]+)', '"' + orig_key + chr(92) + chr(92) + r'\1"', lines)
+    lines = re.sub(r'([^"\r\n]+\.html?\+[^:]+:[0-9]+\-[0-9]+)', '"' + orig_key + chr(92) + chr(92) + r'\1"', lines)
 
     return lines
 
@@ -530,7 +532,7 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
                 # base_path = base_path.encode('cp437').decode('cp932')
                 base_path = base_path.replace('／', chr(47)) # 置き換えられたファイル名の'／'をパスとしての'/'に復元
 
-                path_csv_csv = os.path.join(dist_dir, 'csv_cnv', base_path) + '.csv'
+                path_cnv_csv = os.path.join(dist_dir, 'csv_cnv', base_path) + '.csv'
                 path_source_csv = os.path.join(template_csv_dir, base_path) + '.csv'
 
 
@@ -551,10 +553,10 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
                 with open(path_csv, 'r', encoding='utf_8_sig', newline='\n') as f_input:
                     csv_lines = format_csv(f_input.read(), base_path, mode)
 
-                if not os.path.exists(os.path.split(path_csv_csv)[0]):
-                    os.makedirs(os.path.split(path_csv_csv)[0])
+                if not os.path.exists(os.path.split(path_cnv_csv)[0]):
+                    os.makedirs(os.path.split(path_cnv_csv)[0])
 
-                with open(path_csv_csv, 'w+', encoding='utf_8_sig', newline='\n') as f_input:
+                with open(path_cnv_csv, 'w+', encoding='utf_8_sig', newline='\n') as f_input:
                     f_input.write(csv_lines)
 
 
@@ -569,7 +571,7 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
                 if not os.path.exists(os.path.split(path_cnv_po)[0]):
                     os.makedirs(os.path.split(path_cnv_po)[0])
 
-                f_input = open(path_csv_csv, 'rb')
+                f_input = open(path_cnv_csv, 'rb')
                 f_output = open(path_cnv_po, 'wb+')
                 f_template = open(path_template, 'rb')
                 
@@ -588,8 +590,8 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
                 
 
                 # HTMLへの変換を開始
-                path_output = os.path.join(dist_dir, 'docs', base_path) + '.html'
-                path_template = os.path.join(template_html_dir, base_path) + '.html'
+                path_output = os.path.join(dist_dir, 'docs', base_path) + '.htm'
+                path_template = os.path.join(template_html_dir, base_path) + '.htm'
                 
                 if not os.path.exists(path_template):
                     print('SKIP HTML TEMPLATE = {0} '.format(path_template))
@@ -602,7 +604,7 @@ def convert_csv_to_html_from_zip(paratranz_zip_path):
                 f_output = open(path_output, 'wb+')
                 f_template = open(path_template, 'rb')
                 
-                print('converting: {0} to .html'.format(path_cnv_po))
+                print('converting: {0} to .htm'.format(path_cnv_po))
                 converthtml(f_po, f_output, f_template) # Translate-KitによるPO > HTMLの変換処理
 
                 f_po.close()

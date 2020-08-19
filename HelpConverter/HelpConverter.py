@@ -8,12 +8,11 @@ from pathlib import Path
 from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 
-title = 'HelpConverter for GMS2 - 1.30'
+title = 'HelpConverter for GMS2 - 1.50'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 ctr_evnames = True
-ev_dirname = 'source/_build/2_interface/1_editors/events'
-dnd_dirname = 'source/_build/3_scripting/2_drag_and_drop_reference'
+dnd_dirname = 'Drag_And_Drop/Drag_And_Drop_Reference/'
 
 ignore_files_path = './ignore_files.txt'
 last_used_path = './last_used.txt'
@@ -41,9 +40,9 @@ re.compile(r'("?[^"\r\n]+\.html\+[^:]+:[0-9]+\-[0-9]+[",]+\(function\(i,s,o,g,r,
 
 lastused_data = []
 
-def create_last_used_txt():
+def create_last_used_txt(): # 最後の使用履歴がなければ作成
     with open(last_used_path, "w+") as f:
-        entries = ['import_path=:...', 'export_path=:...', 'en_url=:https://docs2.yoyogames.com/', 'jp_url=:', 'gms_version=:0', 'simplified=:True', 'add_url=:False']
+        entries = ['import_path=:...', 'export_path=:...', 'en_url=:https://docs2.yoyogames.com/', 'jp_url=:', 'gms_version=:0', 'simplified=:True', 'add_url=:False', 'url_type=:True']
         lines = '\n'.join(entries)
         f.write(lines)
     return
@@ -66,7 +65,7 @@ def set_lastused_data():
     return result
 
 
-class App(tkinter.Frame):
+class App(tkinter.Frame): # GUIの設定
 
     def __init__(self, root):
         super().__init__(root, height=680, width=680)
@@ -76,13 +75,14 @@ class App(tkinter.Frame):
         self.s_import = StringVar(value=self.readlastused('import_path'))
         self.s_export = StringVar(value=self.readlastused('export_path'))
         self.b_add_url = BooleanVar(value=self.readlastused('add_url'))
+        self.b_url_type = BooleanVar(value=self.readlastused('url_type'))
         self.s_en_url = StringVar(value=self.readlastused('en_url'))
         self.s_jp_url = StringVar(value=self.readlastused('jp_url'))
         self.b_simple_structure = BooleanVar(value=self.readlastused('simplified'))
         self.i_gmsversion = IntVar(value=self.readlastused('gms_version'))
 
 
-        l_import_path = Label(root, text = 'YoYoStudioHelp.zip:\n[../GameMaker Studio 2/chm2web/YoYoStudioHelp.zip]')
+        l_import_path = Label(root, text = 'YoYoStudioRoboHelp.zip:\n[../GameMaker Studio 2/chm2web/YoYoStudioRoboHelp.zip]')
         e_import_path = Entry(textvariable = self.s_import)
         b_import_path = Button(root, text = 'パスを指定', command = self.SetImportPath)
 
@@ -93,7 +93,8 @@ class App(tkinter.Frame):
         l_gms_version = Label(root, text = 'GMS2のバージョン（小数点なしのメジャーVer）')
         e_gms_version = Entry(textvariable = self.i_gmsversion)
 
-        c_add_url = Checkbutton(root, variable = self.b_add_url, text='コンテキストにURLを追加')
+        c_add_url = Checkbutton(root, variable = self.b_add_url, text='コンテキスト情報にURLを追加')
+        c_url_type = Checkbutton(root, variable = self.b_url_type, text='URLをフレーム同時表示可にする')
 
         l_en_url = Label(root, text = '英語版マニュアルのURL:')
         e_en_url = Entry(textvariable = self.s_en_url)
@@ -121,8 +122,9 @@ class App(tkinter.Frame):
 
         l_gms_version.place(rely=0.25, relx=0.20)
         e_gms_version.place(rely=0.25, relx=0.615, width=50)
-        c_simple_structure.place(rely=0.30, relx=0.20)
-        c_add_url.place(rely=0.30, relx=0.50)
+        c_simple_structure.place(rely=0.30, relx=0.05)
+        c_add_url.place(rely=0.30, relx=0.30)
+        c_url_type.place(rely=0.30, relx=0.59)
 
         l_en_url.place(rely=0.35, relwidth=1.0)
         e_en_url.place(rely=0.40, relx=0.04, relwidth=0.81)
@@ -135,10 +137,10 @@ class App(tkinter.Frame):
         sb2.place(rely=0.95, relx=0.02, relwidth=0.84)
 
 
-    def writelastused(self):
+    def writelastused(self): # 最後の使用履歴を書き込み
 
-        key = ['import_path', 'export_path', 'add_url', 'en_url', 'jp_url', 'simplified', 'gms_version']
-        val = [self.s_import.get(), self.s_export.get(), self.b_add_url.get(), self.s_en_url.get(), self.s_jp_url.get(), self.b_simple_structure.get(), self.i_gmsversion.get()]
+        key = ['import_path', 'export_path', 'add_url', 'en_url', 'jp_url', 'simplified', 'gms_version', 'url_type']
+        val = [self.s_import.get(), self.s_export.get(), self.b_add_url.get(), self.s_en_url.get(), self.s_jp_url.get(), self.b_simple_structure.get(), self.i_gmsversion.get(), self.b_url_type.get()]
 
         lines = ''
         with open(last_used_path, "r") as f:
@@ -164,7 +166,7 @@ class App(tkinter.Frame):
 
         return
 
-    def readlastused(self, key):
+    def readlastused(self, key): # 最後の使用履歴を読み取り
 
         global lastused_data
 
@@ -201,9 +203,8 @@ class App(tkinter.Frame):
         if ctr_evnames:
             if dnd_dirname in base_dir:
                 # lines = re.sub(r'(<td class="text"><a href=[^>]+>)([^<]+)', r'\1{CTR_N} \2', lines)
-                lines = re.sub(r'(<h2><img style="vertical-align:middle" src=[^>]+>)([^<]+)', r'\1{CTR_S}\2', lines)
-            # elif ev_dirname in base_dir:
-            #     lines = re.sub(r'(<label class="collapse"[^>]+>)([^<]+)</label>', r'\1\2</label>', lines)
+                lines = re.sub(r'(<h1><img alt=[^>]+(?=(?:Scripting_Reference/Drag_And_Drop/Reference))[^>]+>)([^>]+)', r'\1{CTR_S}\2', lines)
+                lines = re.sub(r'(<div class="title" title=[^>]+>[\r\n ]*<span>)([^<]+)', r'\1{CTR_S}\2', lines)
 
         # ノーブレークスペースをダミータグに置換
         new_lines = ''
@@ -264,7 +265,7 @@ class App(tkinter.Frame):
 
         if again == False:
             # ParaTranzでのエラー防止のため、キーのディレクトリ名をすべて省略してファイル名のみにする（Importerで復元）
-            lines = re.sub(r'"YoYoStudioHelp\\([^"\r\n]+\\)*', '"', lines)
+            lines = re.sub(r'"YoYoStudioRoboHelp\\([^"\r\n]+\\)*', '"', lines)
 
             # 不要なエントリを削除
             for key_val in csv_source_remove_key:
@@ -276,12 +277,18 @@ class App(tkinter.Frame):
 
             # コンテキストにURL情報をセット
             if self.b_add_url.get() == True:
-                url_dir = ''
-                if base_dir:
-                    url_dir = base_dir + '/'
-                urls = [(self.s_en_url.get() + url_dir + os.path.split(filename)[1]), (self.s_jp_url.get() + url_dir + os.path.split(filename)[1])]
-                context = r',"URL_EN : ' + urls[0] + r' \\n\\nURL_JP : ' + urls[1] + '"'
 
+                urls = []
+                url_dir = ''
+
+                if base_dir and self.b_url_type.get() == True:
+                    url_dir = 'index.htm#t=' + urllib.parse.quote(base_dir + '/', safe='')
+                    urls = [(self.s_en_url.get() + url_dir + os.path.split(filename)[1]), (self.s_jp_url.get() + url_dir + os.path.split(filename)[1])]
+                else:
+                    if base_dir:
+                        url_dir = base_dir + '/'
+                    urls = [(self.s_en_url.get() + url_dir + os.path.split(filename)[1]), (self.s_jp_url.get() + url_dir + os.path.split(filename)[1])]
+                context = r',"URL_EN : ' + urls[0] + r' \\n\\nURL_JP : ' + urls[1] + '"'
                 lines = re.sub(r'(^|[\r\n])([^#][^\r\n]+)', r'\1\2' + context, lines)
 
         else:
@@ -299,14 +306,15 @@ class App(tkinter.Frame):
         url_en = self.s_en_url.get()
         url_jp = self.s_jp_url.get()
         url_is_add = self.b_add_url.get()
+        url_type = self.b_url_type.get()
 
         gms_version = self.i_gmsversion.get()
 
         if import_path == '...' or import_path == '':
-            tkinter.messagebox.showinfo('アーカイブが未指定', 'アーカイブのパスが指定されていません。\nGame Maker Studio 2 のインストールディレクトリにある chm2web/YoYoStudioHelp.zip を指定してください。')
+            tkinter.messagebox.showinfo('アーカイブが未指定', 'アーカイブのパスが指定されていません。\nGame Maker Studio 2 のインストールディレクトリにある chm2web/YoYoStudioRoboHelp.zip を指定してください。')
             return
         elif not os.path.isfile(import_path):
-            tkinter.messagebox.showinfo('無効なアーカイブ', 'アーカイブが存在しない、または無効なアーカイブです。\nGame Maker Studio 2 のインストールディレクトリにある chm2web/YoYoStudioHelp.zip を指定してください。')
+            tkinter.messagebox.showinfo('無効なアーカイブ', 'アーカイブが存在しない、または無効なアーカイブです。\nGame Maker Studio 2 のインストールディレクトリにある chm2web/YoYoStudioRoboHelp.zip を指定してください。')
             return
         elif not os.path.isfile(ignore_files_path):
             tkinter.messagebox.showinfo('エラー', '無視ファイルリスト（ignore_files.txt）が存在しません。')
@@ -325,19 +333,22 @@ class App(tkinter.Frame):
             jp_parse = urllib.parse.urlparse(url_jp)
 
             if url_en == '':
-                tkinter.messagebox.showinfo('エラー', '英語版マニュアルのURLが指定されていません。\nURLを指定し直すか、チェックを外してください。')
+                tkinter.messagebox.showinfo('URLが未指定', '英語版マニュアルのURLが指定されていません。\nURLを指定し直すか、チェックを外してください。')
                 return
             elif len(en_parse.netloc) == 0 or (en_parse.scheme != 'http' and en_parse.scheme != 'https'):
-                tkinter.messagebox.showinfo('エラー', '英語版マニュアルのURLが不正です。\nhttps://url/ 形式で指定する必要があります。\nURLを指定し直すか、チェックを外してください。')
+                tkinter.messagebox.showinfo('不正なURL', '英語版マニュアルのURLが不正です。\nhttps://url/ 形式で指定する必要があります。\nURLを指定し直すか、チェックを外してください。')
                 return
             elif url_jp == '':
-                tkinter.messagebox.showinfo('エラー', '日本語版マニュアルのURLが指定されていません。\nURLを指定し直すか、チェックを外してください。')
+                tkinter.messagebox.showinfo('URLが未指定', '日本語版マニュアルのURLが指定されていません。\nURLを指定し直すか、チェックを外してください。')
                 return
             elif len(jp_parse.netloc) == 0 or (jp_parse.scheme != 'http' and jp_parse.scheme != 'https'):
-                tkinter.messagebox.showinfo('エラー', '日本語版マニュアルのURLが不正です。\nhttps://url/ 形式で指定する必要があります。\nURLを指定し直すか、チェックを外してください。')
+                tkinter.messagebox.showinfo('不正なURL', '日本語版マニュアルのURLが不正です。\nhttps://url/ 形式で指定する必要があります。\nURLを指定し直すか、チェックを外してください。')
                 return
             elif gms_version == 0:
-                tkinter.messagebox.showinfo('エラー', 'バージョン情報が空です。\nGMS本体のバージョンを小数点なしで指定してください。\n（例: 2.2.5.378 > 225）')
+                tkinter.messagebox.showinfo('バージョン情報が未指定', 'バージョン情報が空です。\nGMS本体のバージョンを小数点なしで指定してください。\n（例: 2.2.5.378 > 225）')
+                return
+            elif gms_version < 230 and url_type:
+                tkinter.messagebox.showinfo('エラー', '2.30より古いバージョンではURL変換オプションを使用できません。')
                 return
 
 
@@ -388,7 +399,7 @@ class App(tkinter.Frame):
                 if re.match(r'.*/$', info.filename): # ディレクトリは除外
                     continue
 
-                if re.match(r'.*.html$', info.filename) is None:
+                if re.match(r'.*.html?$', info.filename) is None:
                     passed = True
 
                 # 無視するファイルを検索
@@ -472,15 +483,15 @@ class App(tkinter.Frame):
                 if self.b_simple_structure.get(): # ディレクトリ構成の簡易化がチェックされている場合
 
                     separated = []
-                    separated = re.findall(r'^source/_build/([^/]+/?)(2_drag_and_drop_reference/|4_gml_reference/)?(.*)', base_dir)
+                    separated = re.findall(r'^([^/]+/)(Drag_And_Drop_Reference/|GML_Reference/)?(.*)', base_dir)
                     new_path = []
 
                     if separated:
 
-                        new_path.append('source/_build/')
+                        # new_path.append('source/_build/')
                         idx = 0
                         for item in separated[0]:
-                            if idx > 0 and item != '2_drag_and_drop_reference/' and item != '4_gml_reference/':
+                            if idx > 0 and item != 'Drag_And_Drop_Reference/' and item != 'GML_Reference/':
                                 item = item.replace('/', '／')
                             new_path.append(item)
                             idx += 1
@@ -572,7 +583,7 @@ class App(tkinter.Frame):
         # 不要となったディレクトリを削除
         if os.path.exists(html_output_dir):
             shutil.rmtree(html_output_dir)
-        os.rename(zip_output_dir, html_output_dir) 
+        os.rename(zip_output_dir, html_output_dir)
         shutil.rmtree(po_output_dir)
 
         tkinter.messagebox.showinfo('変換完了','CSV, POT ファイルへの変換が完了しました。')

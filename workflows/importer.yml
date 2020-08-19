@@ -42,7 +42,7 @@ jobs:
       - name: Push
         run: sudo sh ./Importer/push.sh # 変更があればコミット&プッシュ
       - name: Set COMMIT_DATE
-        run: echo ::set-env name=COMMIT_DATE::$(TZ=UTC-9 date '+%Y-%m-%d %H:%M:%S' | tr '\n' ' ')
+        run: echo ::set-env name=COMMIT_DATE::$(TZ=UTC-9 date '+%Y-%m-%dT%H:%M:%S' | tr '\n' ' ')
       - name: Discord notification
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
