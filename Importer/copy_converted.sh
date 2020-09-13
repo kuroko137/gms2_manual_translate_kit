@@ -1,5 +1,45 @@
 #!/bin/sh
 
+if [ ! -e _COMMIT_RUN ]; then
+  # 変更が見つからないため処理を中断
+  echo '::set-env name=action_state::yellow'
+  echo 'NO CHANGES FOUND. The process was aborted.'
+  exit
+fi
+
+rm -rf _COMMIT_RUN
+
+if [ ! -e _VERSION ]; then
+  echo '::set-env name=action_state::yellow'
+  echo '_VERSION cannot be found. The process was aborted.'
+  exit
+fi
+
+BASE_VER=`cat _VERSION`
+FOUND_TAG=0
+
+echo "BASE_VER = ${BASE_VER}"
+
+LIST=`git ls-remote --tags`
+
+for LINE in $LIST
+do
+    if expr "${LINE}" : "refs/tags/${BASE_VER}" > /dev/null; then
+      echo "var_matched! = ${BASE_VER} : ${LINE}"
+      FOUND_TAG=1
+      break
+    fi
+done
+
+if [ $FOUND_TAG -eq 0 ]; then
+  git tag $BASE_VER
+  git push origin --tags
+  echo "TAG PUSH!"
+fi
+
+echo "::set-env name=release_ver::refs/tags/${BASE_VER}"
+
+
 if [ ! -e ./generated ]; then
   mkdir -p ./generated
 fi
@@ -35,10 +75,9 @@ if [ -r ./_VERSION ]; then
     if [ $OVERRIDE_VER -ge $BASE_VER ]; then
       mkdir -p ./ex_tmp
       cp ./Converted_EX/manual/docs ./ex_tmp/docs -arf
-      cp ./override_extra/docs ./ex_tmp -arf # �A���œ����ꏊ�ɃR�s�[����ƃR�s�[�悪�ω����邽�ߒ����ɃR�s�[
+      cp ./override_extra/docs ./ex_tmp -arf # 連続で同じ場所にコピーするとコピー先が変化するため直下にコピー
       find ./ex_tmp -name 'git_noadd_*' | xargs rm
       rm -rf ./ex_tmp/docs/gitkeep
-      cp ./Converted_EX/ide ./Converted -arf
       GENERATE_EX=1
     else
       echo OVERRIDE_EXTRA is OUTDATED. No override is done.
@@ -47,19 +86,27 @@ if [ -r ./_VERSION ]; then
 fi
 
 
-mkdir -p ./GMS2_Japanese-master
-cp ./docs ./GMS2_Japanese-master -arf
-rm -rf ./GMS2_Japanese-master/docs/.nojekyll
-mv ./GMS2_Japanese-master/docs ./GMS2_Japanese-master/GMS2_Japanese-master
+cp ./docs ./Release -arf
+rm -rf ./Release/docs/.nojekyll
+mv ./Release/docs ./Release/YoYoStudioRoboHelp
+cd Release/YoYoStudioRoboHelp
+zip -r ../YoYoStudioRoboHelp.zip ./
+cd ../../
+rm -rf ./Release/YoYoStudioRoboHelp
+
+echo '::set-env name=action_state::green'
 
 
 if [ $GENERATE_EX -eq 1 ]; then
-  mkdir -p ./GMS2_Japanese_Alt-master
-  cp ./docs/ ./GMS2_Japanese_Alt-master -arf
-  cp ./ex_tmp/docs ./GMS2_Japanese_Alt-master -arf
-  rm -rf ./GMS2_Japanese_Alt-master/docs/.nojekyll
-  mv ./GMS2_Japanese_Alt-master/docs ./GMS2_Japanese_Alt-master/GMS2_Japanese_Alt-master
+  cp ./docs ./Release -arf
+  cp ./ex_tmp/docs ./Release -arf
+  rm -rf ./Release/docs/.nojekyll
+  mv ./Release/docs ./Release/YoYoStudioRoboHelp
+  cd Release/YoYoStudioRoboHelp
+  zip -r ../YoYoStudioRoboHelp_Alt.zip ./
+  cd ../../
+  rm -rf ./Release/YoYoStudioRoboHelp
+  echo '::set-env name=generate_ex::green'
+else
+  echo '::set-env name=generate_ex::red'
 fi
-
-rm -rf ex_tmp
-rm -rf Converted_EX

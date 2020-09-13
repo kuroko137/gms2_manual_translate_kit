@@ -37,16 +37,75 @@ jobs:
           PARATRANZ_CODE: ${{ secrets.PARATRANZ_CODE }}
       - name: Copy converted
         run: sudo sh ./Importer/copy_converted.sh
-      - name: Zipper
-        run: python ./Importer/zipper.py # マニュアルの内容をアーカイブ化
+      - name: Delete
+        if: ${{ env.action_state != 'yellow'}}
+        uses: ame-yu/action-delete-latest-release@v2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create release
+        id: create_release
+        if: ${{ env.action_state == 'green'}}
+        uses: actions/create-release@v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.release_ver }}
+          release_name: v ${{ env.release_ver }}
+          draft: false
+          prerelease: false
+      - name: Upload Manual
+        id: upload-release-asset_manual
+        if: ${{ env.action_state == 'green'}}
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./Release/YoYoStudioRoboHelp.zip
+          asset_name: YoYoStudioRoboHelp.zip
+          asset_content_type: application/zip
+      - name: Upload Manual Alt
+        id: upload-release-asset_manual_alt
+        if: ${{ env.generate_ex == 'green'}}
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./Release/YoYoStudioRoboHelp_Alt.zip
+          asset_name: YoYoStudioRoboHelp_Alt.zip
+          asset_content_type: application/zip
+      - name: Upload CSV
+        id: upload-release-asset_ide
+        if: ${{ env.action_state == 'green'}}
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./Release/japanese.csv
+          asset_name: japanese.csv
+          asset_content_type: text/csv
+      - name: Upload CSV Alt
+        id: upload-release-asset_ide_alt
+        if: ${{ env.generate_ex == 'green'}}
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./Release/japanese_alt.csv
+          asset_name: japanese_alt.csv
+          asset_content_type: text/csv
       - name: Push
+        if: ${{ env.action_state == 'green'}}
         run: sudo sh ./Importer/push.sh # 変更があればコミット&プッシュ
       - name: Set COMMIT_DATE
         run: echo ::set-env name=COMMIT_DATE::$(TZ=UTC-9 date '+%Y-%m-%dT%H:%M:%S' | tr '\n' ' ')
       - name: Discord notification
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        if: ${{ env.action_state != 'yellow' && env.DISCORD_WEBHOOK}}
+        if: ${{ env.action_state == 'green' && env.DISCORD_WEBHOOK}}
         uses: Ilshidur/action-discord@master # Discordへの更新通知
         with:
           # https://git.io/で生成した短縮URLを入れると便利かもしれません
