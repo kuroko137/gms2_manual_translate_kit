@@ -57,11 +57,11 @@ po_replacer_tr = ['"Language: ja_JP\\n"',
 '"Project-Id-Version: Gamemaker Studio 2 EN2JP Translation Project\\n"'
 ]
 
-html_replacer_re = [
-# [ ' to show toolbars of the Web Online Help System:', re.compile('Click ([^>]+>)here([^>]+>) to show toolbars of the Web Online Help System: ([^>]+>)show toolbars</a>'), r'\1こちら\2をクリックするとWebオンラインヘルプのツールバーを表示します: \3ツールバーを表示</a>']
-]
-
 restore_format_key = [re.compile('^"location","(source|target)","(target|source)"\n'), '"location","source","target"\n']
+
+csv_commentout_tr = [
+['Click here to see this page in full context', 'ページをすべて表示するにはここをクリック']
+]
 
 compiled_raw_csv_file_patter = re.compile(r'^' + input_dir + '.*\.csv$')
 
@@ -251,13 +251,23 @@ class format_lines():
         source_lines = source.splitlines()
         new_lines = new.splitlines()
 
-        for idx, line in enumerate(source_lines, 1):
+        for idx, line in enumerate(source_lines):
             if '#CSV_COMMENT_OUT#' in line:
-                restored_line = re.sub(r'#CSV_COMMENT_OUT#"?([^"]+)"?([^\r\n]+)', r'\1\2', line)
-                new_lines.insert(idx, restored_line)
-        lines = '\n'.join(new_lines)
-    
-        return lines
+                line = line.replace('#CSV_COMMENT_OUT#', '')
+                line = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', line)
+                separated = re.split(r'\t', line)
+
+                if len(separated) > 2:
+                    for tr in csv_commentout_tr:
+                        if tr[0] == separated[1].strip('"'):
+                            separated[2] = '"' + tr[1] + '"'
+                            break
+
+                line = ','.join(separated)
+
+                new_lines.insert(idx, line)
+
+        return '\n'.join(new_lines)
     
     def get_replaced_var(self, source, translation, strip_chr, finder, pattern = '', replacer = ''): # 原文/訳文を整形してリストで返す
         result = []
@@ -375,10 +385,7 @@ class format_lines():
 
         lines = '\n'.join(new_lines)
         
-        
-        # コメント列を復元（エントリ破損防止）
-        lines = re.sub(r'([\r\n]+)', r',""\1', lines)
-    
+
         # テンプレートを復元
         if restore_format_key[0] != '':
             lines = restore_format_key[0].sub( '', lines)
@@ -389,7 +396,7 @@ class format_lines():
         if os.path.split(base_path)[0]:
             orig_key = orig_key + chr(47) + os.path.split(base_path)[0]
         orig_key = orig_key.replace(chr(47), chr(92) + chr(92))
-        lines = re.sub(r'([^"\r\n]+\.html?\+[^:]+:[0-9]+\-[0-9]+)', '"' + orig_key + chr(92) + chr(92) + r'\1"', lines)
+        lines = re.sub(r'([^"\r\n]+\.html?\+[^:]+:[0-9]+\-[0-9]+)', orig_key + chr(92) + chr(92) + r'\1', lines)
     
         # ダウンロード後にコメント列が削除されてしまうため空の列を挿入
         lines = re.sub(r'([\r\n]+)', r',""\1', lines)

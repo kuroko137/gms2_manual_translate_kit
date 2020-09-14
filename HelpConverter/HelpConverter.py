@@ -39,9 +39,9 @@ dir_name_source_csv = 'tr_sources/source_csv'
 
 csv_source_remove_key = [re.compile(r'("location","source","target"[\r\n]+)')]
 
-csv_source_protect_key = [
-# re.compile(r'("?[^"\r\n]+\.html\+[^:]+:[0-9]+\-[0-9]+[",]+online documentation, web online help, web help, chm2web[^\r\n]+[\r\n]+)'),
-# re.compile(r'("?[^"\r\n]+\.html\+[^:]+:[0-9]+\-[0-9]+[",]+\(function\(i,s,o,g,r,a,m\){i\[\'GoogleAnalyticsObject\'\][^\r\n]+[\r\n]+)')
+csv_source_commentout = [
+re.compile(r'([^\r\n]+Click here to see this page in full context[^\r\n]*)'),
+re.compile(r'([^\r\n]+Copyright YoYo Games Ltd. 2020 All Rights Reserved[^\r\n]*)')
 ]
 
 
@@ -133,7 +133,7 @@ class App(tkinter.Frame): # GUIの設定
         l_gms_version = Label(root, text = 'GMS2のバージョン（小数点なしのメジャーVer）')
         e_gms_version = Entry(textvariable = self.w_gms_version)
 
-        c_add_url = Checkbutton(root, variable = self.w_url_is_add, text='コンテキスト情報にURLを追加')
+        c_add_url = Checkbutton(root, variable = self.w_url_is_add, text='コンテキストにURLを追加')
         c_url_type = Checkbutton(root, variable = self.w_url_type, text='URLをフレーム同時表示可にする')
 
         l_en_url = Label(root, text = '英語版マニュアルのURL:')
@@ -164,7 +164,7 @@ class App(tkinter.Frame): # GUIの設定
         l_gms_version.place(rely=0.25, relx=0.20)
         e_gms_version.place(rely=0.25, relx=0.615, width=50)
         c_simple_structure.place(rely=0.30, relx=0.05)
-        c_add_url.place(rely=0.30, relx=0.30)
+        c_add_url.place(rely=0.30, relx=0.32)
         c_url_type.place(rely=0.30, relx=0.59)
 
         l_en_url.place(rely=0.35, relwidth=1.0)
@@ -671,7 +671,7 @@ class format_lines():
             lines = re.sub(key_val, '', lines)
 
         # 不要なエントリをコメントアウト
-        for key_val in csv_source_protect_key:
+        for key_val in csv_source_commentout:
             lines = re.sub(key_val, r'#CSV_COMMENT_OUT#\1', lines)
 
         # コンテキストにURL情報をセット
