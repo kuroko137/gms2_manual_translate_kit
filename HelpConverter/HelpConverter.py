@@ -10,7 +10,7 @@ from natsort import natsorted
 from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 
-title = 'HelpConverter for GMS2 - 1.60'
+title = 'HelpConverter for GMS2 - 1.61'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 ctr_evnames = True
