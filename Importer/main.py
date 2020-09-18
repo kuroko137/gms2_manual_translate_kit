@@ -13,16 +13,15 @@ from translate.convert.csv2po import convertcsv
 
 # 日本語と英数字の間に半角スペースを自動で挿入するかどうか
 #  0で無効、1でスペースを挿入、2でスペースを削除
-Space_Adjustment = 1
+SPACE_ADJUSTMENT = 1
 
 # whxdata以下のファイルを翻訳するかどうか
-Export_whxdata = True
+EXPORT_WHXDATA = True
 
 # IDEおよびマニュアルの二次ファイルを生成するかどうか
 #  これらはオーバーライドデータと専用の辞書により、イベント名、DnDアクション名を日本語に置き換えたものです。
 #  Github Pagesには影響せず、それぞれ別々のアーカイブ/csvとして出力されます。
-Enable_fullTranslation = True
-dnd_dirname = 'Drag_And_Drop/Drag_And_Drop_Reference/'
+ENABLE_FULL_TRANSLATION = False
 
 input_dir = 'utf8/csv/' # ParaTranzのCSVディレクトリ
 ide_path = 'utf8/english.csv' # ParaTranzのIDE言語ファイル
@@ -37,6 +36,8 @@ template_db_dir = 'repo/tr_sources/source_db/' # GitPagesリポジトリのテ�
 output_dir = 'Converted/'
 output_ex_dir = 'Converted_EX/'
 output_manual_dirname = 'manual'
+
+dnd_dirname = 'Drag_And_Drop/Drag_And_Drop_Reference/'
 
 release_dir = 'Release/'
 ide_base_name = 'japanese.csv' # IDEの言語ファイル出力名
@@ -75,6 +76,10 @@ search_results_full = []
 search_keywords_full = []
 topic_index_full = []
 
+index_exist_name = {}
+index_data = {}
+index_data_full = {}
+index_exist_name_full = {}
 
 ##############################################################################################
 
@@ -117,7 +122,7 @@ def convert_from_zip(paratranz_zip_path):
 
             exoport_mode = ['']
 
-            if Enable_fullTranslation: # イベント名、DnDアクション名の翻訳が有効となっている場合は再実行する
+            if ENABLE_FULL_TRANSLATION: # イベント名、DnDアクション名の翻訳が有効となっている場合は再実行する
                 if info.filename.find(dnd_dirname) != -1:
                     exoport_mode.append('dnd')
                 else:
@@ -321,7 +326,7 @@ class format_lines():
         ]
     
     
-        ## 一行ごとの処理 ##
+        ############# 一行ごとの処理 #############
         lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', lines)
         new_lines = []
     
@@ -336,26 +341,27 @@ class format_lines():
                 SKIP = True
     
             if SKIP == False:
-                tr = separated[2] # 翻訳行
+                source = separated[1] # 原文
+                translation = separated[2] # 翻訳
         
                 # 日本語/英数字、および<b>, <a href>タグの間に半角スペースを挿入・削除
-                if Space_Adjustment == 1: # 半角スペースを挿入する場合
-                    tr = insert_pat[0].sub(r'\1 \2\4\5', tr)
-                    tr = insert_pat[1].sub(r'\1\3\4 \6', tr)
-                    tr = insert_pat[2].sub(r'\1 \2\4\5', tr)
-                    tr = insert_pat[3].sub(r'\1\3\4 \6', tr)
-                    tr = insert_pat[4].sub(r'\1 \2\4\6', tr)
-                    tr = insert_pat[5].sub(r'\1\4 \6\8', tr)
-                    tr = insert_pat[6].sub(r'\1', tr)
-                    tr = insert_pat[7].sub(r'\1', tr)
-                    tr = insert_pat[8].sub(r'\\n', tr)
+                if SPACE_ADJUSTMENT == 1: # 半角スペースを挿入する場合
+                    translation = insert_pat[0].sub(r'\1 \2\4\5', translation)
+                    translation = insert_pat[1].sub(r'\1\3\4 \6', translation)
+                    translation = insert_pat[2].sub(r'\1 \2\4\5', translation)
+                    translation = insert_pat[3].sub(r'\1\3\4 \6', translation)
+                    translation = insert_pat[4].sub(r'\1 \2\4\6', translation)
+                    translation = insert_pat[5].sub(r'\1\4 \6\8', translation)
+                    translation = insert_pat[6].sub(r'\1', translation)
+                    translation = insert_pat[7].sub(r'\1', translation)
+                    translation = insert_pat[8].sub(r'\\n', translation)
         
-                elif Space_Adjustment == 2: # 半角スペースを削除する場合
-                    tr = remove_pat[0].sub(r'\1\2\4\6', tr)
-                    tr = remove_pat[1].sub(r'\1\4\6\8', tr)
+                elif SPACE_ADJUSTMENT == 2: # 半角スペースを削除する場合
+                    translation = remove_pat[0].sub(r'\1\2\4\6', translation)
+                    translation = remove_pat[1].sub(r'\1\4\6\8', translation)
         
                 # 翻訳行をタグで分離
-                notags = re.split(r'((?:<[^>]+>)|(?:\([a-zA-Z0-9 ]+\))|(?:（[a-zA-Z0-9 ]+）)|(?:\[[a-zA-Z0-9 ]+\]))', tr)
+                notags = re.split(r'((?:<[^>]+>)|(?:\([a-zA-Z0-9 ]+\))|(?:（[a-zA-Z0-9 ]+）)|(?:\[[a-zA-Z0-9 ]+\]))', translation)
                 notags_cnv = []
         
                 for m in notags:
@@ -374,43 +380,80 @@ class format_lines():
         
                     notags_cnv.append(m)
         
-                separated[2] = ''.join(notags_cnv)
-        
-                # whxdata用の辞書にメタデータ等を代入
-                append_list = []
+                translation = ''.join(notags_cnv)
+                 
+                # whxdata用の辞書にメタデータ等を追加
+                append_list = self.get_replaced_list(source, translation, '"', '{SEARCH_RESULT} ', r'{SEARCH_RESULT} *', '')
+                if append_list[0] != '':
+                    search_results_full.append(append_list) if self.mode != '' else search_results.append(append_list)
+                
+                append_list = self.get_replaced_list(source, translation, '"', '{INDEX_KEYWORD} ', r'{INDEX_KEYWORD} *', '')
+                if append_list[0] != '':
+                    search_keywords_full.append(append_list) if self.mode != '' else search_keywords.append(append_list)
+                
+                append_list = self.get_replaced_list(source, translation, '"', '"<span data-open-text=""true"">', r'"<span data-open-text=""true"">([^<]+)</span>', r'\1')
+                if append_list[0] != '':
+                    topic_index_full.append(append_list) if self.mode != '' else topic_index.append(append_list)
+                
+                append_list = self.get_replaced_list(source, translation, '"', '.head.title:')
+                if append_list[0] != '':
+                        topic_index_full.append(append_list) if self.mode != '' else topic_index.append(append_list)
+               
 
-                append_list = self.get_replaced_list(separated[1], separated[2], '"', '{SEARCH_RESULT} ', r'{SEARCH_RESULT} *', '')
-                if append_list[0] != '':
+                # Index用の辞書にデータを追加
+                global index_exist_name
+                global index_data
+                global index_exist_name_full
+                global index_data_full
+                filename = base_path + '.htm'
+
+                patterns = [ # 特定のタグから始まる行を分割
+                re.compile(r'(^[ "]*<strong>)([^<\,\./\\"]{2,})(</strong>)'), 
+                re.compile(r'(^[ "]*<span data-open-text="+true"+>)([^<\,\./\\"]{2,})(</span>)'),
+                re.compile(r'(^[ "]*<tt>)([^<\,\./\\"]{2,})(</tt>)')
+                ]
+                SPLITTER = '{_SPLIT}'
+
+                replaced_source = source
+                replaced_translation = translation
+                for pat in patterns:
+                    replaced_source = pat.sub(r'\1' + SPLITTER + r'\2\3', replaced_source)
+                    replaced_translation = pat.sub(r'\1' + SPLITTER + r'\2\3', replaced_translation)
+
+                s_source = re.split(r'(' + SPLITTER + r'[^<]+)', replaced_source)
+                s_translation = re.split(r'(' + SPLITTER + r'[^<]+)', replaced_translation)
+
+                if len(s_source) == 3 and len(s_translation) == 3:
+                    s = s_source[1][len(SPLITTER):]
+                    s = s.strip(' ')
+
+                    # 除外パターン
+                    if re.match(r'^[0-9 -\/:-@\[-\`\{-\~\!\?]+$', s): # 数字記号半角スペースのみは除外
+                        continue
+                    elif re.match(r'^.*&[a-zA-Z]+.*', s): # タグの記号込みは除外
+                        continue
+
+                    tr = s_translation[1][len(SPLITTER):] + '\u200b' # RoboHelpの予約語（constructor, toStringなど）と同名の場合は動作しなくなるため、ゼロ幅スペースを付加して被らないようにする
+
+                    # 既存のトピックと重複していなければ辞書に追加
                     if self.mode != '':
-                        search_results_full.append(append_list)
+                        if not s.upper() in index_exist_name_full:
+                            index_exist_name_full[s.upper()] = True
+                            index_data_full[tr] = filename
                     else:
-                        search_results.append(append_list)
-                
-                append_list = self.get_replaced_list(separated[1], separated[2], '"', '{INDEX_KEYWORD} ', r'{INDEX_KEYWORD} *', '')
-                if append_list[0] != '':
-                    if self.mode != '':
-                        search_keywords_full.append(append_list)
-                    else:
-                        search_keywords.append(append_list)
-                
-                append_list = self.get_replaced_list(separated[1], separated[2], '"', '"<span data-open-text=""true"">', r'"<span data-open-text=""true"">([^<]+)</span>', r'\1')
-                if append_list[0] != '':
-                    if self.mode != '':
-                        topic_index_full.append(append_list)
-                    else:
-                        topic_index.append(append_list)
-                
-                append_list = self.get_replaced_list(separated[1], separated[2], '"', '.head.title:')
-                if append_list[0] != '':
-                    if self.mode != '':
-                        topic_index_full.append(append_list)
-                    else:
-                        topic_index.append(append_list)
+                        if not s.upper() in index_exist_name:
+                            index_exist_name[s.upper()] = True
+                            index_data[tr] = filename
+
+
+                separated[1] = source
+                separated[2] = translation
 
             new_lines.append(','.join(separated))
 
         lines = '\n'.join(new_lines)
-        
+        ######################################
+
 
         # テンプレートを復元
         if restore_format_key[0] != '':
@@ -562,7 +605,7 @@ class generate_file():
             f.write(ide_lines)
 
         # 二次ファイルを生成
-        if Enable_fullTranslation == False or not os.path.exists(ide_overrides_alt_path):
+        if ENABLE_FULL_TRANSLATION == False or not os.path.exists(ide_overrides_alt_path):
             return
 
         ide_alt_output_path = os.path.join(release_dir, ide_alt_name)
@@ -720,6 +763,8 @@ class namedict(): # DnDアクション、イベント名の辞書
 
             if len(tr) >= 2:
 
+                m = m.replace('\u00a0', ' ')
+
                 if len(tr) >= 4:
                     re_m = tr[2].sub(tr[3], m) # パターンが存在する場合は正規表現置換
                 else:
@@ -775,6 +820,44 @@ def read_glossary(paratranz_zip_path): # 用語集のファイル内容をリス
 
     return
 
+def extract_exist_topics(): # 既存のトピック名を辞書に代入
+    global index_exist_name
+    global index_exist_name_full
+
+    lines = ''
+
+    index_path = os.path.join(template_db_dir, 'whxdata', './idata1.new.js')
+
+    with open(index_path, 'r', encoding='utf_8_sig') as f:
+        lines = f.read()
+
+    data = ''
+    for line in lines.splitlines(False):
+        if line.startswith('var index =  {'):
+            data = line
+            break
+
+    data_s = re.split(r'({"name":"[^"]+)("[^\[]+)("topics":\[[^\]]+\],)("keys":\[\]},?)', data)
+
+    # key_tree
+    for entry in data_s:
+        name_key = '{"name":"'
+
+        if entry.startswith(name_key):
+            topic_key = entry[len(name_key):].upper()
+            index_exist_name[topic_key] = True
+            index_exist_name_full[topic_key] = True
+
+        elif entry.startswith('"topics":['):
+
+            topics = re.split(r'(' + name_key + r'[^"]+)("[^}]+)', entry)
+            for topic in topics:
+
+                if topic.startswith(name_key):
+                    topic_key = topic[len(name_key):].upper()
+                    index_exist_name[topic_key] = True
+                    index_exist_name_full[topic_key] = True
+    return
 
 class whx(): # whxdataディレクトリ以下にあるファイルの処理
     def __init__(self):
@@ -782,7 +865,8 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
         self.db_dist_dir = os.path.join(output_dir, output_manual_dirname, 'docs', 'whxdata')
         self.db_dist_ex_dir = os.path.join(output_ex_dir, output_manual_dirname, 'docs', 'whxdata')
         os.makedirs(self.db_dist_dir, exist_ok=True)
-        os.makedirs(self.db_dist_ex_dir, exist_ok=True)
+        if ENABLE_FULL_TRANSLATION:
+            os.makedirs(self.db_dist_ex_dir, exist_ok=True)
 
     def translate_from_file(self, source_path, dist_path, separate_pat, keys, *tr_dict): # ファイルを翻訳して出力
 
@@ -811,6 +895,30 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
             f.write(''.join(new_lines))
         print('The db file file "{0}" has been successfully translated.'.format(dist_path))
 
+
+    def merge_indexdata(self, dist_path, data):
+        data_line = ''
+
+        for key in data:
+            data_line += ',{"name":"' + key + '","type":"key","topics":[{"name":"' + key + '","type":"topic","url":"' + data.get(key) + '"}],"keys":[]}'
+
+
+        with open(dist_path, 'r', encoding='utf_8_sig') as f:
+            lines = f.read()
+
+        new_lines = []
+
+        for line in lines.splitlines(False):
+            if line.startswith('var index =  {'):
+                end_part = re.split(r'(,"keys":\[\]})(\]};$)', line)
+                if len(end_part) > 2:
+                    end_part[1] = end_part[1] + data_line
+                line = ''.join(end_part)
+            new_lines.append(line)
+
+        with open(dist_path, 'w', encoding='utf_8_sig') as f:
+            f.write('\n'.join(new_lines))
+
     
     def translate_glossary(self):
         # 用語集を翻訳
@@ -832,7 +940,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
 
         self.translate_from_file(source_path, dist_path, separate_pat, keys, {x[0]:x[1] for x in search_keywords}, {x[0]:x[1] for x in search_results})
         
-        if Enable_fullTranslation:
+        if ENABLE_FULL_TRANSLATION:
             dist_path = os.path.join(self.db_dist_ex_dir, whx_filename)
             self.translate_from_file(source_path, dist_path, separate_pat, keys, {x[0]:x[1] for x in search_keywords_full}, {x[0]:x[1] for x in search_results_full})
 
@@ -845,11 +953,14 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
         dist_path = os.path.join(self.db_dist_dir, whx_filename)
         topic_index.extend(search_keywords) # 検索結果のキーワードも含める
         self.translate_from_file(source_path, dist_path, separate_pat, keys, {x[0]:x[1] for x in topic_index})
+        self.merge_indexdata(dist_path, index_data)
         
-        if Enable_fullTranslation:
+        if ENABLE_FULL_TRANSLATION:
             dist_path = os.path.join(self.db_dist_ex_dir, whx_filename)
             topic_index_full.extend(search_keywords_full) # 検索結果のキーワードも含める
             self.translate_from_file(source_path, dist_path, separate_pat, keys, {x[0]:x[1] for x in topic_index_full})
+            self.merge_indexdata(dist_path, index_data_full)
+
 
     def translate_table_of_contents(self, out_file_path):
         with zipfile.ZipFile(out_file_path) as zip_file:
@@ -915,9 +1026,11 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
             f_distpath = os.path.join(self.db_dist_dir, file)
             with open(f_distpath, "w", encoding="utf_8_sig", newline="\n") as f:
                 f.write(''.join(lines))
-            f_distpath = os.path.join(self.db_dist_ex_dir, file)
-            with open(f_distpath, "w", encoding="utf_8_sig", newline="\n") as f:
-                f.write(''.join(lines_full_tr))
+
+            if ENABLE_FULL_TRANSLATION:
+                f_distpath = os.path.join(self.db_dist_ex_dir, file)
+                with open(f_distpath, "w", encoding="utf_8_sig", newline="\n") as f:
+                    f.write(''.join(lines_full_tr))
 
 ##############################################################################################
 
@@ -991,24 +1104,28 @@ def sub(index_name,
     # その他の直下にあるファイルをバックアップ
     generate_file()._sub(out_file_path)
 
-    # 辞書データを登録
-    global Enable_fullTranslation
+    # DnD/イベント名の辞書データを登録
+    global ENABLE_FULL_TRANSLATION
 
     if namedict().create_vars() == False: # 辞書ファイルを読み込みリストを生成
-        Enable_fullTranslation = False # 失敗した場合はイベント名、DnDアクション名を翻訳しない
+        ENABLE_FULL_TRANSLATION = False # 失敗した場合はイベント名、DnDアクション名を翻訳しない
 
     # 用語集を読み込み
     read_glossary(out_file_path)
+
+    # 既存のトピック名を辞書に代入
+    extract_exist_topics()
 
     # csvをhtmlに変換
     convert_from_zip(out_file_path)
 
     # whxdata以下にあるファイルを日本語化
-    whxdata = whx()
-    whxdata.translate_glossary()
-    whxdata.translate_search_result()
-    whxdata.translate_index()
-    whxdata.translate_table_of_contents(out_file_path)
+    if EXPORT_WHXDATA:
+        whxdata = whx()
+        whxdata.translate_glossary()
+        whxdata.translate_search_result()
+        whxdata.translate_index()
+        whxdata.translate_table_of_contents(out_file_path)
 
     # 出力ファイルに変更があるかどうかチェック
     if check_for_changes() == False:

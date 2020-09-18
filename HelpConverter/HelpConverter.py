@@ -13,11 +13,10 @@ from translate.convert.po2csv import convertcsv
 title = 'HelpConverter for GMS2 - 1.61'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
-ctr_evnames = True
-dnd_dirname = 'Drag_And_Drop/Drag_And_Drop_Reference/'
+COUNTER_TRANSLATION = True
 
 # 構造の簡易化がオンの場合、GMLリファレンスの出力ディレクトリを[A-B]のようにアルファベットで細分化するかどうか
-gml_separate = True
+GML_SEPARATE = True
 
 ignore_files_path = './ignore_files.txt' # 翻訳対象としないファイル
 last_used_path = './last_used.txt' # オプションの設定履歴
@@ -35,6 +34,8 @@ dir_name_source_html = 'tr_sources/source_html'
 dir_name_source_db = 'tr_sources/source_db'
 dir_name_source_pot = 'tr_sources/source_pot'
 dir_name_source_csv = 'tr_sources/source_csv'
+
+dnd_dirname = 'Drag_And_Drop/Drag_And_Drop_Reference/'
 
 
 csv_source_remove_key = [re.compile(r'("location","source","target"[\r\n]+)')]
@@ -425,7 +426,7 @@ class App(tkinter.Frame): # GUIの設定
                             if idx > 0 and item != 'Drag_And_Drop_Reference/' and item != 'GML_Reference/':
                                 item = item.replace('/', '／') # パスのスラッシュをファイル名としてのスラッシュに置換
 
-                            if gml_separate and item == 'GML_Reference/': # gml_separateがTrueに設定されている場合、GMLリファレンスのパス名を細分化
+                            if GML_SEPARATE and item == 'GML_Reference/': # GML_SEPARATEがTrueに設定されている場合、GMLリファレンスのパス名を細分化
                                 is_split = True
                             elif is_split:
                                 for pattern in split_range: # アルファベット区間ごとに細分化する
@@ -543,7 +544,7 @@ class format_lines():
         lines = re.sub(r'(alt=")([^"]+")', r'\1{IMG_TXT} \2', lines)
 
         # 対訳を付加するエントリにタグを挿入
-        if ctr_evnames:
+        if COUNTER_TRANSLATION:
             if dnd_dirname in base_dir:
                 lines = re.sub(r'(<h1><img alt=[^>]+(?=(?:Scripting_Reference/Drag_And_Drop/Reference))[^>]+>)([^>]+)', r'\1{CTR_S}\2', lines)
                 lines = re.sub(r'(<div class="title" title=[^>]+>[\r\n ]*<span>)([^<]+)', r'\1{CTR_S}\2', lines)
