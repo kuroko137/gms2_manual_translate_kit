@@ -9,8 +9,9 @@ from pathlib import Path
 from natsort import natsorted
 from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
+from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 1.61'
+title = 'HelpConverter for GMS2 - 1.70'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
@@ -38,7 +39,7 @@ dir_name_source_csv = 'tr_sources/source_csv'
 dnd_dirname = 'Drag_And_Drop/Drag_And_Drop_Reference/'
 
 
-csv_source_remove_key = [re.compile(r'("location","source","target"[\r\n]+)')]
+csv_source_remove_key = [re.compile(r'("location","source","target"[^\r\n]*[\r\n]+)')]
 
 csv_source_commentout = [
 re.compile(r'([^\r\n]+Click here to see this page in full context[^\r\n]*)'),
@@ -106,7 +107,7 @@ class last_used: # オプションの設定履歴
 class App(tkinter.Frame): # GUIの設定
 
     def __init__(self, root):
-        super().__init__(root, height=680, width=680)
+        super().__init__(root, height=720, width=700)
         root.title(title)
 
         self.lastused = last_used()
@@ -115,6 +116,7 @@ class App(tkinter.Frame): # GUIの設定
 
         self.w_import_path = StringVar(value=self.lastused.read_by_key('import_path'))
         self.w_export_path = StringVar(value=self.lastused.read_by_key('export_path'))
+        self.w_old_path = StringVar(value='')
         self.w_gms_version = IntVar(value=self.lastused.read_by_key('gms_version'))
         self.w_simple_structure = BooleanVar(value=self.lastused.read_by_key('simplified'))
         self.w_url_is_add = BooleanVar(value=self.lastused.read_by_key('add_url'))
@@ -130,6 +132,10 @@ class App(tkinter.Frame): # GUIの設定
         l_export_path = Label(root, text = '出力先:\n[変換されたcsv/potファイルの出力先]')
         e_export_path = Entry(textvariable = self.w_export_path)
         b_export_path = Button(root, text = 'パスを指定', command = self.SetExportPath)
+
+        l_old_path = Label(root, text = '前バージョンの翻訳をコピー（任意指定）:\n[.../csv/]')
+        e_old_path = Entry(textvariable = self.w_old_path)
+        b_old_path = Button(root, text = 'パスを指定', command = self.SetOldPath)
 
         l_gms_version = Label(root, text = 'GMS2のバージョン（小数点なしのメジャーVer）')
         e_gms_version = Entry(textvariable = self.w_gms_version)
@@ -156,26 +162,29 @@ class App(tkinter.Frame): # GUIの設定
 
         # ウィジェットを配置
         l_import_path.place(rely=0, relwidth=1.0)
-        e_import_path.place(rely=0.07, relx=0.02, relwidth=0.84)
-        b_import_path.place(rely=0.06, relx=0.87, width=80)
-        l_export_path.place(rely=0.11, relwidth=1.0)
-        e_export_path.place(rely=0.18, relx=0.02, relwidth=0.84)
-        b_export_path.place(rely=0.17, relx=0.87, width=80)
+        e_import_path.place(rely=0.06, relx=0.03, relwidth=0.83)
+        b_import_path.place(rely=0.055, relx=0.87, width=80)
+        l_export_path.place(rely=0.10, relwidth=1.0)
+        e_export_path.place(rely=0.16, relx=0.03, relwidth=0.83)
+        b_export_path.place(rely=0.155, relx=0.87, width=80)
+        l_old_path.place(rely=0.20, relwidth=1.0)
+        e_old_path.place(rely=0.26, relx=0.03, relwidth=0.83)
+        b_old_path.place(rely=0.255, relx=0.87, width=80)
 
-        l_gms_version.place(rely=0.25, relx=0.20)
-        e_gms_version.place(rely=0.25, relx=0.615, width=50)
-        c_simple_structure.place(rely=0.30, relx=0.05)
-        c_add_url.place(rely=0.30, relx=0.32)
-        c_url_type.place(rely=0.30, relx=0.59)
+        l_gms_version.place(rely=0.32, relx=0.20)
+        e_gms_version.place(rely=0.32, relx=0.615, width=50)
+        c_simple_structure.place(rely=0.37, relx=0.05)
+        c_add_url.place(rely=0.37, relx=0.32)
+        c_url_type.place(rely=0.37, relx=0.59)
 
-        l_en_url.place(rely=0.35, relwidth=1.0)
-        e_en_url.place(rely=0.40, relx=0.04, relwidth=0.81)
-        l_jp_url.place(rely=0.45, relwidth=1.0)
-        e_jp_url.place(rely=0.50, relx=0.04, relwidth=0.81)
+        l_en_url.place(rely=0.42, relwidth=1.0)
+        e_en_url.place(rely=0.47, relx=0.04, relwidth=0.81)
+        l_jp_url.place(rely=0.52, relwidth=1.0)
+        e_jp_url.place(rely=0.57, relx=0.04, relwidth=0.81)
 
-        b_run.place(rely=0.55, relx=0.35, width=150)
-        self.lb.place(rely=0.62, relx=0.02, relwidth=0.84, relheight=0.3)
-        sb1.place(rely=0.62, relx=0.9, relheight=0.3)
+        b_run.place(rely=0.62, relx=0.35, width=150)
+        self.lb.place(rely=0.68, relx=0.02, relwidth=0.84, relheight=0.25)
+        sb1.place(rely=0.68, relx=0.9, relheight=0.3)
         sb2.place(rely=0.95, relx=0.02, relwidth=0.84)
 
 
@@ -194,10 +203,18 @@ class App(tkinter.Frame): # GUIの設定
         self.w_export_path.set(str(val))
         return
 
+    def SetOldPath(self):
+        iDir = os.path.abspath(os.path.dirname(__file__))
+        val = tkinter.filedialog.askdirectory(initialdir = iDir)
+        val = val.replace('/', os.sep)
+        self.w_old_path.set(str(val))
+        return
+
 
     def Run(self):
         import_path = self.w_import_path.get()
         export_path = self.w_export_path.get()
+        old_path = self.w_old_path.get()
         gms_version = self.w_gms_version.get()
         simple_structure = self.w_simple_structure.get()
         url_is_add = self.w_url_is_add.get()
@@ -262,23 +279,35 @@ class App(tkinter.Frame): # GUIの設定
 
         # 各ディレクトリのパスを定義
         export_path = os.path.join(export_path, dir_name_output)
-        # pot_output_dir = os.path.join(export_path, dir_name_source_pot)
-        po_output_dir = os.path.join(export_path, dir_name_po)
-        csv_output_dir = os.path.join(export_path, dir_name_paratranz, dir_name_csv)
-        source_csv_output_dir = os.path.join(export_path, dir_name_repository, dir_name_source_csv)
-        html_output_dir = os.path.join(export_path, dir_name_repository, dir_name_source_html)
-        db_output_dir = os.path.join(export_path, dir_name_repository, dir_name_source_db)
-        docs_output_dir = os.path.join(export_path, dir_name_repository, dir_name_docs)
-        override_docs_dir = os.path.join(export_path, dir_name_repository, dir_name_override, 'docs')
-        override_ex_docs_dir = os.path.join(export_path, dir_name_repository, dir_name_override_ex, 'docs')
-        override_ex_dict_dir = os.path.join(export_path, dir_name_repository, dir_name_override_ex, 'dict')
+        paratranz_path = os.path.join(export_path, dir_name_paratranz)
+        repository_path = os.path.join(export_path, dir_name_repository)
+
+        # pot_output_dir = os.path.join(paratranz_path, dir_name_source_pot)
+        po_output_dir = os.path.join(paratranz_path, dir_name_po)
+        csv_output_dir = os.path.join(paratranz_path, dir_name_csv)
+
+        source_csv_output_dir = os.path.join(repository_path, dir_name_source_csv)
+        html_output_dir = os.path.join(repository_path, dir_name_source_html)
+        db_output_dir = os.path.join(repository_path, dir_name_source_db)
+        docs_output_dir = os.path.join(repository_path, dir_name_docs)
+        override_docs_dir = os.path.join(repository_path, dir_name_override, 'docs')
+        override_ex_docs_dir = os.path.join(repository_path, dir_name_override_ex, 'docs')
+        override_ex_dict_dir = os.path.join(repository_path, dir_name_override_ex, 'dict')
+
         zip_output_dir = os.path.join(export_path, os.path.splitext(os.path.split(import_path)[1])[0])
+        tmp_dir = os.path.join(export_path, 'tmp')
 
         # 古いディレクトリがあったら掃除
-        shutil.rmtree(csv_output_dir, ignore_errors=True)
-        os.makedirs(csv_output_dir, exist_ok=True)
-        shutil.rmtree(source_csv_output_dir, ignore_errors=True)
-        shutil.rmtree(db_output_dir, ignore_errors=True)
+#        shutil.rmtree(csv_output_dir, ignore_errors=True)
+#        os.makedirs(csv_output_dir, exist_ok=True)
+#        shutil.rmtree(source_csv_output_dir, ignore_errors=True)
+#        shutil.rmtree(db_output_dir, ignore_errors=True)
+        shutil.rmtree(paratranz_path, ignore_errors=True)
+        os.makedirs(paratranz_path, exist_ok=True)
+        shutil.rmtree(repository_path, ignore_errors=True)
+        os.makedirs(repository_path, exist_ok=True)
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        os.makedirs(tmp_dir, exist_ok=True)
 
         # whxdata関連ファイルをアーカイブから事前に取り出し
         self.lb.insert('end', 'Converting whxdata files...')
@@ -306,12 +335,12 @@ class App(tkinter.Frame): # GUIの設定
         with open(path_source_glossary, "r", encoding="utf_8_sig", newline="\n") as f:
             lines = f.read()
 
-        path_glossary = os.path.join(export_path, dir_name_paratranz, 'manual_glossary.csv')
+        path_glossary = os.path.join(paratranz_path, 'manual_glossary.csv')
         with open(path_glossary, "w+", encoding="utf_8_sig", newline="\n") as f:
             f.write(generate_sub().glossary(lines))
 
         # 左メニューの.jsファイルをまとめてcsvファイル化（whxdata）
-        path_contents = os.path.join(export_path, dir_name_paratranz, 'manual_leftmenu.csv')
+        path_contents = os.path.join(paratranz_path, 'manual_leftmenu.csv')
         with open(path_contents, "w+", encoding="utf_8_sig", newline="\n") as f:
             f.write(generate_sub().table_of_contents(os.path.join(db_output_dir, 'whxdata')))
 
@@ -376,8 +405,8 @@ class App(tkinter.Frame): # GUIの設定
 
 
                 # HTML > POファイルの変換処理
-                path_pot = os.path.join(export_path, dir_name_repository, dir_name_source_pot, base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.pot'
-                path_po = os.path.join(export_path, dir_name_po, base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.po'
+                path_pot = os.path.join(repository_path, dir_name_source_pot, base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.pot'
+                path_po = os.path.join(po_output_dir, base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.po'
 
                 os.makedirs(os.path.split(path_po)[0], exist_ok=True)
                 os.makedirs(os.path.split(path_pot)[0], exist_ok=True)
@@ -411,6 +440,7 @@ class App(tkinter.Frame): # GUIの設定
                 # CSVファイルの出力先をセット
                 path_source_csv = ''
                 path_csv = ''
+                csv_root = ''
 
                 if simple_structure: # ディレクトリ構成の簡易化がチェックされている場合
 
@@ -439,13 +469,19 @@ class App(tkinter.Frame): # GUIの設定
                             idx += 1
 
                         # ParaTranzでの取り回しを良くするため、深層のディレクトリをファイル名に置き換え
-                        path_csv = ''.join(new_path) + '／'
-                        path_csv = os.path.join(export_path, dir_name_paratranz, dir_name_csv, path_csv) + os.path.splitext(os.path.split(info.filename)[1])[0] + '.csv'
+                        csv_root = os.path.join(''.join(new_path) + '／') + os.path.splitext(os.path.split(info.filename)[1])[0] + '.csv'
+#                        path_csv = ''.join(new_path) + '／'
+#                        path_csv = os.path.join(export_path, dir_name_paratranz, dir_name_csv, path_csv) + os.path.splitext(os.path.split(info.filename)[1])[0] + '.csv'
 
-                if path_csv == '':
-                    path_csv = os.path.join(export_path, dir_name_paratranz, dir_name_csv, base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.csv'
+#                if path_csv == '':
+#                    path_csv = os.path.join(export_path, dir_name_paratranz, dir_name_csv, base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.csv'
 
-                path_source_csv = os.path.join(export_path, dir_name_repository, dir_name_source_csv, base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.csv'
+                if csv_root == '':
+                    csv_root = os.path.join(base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.csv'
+
+                path_csv = os.path.join(csv_output_dir, csv_root)
+                path_source_csv = os.path.join(repository_path, dir_name_source_csv, base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.csv'
+#                path_source_csv = os.path.join(repository_path, dir_name_source_csv, base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.csv'
 
 
                 # PO > CSV ファイルの変換処理
@@ -479,6 +515,45 @@ class App(tkinter.Frame): # GUIの設定
                     f_csv.write(csv_lines)
 
 
+                # 前バージョンの翻訳が指定されている場合、翻訳をマージさせたcsvを出力する
+                if old_path:
+                    output_csv_path = os.path.join(paratranz_path, 'with_tr', csv_root)
+                    old_csv_path = os.path.join(old_path, csv_root)
+                    tmp_csv_path = os.path.join(tmp_dir, csv_root)
+
+                    if os.path.isfile(old_csv_path):
+
+
+                        # 正確にマッチさせるため訳文より後の列を削除し、比較用の一時ファイルとして出力
+                        lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', csv_lines)
+                        lines = re.sub(r'^([^\t]+\t[^\t]+\t[^\t]+)[^\r\n]+', r'\1', lines)
+                        lines = re.sub(r'\t', r',', lines)
+
+                        os.makedirs(os.path.split(tmp_csv_path)[0], exist_ok=True)
+                        with open(tmp_csv_path, "w+", encoding="utf_8_sig") as f_csv:
+                            f_csv.write(lines)
+
+                        f_input_csv = open(tmp_csv_path, 'rb')
+                        f_output_csv = open(output_csv_path, 'wb+')
+                        f_tm = open(old_csv_path, 'rb')
+
+                        # 翻訳マージ
+                        os.makedirs(os.path.split(output_csv_path)[0], exist_ok=True)
+                        pretranslate_file(f_input_csv, f_output_csv, f_tm, min_similarity=100, fuzzymatching=False)
+
+                        f_input_csv.close()
+                        f_output_csv.close()
+                        f_tm.close()
+
+                        # 不要なエントリを削除
+                        with open(output_csv_path, "r", encoding="utf_8_sig") as f_output_csv:
+                            new_lines = f_output_csv.read()
+                        for key_val in csv_source_remove_key:
+                            new_lines = re.sub(key_val, '', new_lines)
+                        with open(output_csv_path, "w+", encoding="utf_8_sig") as f_output_csv:
+                            f_output_csv.write(new_lines)
+
+
                 # リストボックスにログを出力
                 path_csv = path_csv.replace('/', os.sep) # スラッシュを\\に置き換え
                 self.lb.insert('end', path_csv)
@@ -496,7 +571,7 @@ class App(tkinter.Frame): # GUIの設定
 
         # バージョンファイルを生成
 
-        version_path = os.path.join(export_path, dir_name_repository, '_VERSION')
+        version_path = os.path.join(repository_path, '_VERSION')
         with open(version_path, "w+") as f:
             lines = str(gms_version)
             f.write(lines)
@@ -523,6 +598,7 @@ class App(tkinter.Frame): # GUIの設定
         shutil.rmtree(html_output_dir, ignore_errors=True)
         os.rename(zip_output_dir, html_output_dir)
         shutil.rmtree(po_output_dir, ignore_errors=True)
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
         tkinter.messagebox.showinfo('変換完了','CSV, POT ファイルへの変換が完了しました。')
         return

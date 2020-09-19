@@ -18,6 +18,9 @@ SPACE_ADJUSTMENT = 1
 # whxdata以下のファイルを翻訳するかどうか
 EXPORT_WHXDATA = True
 
+# Indexメニューに自動生成したトピックを追加するかどうか
+ENABLE_EXTRA_INDEX = True
+
 # IDEおよびマニュアルの二次ファイルを生成するかどうか
 #  これらはオーバーライドデータと専用の辞書により、イベント名、DnDアクション名を日本語に置き換えたものです。
 #  Github Pagesには影響せず、それぞれ別々のアーカイブ/csvとして出力されます。
@@ -953,13 +956,15 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
         dist_path = os.path.join(self.db_dist_dir, whx_filename)
         topic_index.extend(search_keywords) # 検索結果のキーワードも含める
         self.translate_from_file(source_path, dist_path, separate_pat, keys, {x[0]:x[1] for x in topic_index})
-        self.merge_indexdata(dist_path, index_data)
+        if ENABLE_EXTRA_INDEX:
+            self.merge_indexdata(dist_path, index_data)
         
         if ENABLE_FULL_TRANSLATION:
             dist_path = os.path.join(self.db_dist_ex_dir, whx_filename)
             topic_index_full.extend(search_keywords_full) # 検索結果のキーワードも含める
             self.translate_from_file(source_path, dist_path, separate_pat, keys, {x[0]:x[1] for x in topic_index_full})
-            self.merge_indexdata(dist_path, index_data_full)
+            if ENABLE_EXTRA_INDEX:
+                self.merge_indexdata(dist_path, index_data_full)
 
 
     def translate_table_of_contents(self, out_file_path):
