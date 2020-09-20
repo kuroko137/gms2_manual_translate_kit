@@ -129,6 +129,7 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 |docs/*.png, *.gif|各種画像ファイル|
 
 * リポジトリ構成:
+
 |名称|概要|
 |:---:|:---:|
 |docs|GitHub Pagesの実体|
@@ -152,6 +153,7 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 |generated/ide/japanese_alt.csv|二次IDE言語ファイル|
 
 * リリースの出力ファイル:
+
 |名称|概要|
 |:---:|:---:|
 |japanese.csv|IDE言語ファイル|
