@@ -64,8 +64,8 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 
   * HelpConverterでの変換時、**前バージョンの翻訳をコピー**欄にParaTranzからダウンロードした前バージョンのプロジェクトディレクトリを指定することで、前バージョンの翻訳がマージされたcsvを**paratranzwith_tr**ディレクトリに出力できます。  
   このオプションを利用し、以下のようにすると翻訳ズレを起こさずにアップデートが可能です。  
-    1. **ParaTranz**以下のcsvを**Add Files**で追加  
-    1. **paratranzwith_tr**以下のcsvを**Import Translations**で追加し、**Force Import**を実行  
+    - 1: **ParaTranz**以下のcsvを**Add Files**で追加  
+    - 2: **paratranzwith_tr**以下のcsvを**Import Translations**で追加し、**Force Import**を実行  
 
   * それぞれの_VERSIONファイルが更新されるまでoverride、override_extraのコピー機能は無効となります。
 
