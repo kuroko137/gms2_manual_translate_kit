@@ -11,7 +11,7 @@ from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 1.71'
+title = 'HelpConverter for GMS2 - 1.72'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
@@ -125,15 +125,15 @@ class App(tkinter.Frame): # GUIの設定
         self.w_url_type = BooleanVar(value=self.lastused.read_by_key('url_type'))
 
         # ウィジェットの作成
-        l_import_path = Label(root, text = 'YoYoStudioRoboHelp.zip:\n[../GameMaker Studio 2/chm2web/YoYoStudioRoboHelp.zip]')
+        l_import_path = Label(root, text = 'YoYoStudioRoboHelp.zip:\n[.../GameMaker Studio 2/chm2web/YoYoStudioRoboHelp.zip]')
         e_import_path = Entry(textvariable = self.w_import_path)
         b_import_path = Button(root, text = 'パスを指定', command = self.SetImportPath)
 
-        l_export_path = Label(root, text = '出力先:\n[変換されたcsv/potファイルの出力先]')
+        l_export_path = Label(root, text = '変換したファイルの出力先:\n[.../]')
         e_export_path = Entry(textvariable = self.w_export_path)
         b_export_path = Button(root, text = 'パスを指定', command = self.SetExportPath)
 
-        l_old_path = Label(root, text = '前バージョンの翻訳をコピー（任意指定）:\n[.../csv/]')
+        l_old_path = Label(root, text = '前バージョンの翻訳をコピー（任意指定）:\n[.../utf8/csv/]')
         e_old_path = Entry(textvariable = self.w_old_path)
         b_old_path = Button(root, text = 'パスを指定', command = self.SetOldPath)
 
@@ -256,12 +256,13 @@ class App(tkinter.Frame): # GUIの設定
             elif len(jp_parse.netloc) == 0 or (jp_parse.scheme != 'http' and jp_parse.scheme != 'https'):
                 tkinter.messagebox.showinfo('不正なURL', '日本語版マニュアルのURLが不正です。\nhttps://url/ 形式で指定する必要があります。\nURLを指定し直すか、チェックを外してください。')
                 return
-            elif gms_version == 0:
-                tkinter.messagebox.showinfo('バージョン情報が未指定', 'バージョン情報が空です。\nGMS本体のバージョンを小数点なしで指定してください。\n（例: 2.2.5.378 > 225）')
-                return
             elif gms_version < 230 and url_type:
                 tkinter.messagebox.showinfo('エラー', '2.30より古いバージョンではURL変換オプションを使用できません。')
                 return
+
+        if gms_version == 0:
+            tkinter.messagebox.showinfo('バージョン情報が未指定', 'バージョン情報が空です。\nGMS本体のバージョンを小数点なしで指定してください。\n（例: 2.2.5.378 > 225）')
+            return
 
         self.lb.delete(0, tkinter.END) # ログの表示をクリア
 
