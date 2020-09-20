@@ -11,7 +11,7 @@ from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 1.72'
+title = 'HelpConverter for GMS2 - 1.73'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
@@ -300,6 +300,7 @@ class App(tkinter.Frame): # GUIの設定
 
         # 古いディレクトリがあったら掃除
         shutil.rmtree(paratranz_path, ignore_errors=True)
+        shutil.rmtree(paratranz_path + 'with_tr', ignore_errors=True)
         os.makedirs(paratranz_path, exist_ok=True)
         shutil.rmtree(repository_path, ignore_errors=True)
         os.makedirs(repository_path, exist_ok=True)
@@ -508,7 +509,7 @@ class App(tkinter.Frame): # GUIの設定
 
                 # 前バージョンの翻訳が指定されている場合、翻訳をマージさせたcsvを出力する
                 if old_path:
-                    output_csv_path = os.path.join(paratranz_path, 'with_tr', csv_root)
+                    output_csv_path = os.path.join(paratranz_path + 'with_tr', dir_name_csv, csv_root)
                     old_csv_path = os.path.join(old_path, csv_root)
                     tmp_csv_path = os.path.join(tmp_dir, csv_root)
 
