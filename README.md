@@ -122,6 +122,7 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 - - -
 
 * 手動でコミット/翻訳する必要があるファイル（override/docsへのコミットが必要）:
+
 |名称|概要|
 |:---:|:---:|
 |docs/whxdata/projectsettings.js|フレームのUI項目全般|
