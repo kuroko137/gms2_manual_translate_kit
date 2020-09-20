@@ -11,7 +11,7 @@ from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 1.70'
+title = 'HelpConverter for GMS2 - 1.71'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
@@ -298,10 +298,6 @@ class App(tkinter.Frame): # GUIの設定
         tmp_dir = os.path.join(export_path, 'tmp')
 
         # 古いディレクトリがあったら掃除
-#        shutil.rmtree(csv_output_dir, ignore_errors=True)
-#        os.makedirs(csv_output_dir, exist_ok=True)
-#        shutil.rmtree(source_csv_output_dir, ignore_errors=True)
-#        shutil.rmtree(db_output_dir, ignore_errors=True)
         shutil.rmtree(paratranz_path, ignore_errors=True)
         os.makedirs(paratranz_path, exist_ok=True)
         shutil.rmtree(repository_path, ignore_errors=True)
@@ -470,18 +466,12 @@ class App(tkinter.Frame): # GUIの設定
 
                         # ParaTranzでの取り回しを良くするため、深層のディレクトリをファイル名に置き換え
                         csv_root = os.path.join(''.join(new_path) + '／') + os.path.splitext(os.path.split(info.filename)[1])[0] + '.csv'
-#                        path_csv = ''.join(new_path) + '／'
-#                        path_csv = os.path.join(export_path, dir_name_paratranz, dir_name_csv, path_csv) + os.path.splitext(os.path.split(info.filename)[1])[0] + '.csv'
-
-#                if path_csv == '':
-#                    path_csv = os.path.join(export_path, dir_name_paratranz, dir_name_csv, base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.csv'
 
                 if csv_root == '':
                     csv_root = os.path.join(base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.csv'
 
                 path_csv = os.path.join(csv_output_dir, csv_root)
                 path_source_csv = os.path.join(repository_path, dir_name_source_csv, base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.csv'
-#                path_source_csv = os.path.join(repository_path, dir_name_source_csv, base_dir, os.path.splitext(os.path.split(info.filename)[1])[0]) + '.csv'
 
 
                 # PO > CSV ファイルの変換処理
@@ -533,26 +523,39 @@ class App(tkinter.Frame): # GUIの設定
                         with open(tmp_csv_path, "w+", encoding="utf_8_sig") as f_csv:
                             f_csv.write(lines)
 
+                        os.makedirs(os.path.split(output_csv_path)[0], exist_ok=True)
+
                         f_input_csv = open(tmp_csv_path, 'rb')
                         f_output_csv = open(output_csv_path, 'wb+')
                         f_tm = open(old_csv_path, 'rb')
 
                         # 翻訳マージ
-                        os.makedirs(os.path.split(output_csv_path)[0], exist_ok=True)
                         pretranslate_file(f_input_csv, f_output_csv, f_tm, min_similarity=100, fuzzymatching=False)
 
                         f_input_csv.close()
                         f_output_csv.close()
                         f_tm.close()
 
-                        # 不要なエントリを削除
-                        with open(output_csv_path, "r", encoding="utf_8_sig") as f_output_csv:
-                            new_lines = f_output_csv.read()
-                        for key_val in csv_source_remove_key:
-                            new_lines = re.sub(key_val, '', new_lines)
-                        with open(output_csv_path, "w+", encoding="utf_8_sig") as f_output_csv:
-                            f_output_csv.write(new_lines)
+                        # 再整形
+                        with open(output_csv_path, "r", encoding="utf_8_sig") as f:
+                            lines = f.read()
+                        lines = format_lines()._csv(lines, base_dir, info.filename, url_is_add, url_en, url_jp, url_type)
 
+                        with open(old_csv_path, "r", encoding="utf_8_sig") as f:
+                            old_lines = f.read()
+
+                        old_key = [key for key in re.sub(r'(^|[\r\n]+)"?([^\r\n]+:[0-9]+-[0-9]+)"?,[^\r\n]+', r'\1\2', lines).splitlines(False)]
+                        new_key = [key for key in re.sub(r'(^|[\r\n]+)"?([^\r\n]+:[0-9]+-[0-9]+)"?,[^\r\n]+', r'\1\2', old_lines).splitlines(False)]
+
+                        if old_key == new_key: # 変更がなければ削除
+                            os.remove(output_csv_path)
+                            try:
+                                os.removedirs(os.path.split(output_csv_path)[0])
+                            except OSError:
+                                pass
+                        else:
+                            with open(output_csv_path, "w+", encoding="utf_8_sig") as f_output_csv:
+                                f_output_csv.write(lines)
 
                 # リストボックスにログを出力
                 path_csv = path_csv.replace('/', os.sep) # スラッシュを\\に置き換え
