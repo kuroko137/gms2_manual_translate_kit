@@ -160,7 +160,7 @@ def convert_from_zip(paratranz_zip_path):
                 base_path = re.sub(r'GML_Reference/[A-Z]-[A-Z]/', r'GML_Reference/', base_path) # GMLリファレンスの細分化した一時ディレクトリをパスから取り除く
 
                 path_source_csv = os.path.join(template_csv_dir, base_path) + '.csv'
-                path_cnv_csv = os.path.join(dist_dir, 'csv_cnv', base_path) + '.csv'
+                path_cnv_csv = os.path.join(dist_dir, 'cnv_csv', base_path) + '.csv'
 
                 format_l = format_lines(mode)
 
@@ -185,7 +185,7 @@ def convert_from_zip(paratranz_zip_path):
 
 
                 # CSVファイルをPOファイルに変換
-                path_po = os.path.join(dist_dir, 'po_cnv', base_path) + '.po'
+                path_po = os.path.join(dist_dir, 'cnv_po', base_path) + '.po'
                 path_template_po = os.path.join(template_pot_dir, base_path) + '.pot'
 
                 if not os.path.exists(path_template_po):
