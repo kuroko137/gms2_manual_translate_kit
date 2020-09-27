@@ -257,11 +257,14 @@ class App(tkinter.Frame): # GUIの設定
                 tkinter.messagebox.showinfo('不正なURL', '日本語版マニュアルのURLが不正です。\nhttps://url/ 形式で指定する必要があります。\nURLを指定し直すか、チェックを外してください。')
                 return
             elif gms_version < 230 and url_type:
-                tkinter.messagebox.showinfo('エラー', '2.30より古いバージョンではURL変換オプションを使用できません。')
+                tkinter.messagebox.showinfo('エラー', '2.30より古いバージョンでは ”フレーム同時表示可” オプションを使用できません。')
                 return
 
         if gms_version == 0:
             tkinter.messagebox.showinfo('バージョン情報が未指定', 'バージョン情報が空です。\nGMS本体のバージョンを小数点なしで指定してください。\n（例: 2.2.5.378 > 225）')
+            return
+        elif gms_version < 100:
+            tkinter.messagebox.showinfo('エラー', 'バージョン情報は100（1.0.0）以上にしてください。')
             return
 
         self.lb.delete(0, tkinter.END) # ログの表示をクリア

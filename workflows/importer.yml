@@ -49,8 +49,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.release_ver }}
-          release_name: v ${{ env.release_ver }}
+          tag_name: ${{ env.release_tag }}
+          release_name: v${{ env.release_ver }}
           draft: false
           prerelease: false
       - name: Upload Manual

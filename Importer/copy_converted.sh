@@ -16,6 +16,7 @@ if [ ! -e _VERSION ]; then
 fi
 
 BASE_VER=`cat _VERSION`
+RELEASE_VAR=`echo ${BASE_VER} | sed -e "s/^\([0-9]\+\)\([0-9]\)\([0-9]\)/\1.\2.\3/"`
 FOUND_TAG=0
 
 echo "BASE_VER = ${BASE_VER}"
@@ -37,7 +38,8 @@ if [ $FOUND_TAG -eq 0 ]; then
   echo "TAG PUSH!"
 fi
 
-echo "::set-env name=release_ver::refs/tags/${BASE_VER}"
+echo "::set-env name=release_tag::refs/tags/${BASE_VER}"
+echo "::set-env name=release_ver::refs/tags/${RELEASE_VAR}"
 
 
 if [ ! -e ./generated ]; then
