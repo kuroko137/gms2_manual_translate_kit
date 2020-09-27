@@ -39,6 +39,7 @@ template_db_dir = 'repo/tr_sources/source_db/' # GitPagesリポジトリのテ�
 output_dir = 'Converted/'
 output_ex_dir = 'Converted_EX/'
 output_manual_dirname = 'manual'
+generated_dir = 'generated/'
 
 dnd_dirname = 'Drag_And_Drop/Drag_And_Drop_Reference/'
 
@@ -862,6 +863,7 @@ def extract_exist_topics(): # 既存のトピック名を辞書に代入
                     index_exist_name_full[topic_key] = True
     return
 
+
 class whx(): # whxdataディレクトリ以下にあるファイルの処理
     def __init__(self):
         self.db_base_dir = os.path.join(template_db_dir, 'whxdata')
@@ -1039,11 +1041,28 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
 
 ##############################################################################################
 
+
 def check_for_changes():
+
+    # IDEの変更確認
+    ide_old_path = os.path.join(generated_dir, os.path.split(ide_path)[1])
+    ide_bak_path = os.path.join(output_dir, os.path.split(ide_path)[1])
+
+    if not os.path.exists(ide_old_path):
+        return True
+    else:
+        with open(ide_old_path, 'rb') as f:
+            ide_old_lines = f.read()
+
+        with open(ide_bak_path, 'rb') as f:
+            ide_bak_lines = f.read()
+
+        if ide_old_lines != ide_bak_lines:
+            return True
+
+    # マニュアルの変更確認
     doc_dir = 'docs'
     converted_dir = os.path.join(output_dir, output_manual_dirname, doc_dir)
-
-    file_pat = ''
     
     source_dict = {}
     dest_dict = {}
@@ -1077,13 +1096,9 @@ def check_for_changes():
         if dest_dict.get(k) != None and source_dict.get(k) != None:
 
             if source_dict.get(k) != dest_dict.get(k):
-                with open('_COMMIT_RUN', "w") as f:
-                    f.write('COMMIT_RUN')
-                break
-    else:
-        return False
+                return True
 
-    return True
+    return False
 
 ##############################################################################################
 
@@ -1137,6 +1152,8 @@ def sub(index_name,
         print("NO CHANGES FOUND.")
     else:
         print("complete")
+        with open('_COMMIT_RUN', "w") as f:
+            f.write('COMMIT_RUN')
 
 
 def main(paratranz_secret):
