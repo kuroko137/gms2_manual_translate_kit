@@ -162,6 +162,9 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 |japanese_alt.csv|IDE言語ファイル（DnDアクション名とイベント名も日本語）|
 |YoYoStudioRoboHelp_Alt.zip|アーカイブ化したマニュアル（DnDアクション名とイベント名も日本語）|
 
+## コントリビュート
+実装したい機能や直したい点などあれば、気軽にプルリクエストを出してください。更新を続けるにあたって大きな妨げとなるものでなければ取り込まれるはずです。
+
 ## 謝辞
 * **☆ (ゝω・)v** - [**Trasnlation data importer**](https://github.com/matanki-saito/paratranz2es "Trasnlation data importer")
   * このキットは (ゝω・)vさんのTrasnlation data importerをもとに制作されています。
