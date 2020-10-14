@@ -8,6 +8,8 @@ import zipfile
 from pathlib import Path
 from translate.convert.po2html import converthtml
 from translate.convert.csv2po import convertcsv
+from janome.tokenizer import Tokenizer
+from natsort import natsorted
 
 ################# 各種設定 ###############
 
@@ -139,12 +141,12 @@ def convert_from_zip(paratranz_zip_path):
 
                 if mode != '':
                     # イベント名、DnDアクション名が翻訳されたファイルは別のディレクトリに出力
-                    dist_dir = os.path.join(output_ex_dir, output_manual_dirname)
+                    dest_dir = os.path.join(output_ex_dir, output_manual_dirname)
                 else:
-                    dist_dir = os.path.join(output_dir, output_manual_dirname)
+                    dest_dir = os.path.join(output_dir, output_manual_dirname)
 
                 # ParaTranzのバックアップ用CSVファイルを出力
-                path_csv = os.path.join(dist_dir, 'csv', base_path) + '.csv'
+                path_csv = os.path.join(dest_dir, 'csv', base_path) + '.csv'
 
                 os.makedirs(os.path.split(path_csv)[0], exist_ok=True)
                 with open(path_csv, 'wb') as f:
@@ -161,7 +163,7 @@ def convert_from_zip(paratranz_zip_path):
                 base_path = re.sub(r'GML_Reference/[A-Z]-[A-Z]/', r'GML_Reference/', base_path) # GMLリファレンスの細分化した一時ディレクトリをパスから取り除く
 
                 path_source_csv = os.path.join(template_csv_dir, base_path) + '.csv'
-                path_cnv_csv = os.path.join(dist_dir, 'cnv_csv', base_path) + '.csv'
+                path_cnv_csv = os.path.join(dest_dir, 'cnv_csv', base_path) + '.csv'
 
                 format_l = format_lines(mode)
 
@@ -180,13 +182,22 @@ def convert_from_zip(paratranz_zip_path):
                 # 整形したCSVファイルを出力
                 csv_lines = format_l._csv(csv_lines, base_path)
 
+                if mode:
+                    path_pre_cnv= os.path.join(output_dir, output_manual_dirname, 'cnv_csv', base_path) + '.csv'
+
+                    with open(path_pre_cnv, 'r', encoding='utf_8_sig', newline='\n') as f:
+                        lines_pre = f.read()
+
+                        if lines_pre == csv_lines: # 自動翻訳前と内容が同じのためスキップ
+                            continue
+
                 os.makedirs(os.path.split(path_cnv_csv)[0], exist_ok=True)
                 with open(path_cnv_csv, 'w+', encoding='utf_8_sig', newline='\n') as f_input:
                     f_input.write(csv_lines)
 
 
                 # CSVファイルをPOファイルに変換
-                path_po = os.path.join(dist_dir, 'cnv_po', base_path) + '.po'
+                path_po = os.path.join(dest_dir, 'cnv_po', base_path) + '.po'
                 path_template_po = os.path.join(template_pot_dir, base_path) + '.pot'
 
                 if not os.path.exists(path_template_po):
@@ -217,7 +228,7 @@ def convert_from_zip(paratranz_zip_path):
                 
 
                 # HTMLへの変換を開始
-                path_output = os.path.join(dist_dir, 'docs', base_path) + '.htm'
+                path_output = os.path.join(dest_dir, 'docs', base_path) + '.htm'
                 path_template_html = os.path.join(template_html_dir, base_path) + '.htm'
                 
                 if not os.path.exists(path_template_html):
@@ -867,13 +878,23 @@ def extract_exist_topics(): # 既存のトピック名を辞書に代入
 class whx(): # whxdataディレクトリ以下にあるファイルの処理
     def __init__(self):
         self.db_base_dir = os.path.join(template_db_dir, 'whxdata')
-        self.db_dist_dir = os.path.join(output_dir, output_manual_dirname, 'docs', 'whxdata')
-        self.db_dist_ex_dir = os.path.join(output_ex_dir, output_manual_dirname, 'docs', 'whxdata')
-        os.makedirs(self.db_dist_dir, exist_ok=True)
+        self.db_dest_dir = os.path.join(output_dir, output_manual_dirname, 'docs', 'whxdata')
+        self.db_dest_ex_dir = os.path.join(output_ex_dir, output_manual_dirname, 'docs', 'whxdata')
+        os.makedirs(self.db_dest_dir, exist_ok=True)
         if ENABLE_FULL_TRANSLATION:
-            os.makedirs(self.db_dist_ex_dir, exist_ok=True)
+            os.makedirs(self.db_dest_ex_dir, exist_ok=True)
 
-    def translate_from_file(self, source_path, dist_path, separate_pat, keys, *tr_dict): # ファイルを翻訳して出力
+        self.isJp = regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])')
+        self.isEn = regex.compile(r'^[A-Za-z0-9\!-\/:-@\[-\^\{-\~_ ©]+$')
+        self.isSymbol = regex.compile(r'^[\!-\*\.\,\/:-@\[-\^\{-\~\p{InCJKSymbolsAndPunctuation}]+$')
+        self.isSymbolEx = regex.compile(r'^[\+\-_]+$')
+
+        self.search_dict = {}
+        self.search_fulltr_dict = {}
+        self.js_dict = {}
+        self.t = Tokenizer()
+
+    def translate_from_file(self, source_path, dest_path, separate_pat, keys, *tr_dict): # ファイルを翻訳して出力
 
         with open(source_path, 'r', encoding='utf_8_sig') as f:
             lines = f.read()
@@ -896,19 +917,19 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
 
             new_lines.append(m)
 
-        with open(dist_path, 'w', encoding='utf_8_sig') as f:
+        with open(dest_path, 'w', encoding='utf_8_sig') as f:
             f.write(''.join(new_lines))
-        print('The db file file "{0}" has been successfully translated.'.format(dist_path))
+        print('The db file file "{0}" has been successfully translated.'.format(dest_path))
 
 
-    def merge_indexdata(self, dist_path, data):
+    def merge_indexdata(self, dest_path, data):
         data_line = ''
 
         for key in data:
             data_line += ',{"name":"' + key + '","type":"key","topics":[{"name":"' + key + '","type":"topic","url":"' + data.get(key) + '"}],"keys":[]}'
 
 
-        with open(dist_path, 'r', encoding='utf_8_sig') as f:
+        with open(dest_path, 'r', encoding='utf_8_sig') as f:
             lines = f.read()
 
         new_lines = []
@@ -921,7 +942,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
                 line = ''.join(end_part)
             new_lines.append(line)
 
-        with open(dist_path, 'w', encoding='utf_8_sig') as f:
+        with open(dest_path, 'w', encoding='utf_8_sig') as f:
             f.write('\n'.join(new_lines))
 
     
@@ -931,9 +952,9 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
         keys = ['"name":"', '"value":"']
         whx_filename = 'gdata1.new.js'
         source_path = os.path.join(self.db_base_dir, whx_filename)
-        dist_path = os.path.join(self.db_dist_dir, whx_filename)
+        dest_path = os.path.join(self.db_dest_dir, whx_filename)
 
-        self.translate_from_file(source_path, dist_path, separate_pat, keys, {x[1]:x[2] for x in glossary}, {x[3]:x[4] for x in glossary})
+        self.translate_from_file(source_path, dest_path, separate_pat, keys, {x[1]:x[2] for x in glossary}, {x[3]:x[4] for x in glossary})
 
     def translate_search_result(self):
         # 検索結果を翻訳
@@ -941,13 +962,13 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
         keys = ['"title\\":\\"', '"summary\\":\\"']
         whx_filename = 'search_topics.js'
         source_path = os.path.join(self.db_base_dir, whx_filename)
-        dist_path = os.path.join(self.db_dist_dir, whx_filename)
+        dest_path = os.path.join(self.db_dest_dir, whx_filename)
 
-        self.translate_from_file(source_path, dist_path, separate_pat, keys, {x[0]:x[1] for x in search_keywords}, {x[0]:x[1] for x in search_results})
+        self.translate_from_file(source_path, dest_path, separate_pat, keys, {x[0]:x[1] for x in search_keywords}, {x[0]:x[1] for x in search_results})
         
         if ENABLE_FULL_TRANSLATION:
-            dist_path = os.path.join(self.db_dist_ex_dir, whx_filename)
-            self.translate_from_file(source_path, dist_path, separate_pat, keys, {x[0]:x[1] for x in search_keywords_full}, {x[0]:x[1] for x in search_results_full})
+            dest_path = os.path.join(self.db_dest_ex_dir, whx_filename)
+            self.translate_from_file(source_path, dest_path, separate_pat, keys, {x[0]:x[1] for x in search_keywords_full}, {x[0]:x[1] for x in search_results_full})
 
     def translate_index(self):
         # 索引を翻訳
@@ -955,21 +976,22 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
         keys = ['"name":"']
         whx_filename = 'idata1.new.js'
         source_path = os.path.join(self.db_base_dir, whx_filename)
-        dist_path = os.path.join(self.db_dist_dir, whx_filename)
+        dest_path = os.path.join(self.db_dest_dir, whx_filename)
         topic_index.extend(search_keywords) # 検索結果のキーワードも含める
-        self.translate_from_file(source_path, dist_path, separate_pat, keys, {x[0]:x[1] for x in topic_index})
+        self.translate_from_file(source_path, dest_path, separate_pat, keys, {x[0]:x[1] for x in topic_index})
         if ENABLE_EXTRA_INDEX:
-            self.merge_indexdata(dist_path, index_data)
+            self.merge_indexdata(dest_path, index_data)
         
         if ENABLE_FULL_TRANSLATION:
-            dist_path = os.path.join(self.db_dist_ex_dir, whx_filename)
+            dest_path = os.path.join(self.db_dest_ex_dir, whx_filename)
             topic_index_full.extend(search_keywords_full) # 検索結果のキーワードも含める
-            self.translate_from_file(source_path, dist_path, separate_pat, keys, {x[0]:x[1] for x in topic_index_full})
+            self.translate_from_file(source_path, dest_path, separate_pat, keys, {x[0]:x[1] for x in topic_index_full})
             if ENABLE_EXTRA_INDEX:
-                self.merge_indexdata(dist_path, index_data_full)
+                self.merge_indexdata(dest_path, index_data_full)
 
 
     def translate_table_of_contents(self, out_file_path):
+        # 左メニューを翻訳
         with zipfile.ZipFile(out_file_path) as zip_file:
             lines = zip_file.read(table_of_contents_path).decode('utf-8-sig')
 
@@ -1030,14 +1052,427 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
                 lines.append(m)
                 lines_full_tr.append(m_full)
 
-            f_distpath = os.path.join(self.db_dist_dir, file)
-            with open(f_distpath, "w", encoding="utf_8_sig", newline="\n") as f:
+            f_destpath = os.path.join(self.db_dest_dir, file)
+            with open(f_destpath, "w", encoding="utf_8_sig", newline="\n") as f:
                 f.write(''.join(lines))
 
             if ENABLE_FULL_TRANSLATION:
-                f_distpath = os.path.join(self.db_dist_ex_dir, file)
-                with open(f_distpath, "w", encoding="utf_8_sig", newline="\n") as f:
+                f_destpath = os.path.join(self.db_dest_ex_dir, file)
+                with open(f_destpath, "w", encoding="utf_8_sig", newline="\n") as f:
                     f.write(''.join(lines_full_tr))
+
+
+    def separate_by_janome(self, lines):
+        p_ignore = ['名詞,代名詞'] # 無視する品詞
+        p_ignore_single = ['形容詞', '助詞,連体化', '名詞,非自立', '名詞,代名詞', '名詞,副詞可能', '名詞,形容動詞語幹', '名詞,接尾', '名詞,副詞可能', '名詞,動詞非自立的'] #単体NG（直前・直後が名詞ならOK）
+        p_strip = ['名詞,非自立', '助詞,連体化', '形容詞,非自立'] # 前後を取る
+        p_allowed = ['名詞', '記号,空白', '記号,連体化', '助詞,連体化', '形容詞'] # 許可する品詞
+        p_separate = ['助詞,連体化', '記号', '形容詞'] # 区切りとなる品詞
+
+        result = []
+
+        lines = re.sub(r'^ *{[^\}]+\}.*', r'', lines, flags=re.MULTILINE) # htmlの外で使われるテキストは除外
+        lines = re.sub(r'\{[^\}]+\}', r'', lines) # ダミータグは除外
+        lines = re.sub(r'<img alt=[^>]+>', r'', lines) # IMG_TXTは除外
+
+        # 見出し（タグ区切りのテキスト）を辞書に追加
+        for line in lines.splitlines(False):
+            patterns = [
+            re.compile(r'(^[ "]*<strong>)([^<\,\./\\"]{2,})(</strong>).*'), 
+            re.compile(r'(^[ "]*<tt>)([^<\,\./\\"]{2,})(</tt>).*'),
+            re.compile(r'(^.*<span data-open-text="+true"+>)([^<\,\./\\"]{2,})(</span>).*')
+            ]
+
+            for pat in patterns: # 特定のタグから始まる行を分割
+                output = pat.sub(r'\2', line)
+                if output and output != line and self.isJp.match(output):
+                    result.append(output.strip(' "'))
+                    break
+
+        lines = re.sub(r'<[^>]+>', r'', lines) # タグを削除
+        lines = lines.replace('\u200b', ' ') # ノーブレークスペースは半角スペースに
+        lines = re.sub('  *', ' ', lines)
+
+        # 形態素解析による行ごとのキーワード抽出
+        for line in lines.splitlines(False):
+            surfaces = []
+            parts = []
+
+            line += '。' # 末尾に区切り文字を残す
+
+            tokens = [[token.surface, token.part_of_speech] for token in self.t.tokenize(line)]
+
+            for idx, token in enumerate(tokens):
+
+                if self.isSymbol.match(token[0]):
+                    token[1] = '記号,その他,*,*'
+                elif self.isSymbolEx.match(token[0]):
+                    token[1] = '記号,連体化,*,*'
+
+                if all(not token[1].startswith(pat) for pat in p_allowed) or any(token[1].startswith(pat) for pat in p_ignore):
+                    SKIP = False
+
+                    # パターン精査
+                    while len(parts) > 0 and any(parts[-1].startswith(pat) for pat in p_strip):
+                        parts.pop(-1)
+                        surfaces.pop(-1)
+
+                    while len(parts) > 0 and any(parts[0].startswith(pat) for pat in p_strip):
+                        parts.pop(0)
+                        surfaces.pop(0)
+
+                    if len(parts) == 1 and any(parts[0].startswith(pat) for pat in p_ignore_single):
+                        SKIP = True
+
+                    output = ''.join(surfaces)
+                    output = output.rstrip('-')
+                    output = output.strip(' "')
+
+                    if self.isEn.match(output) or len(output) <= 1:
+                        SKIP = True
+
+                    # キーワードの辞書への追加
+                    if SKIP == False:
+                        result.append(output)
+
+                        if ' ' in output:
+                            nospace_output = re.sub(r'(([^A-Za-z0-9\!-\/:-@\[-`\{-~ ©]) +| +([^A-Za-z0-9\!-\/:-@\[-`\{-~ ©]))', r'\2\3', output)
+                            result.append(nospace_output) # 日本語前後の半角スペース抜き
+
+                        # 区切り文字で分解し、それぞれのパーツを追加
+                        s_output = []
+                        for i in range(len(parts)):
+                            if any(parts[i].startswith(pat) for pat in p_separate):
+
+                                s = ''.join(s_output).strip(' "')
+                                if s and not self.isEn.match(s) and not s.startswith(r'"'):
+                                    result.append(s)
+                                s_output = []
+                            else:
+                                s_output.append(surfaces[i])
+                        else:
+                            if len(s_output) > 1: # ループの余りを追加
+                                s = ''.join(s_output)
+                                if s and not self.isEn.match(s) and not s.startswith(r'"'):
+                                    result.append(''.join(s_output))
+
+                        # スペースで分割
+                        for s in output.split():
+                            if s and not s in result and not self.isEn.match(s) and not s.startswith(r'"'):
+                                result.append(s)
+
+                    surfaces = []
+                    parts = []
+                    continue
+
+                surfaces.append(token[0])
+                parts.append(token[1])
+
+        return result
+
+    def extract_search_keyword(self, lines):
+
+        result = []
+        title = ''
+
+        new_lines = []
+
+        # 翻訳のみ抽出＆ページタイトルを辞書に追加
+
+        lines = re.sub(r'^"location","source","target"(,"")?[\r\n]+', '', lines)
+
+        for line in lines.splitlines(False):
+            line = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', line)
+            s = re.split(r'\t', line)
+
+            if len(s) >= 3:
+                tr = s[2].strip(' "')
+                new_lines.append(tr)
+
+                if 'head.title' in s[0] and not self.isEn.match(tr):
+                    title = tr
+        else:
+            if len(new_lines) == 0: # 翻訳がないためスキップ
+                return None
+
+        lines = '\n'.join(new_lines)
+
+
+        ####################################################################
+
+        # janomeによるキーワード抽出
+        result.append(self.separate_by_janome(title))
+        if title and not title in result[0]:
+            result[0].insert(0, title)
+
+        result.append(self.separate_by_janome(lines))
+
+        result[0] = sorted(set(result[0]))
+        result[1] = sorted(set(result[1]))
+
+        return result
+
+
+    def mapping_js_by_topics(self): # {js名 : htmファイル名} の対応辞書を作成
+        whx_path = os.path.join(self.db_base_dir, 'search_topics.js')
+
+        result = {}
+
+        with open(whx_path, "r", encoding="utf_8_sig") as f:
+            lines = f.read()
+
+        for m in re.finditer(r'[^\}]+\\"([0-9]+)\\":\{[^\}]+"relUrl\\":\\"([^"]+)\\",\\"[^\}]+\}', lines, re.MULTILINE):
+            path = m.group(2).replace('.htm', '')
+            self.js_dict[m.group(1)] = path
+
+        return result
+
+
+    def write_text_js(self, dic, data, files, dest_dir_path): # text/jsファイル群に書き込み
+        source_dir_path = os.path.join(self.db_base_dir, 'text')
+        os.makedirs(dest_dir_path, exist_ok=True)
+
+
+        for current, subfolders, subfiles in os.walk(source_dir_path):
+            for file in subfiles:
+                source_path = os.path.join(current, file)
+                dest_path = dest_dir_path + source_path.replace(source_dir_path, '')
+
+                with open(source_path, "r", encoding="utf_8_sig") as f:
+                    lines = f.read()
+
+                separated = re.split(r'([,\]]*"[0-9]":\[)', lines)
+                data_pos = [-1, -1]
+
+                for idx, s in enumerate(separated):
+                    if s.startswith('"0":['):
+                        data_pos[0] = idx + 1 # タイトル
+                    elif s.startswith('],"3":['):
+                        data_pos[1] = idx + 1 # 本文
+                        break
+                else:
+                    continue
+
+
+                js_name = os.path.splitext(os.path.split(file)[1])[0]
+                f_path = self.js_dict.get(js_name)
+
+                for idx, file in enumerate(files):
+                    if file == f_path:
+
+                        for cat, pos in enumerate(data_pos):
+                            if len(data[cat][idx]) > 0:
+                                text = separated[pos].split('","')
+                                text[-1] = text[-1].rstrip('"')
+
+                                # 日本語テキストを挿入する開始位置を算出
+                                text_for_len = '{_SEPARATOR}'.join(text)
+                                text_for_len = re.sub(r'^(?:((\\n)|[" ])*{_SEPARATOR})+(.*)', r'\3', text_for_len) # 本文が始まる前の改行コードは計測されないため削除
+                                text_for_len = text_for_len.replace('\\\\', ' ') # 二重エスケープは一字
+                                text_for_len = text_for_len.replace('\\', '') # エスケープ文字は計測されないため削除
+                                text_for_len = text_for_len.replace('{_SEPARATOR}', ' ')
+
+                                current_pos = len(text_for_len) + 1 # 日本語テキストを挿入する開始位置
+
+                                # 辞書からデータを取り出し
+                                for d in data[cat][idx]:
+                                    current_length = len(d.replace('\\', ''))
+                                    d = d.replace(r'"', r'\"')
+                                    text.append(d)
+
+                                    self.append_search_db(dic, d, d[0], str(current_length), js_name, str(current_pos), str(cat)) # キーワードと関連情報をDB辞書にコピー
+                                    current_pos += (1 + current_length)
+
+                                separated[pos] = '","'.join(text) + '"'
+                        break
+                else:
+                    continue
+
+                output = ''.join(separated)
+
+                with open(dest_path, 'w+', encoding='utf_8_sig') as f:
+                    f.write(output)
+
+
+    def append_search_db(self, dic, keyword, initial, length, js, pos, cat):
+        # {'keyword' : {'initial' : str, 'length' : 0-9+, 'js' : 1:2:3:4:5:6:7, 'pos' : js:pos:cat,js:pos:cat'}} # text/jsからの参照位置
+
+        keyword = keyword.lower()
+        initial = initial.lower()
+        js = '"' + js +'"'
+
+        if dic.get(keyword): # 既存のキーワードにjsとposを追加
+            dic[keyword]['js'] += ',' + js
+            dic[keyword]['pos'] += ',' + ':'.join([js, pos, cat])
+        else:
+            dic[keyword] = {'initial' : initial, 'length' : length, 'js' : js, 'pos' : ':'.join([js, pos, cat])}
+        return
+
+
+    def write_search_automap(self, dic, dir_path):
+        whx_filename = 'search_auto_map_0.js'
+        source_path = os.path.join(self.db_base_dir, whx_filename)
+        dest_path = os.path.join(dir_path, whx_filename)
+
+        edges = ['rh._.exports({', '})']
+
+        with open(source_path, "r", encoding="utf_8_sig") as f:
+            lines = f.read()
+        lines = lines[len(edges[0]):-(len(edges[1]))]
+        lines = re.sub(r'(\],|{)("[^"]+":)', r'\1{_SPLIT}\2', lines)
+
+        separated = [m.rstrip(',)}') for m in lines.split(r'{_SPLIT}')]
+        initials = [s[1] for s in separated]
+
+        idxs = re.findall(r'\["[^\]]+",([0-9]+)', lines)
+        current_idx = 1 + int(natsorted(idxs)[-1])
+
+        for d in dic:
+            idx = -1
+            NOTFOUND = False
+            try:
+                idx = initials.index(dic[d].get('initial'))
+            except:
+                NOTFOUND = True
+                separated.append('')
+                initials.append(dic[d].get('initial')) # 存在しなければ親エントリ（イニシャル）を作成
+
+            s = separated[idx][6:-2].split('],[')
+            # "keyword",index,1,0,index,[js_files]'
+            s.append('"{0}",{1},1,0,{1},[{2}]'.format(d.lower(), current_idx, dic[d].get('js')))
+            current_idx += 1
+
+            if NOTFOUND:
+                separated[idx] = '"{0}":[[{1}]]'.format(initials[idx], ''.join(s))
+            else:
+                separated[idx] = '"{0}":[[{1}]]'.format(initials[idx], '],['.join(s))
+
+        lines = edges[0] + ','.join(separated) + edges[1]
+        with open(dest_path, 'w', encoding='utf_8_sig') as f:
+            f.write(lines)
+
+        return
+
+
+    def write_search_db(self, dic, dir_path):
+        whx_filename = 'search_db.js'
+        source_path = os.path.join(self.db_base_dir, whx_filename)
+        dest_path = os.path.join(dir_path, whx_filename)
+
+        with open(source_path, "r", encoding="utf_8_sig") as f:
+            lines = f.read()
+
+        lines = re.sub(r'("_index":[0-9]+\}\],?)', r'\1{_SPLIT}', lines)
+        separated = [m for m in lines.split(r'{_SPLIT}')]
+
+        idxs = re.findall(r'"_index":([0-9]+)', lines)
+        current_idx = 1 + int(natsorted(idxs)[-1]) # indexの開始位置を取得
+        
+        edges = [separated.pop(0), separated.pop(-1)]
+        separated[-1] += ','
+
+        for d in dic:
+            body_pos = []
+            title_pos = []
+            for p in dic[d].get('pos').split(','):
+                p_data = p.split(':')
+
+                var = '{0}:{{"position":[[{1},{2}]]}}'.format(p_data[0], p_data[1], dic[d].get('length'))
+
+                if p_data[2] == "0":
+                    title_pos.append(var)
+                else:
+                    body_pos.append(var)
+
+            entry = '["{0}",{{"0":{{{1}}},"1":{{}},"2":{{}},"3":{{{2}}},"4":{{}},"5":{{}},"6":{{}},"7":{{}},"8":{{}},"_index":{3}}}],'.format(d, ','.join(title_pos), ','.join(body_pos), current_idx)
+            separated.append(entry)
+            current_idx += 1
+
+        # RoboHelpのソート順に合わせる
+        separated = [m.replace(r'\"', r'"{_B_QUOTE}') for m in separated] # 半角スペース（および'!'）が入るとズレるためダミー文字に変換
+        separated = [m.replace(r' ', r'"{_A_SPACE}') for m in separated] # 半角スペース（および'!'）が入るとズレるためダミー文字に変換
+        separated = [m.replace(r'!', r'"{_C_EXCL}') for m in separated]
+        separated.sort()
+        separated = [m.replace(r'"{_B_QUOTE}', r'\"') for m in separated]
+        separated = [m.replace(r'"{_A_SPACE}', r' ') for m in separated]
+        separated = [m.replace(r'"{_C_EXCL}', r'!') for m in separated]
+
+        separated[-1] = separated[-1].rstrip(',')
+        separated.insert(0, edges[0])
+        separated.append(edges[-1])
+
+        lines = ''.join(separated)
+
+        with open(dest_path, 'w', encoding='utf_8_sig') as f:
+            f.write(lines)
+
+        return
+
+    def write_search_files(self):
+        doc_dir = os.path.join(output_dir, output_manual_dirname, 'cnv_csv')
+        ex_dir = os.path.join(output_ex_dir, output_manual_dirname,  'cnv_csv')
+        js_body = [[''], ['']]
+        js_title = [[''], ['']]
+        files = [[''], ['']]
+
+        for current, subfolders, subfiles in os.walk(doc_dir):
+            for file in subfiles:
+
+                f_path = os.path.join(current, file)
+
+                real_path = f_path.replace(doc_dir, '')
+                real_path = real_path[1:]
+                real_path = real_path.replace('\\', '/')
+                real_path = real_path.replace('／', chr(47)) # 置き換えられたファイル名の'／'をパスとしての'/'に復元
+                real_path = re.sub(r'GML_Reference/[A-Z]-[A-Z]/', r'GML_Reference/', real_path) # GMLリファレンスの細分化した一時ディレクトリをパスから取り除く
+                real_path = real_path.replace('.csv', '')
+
+                f_ex_path = os.path.join(current.replace(doc_dir, ex_dir), file)
+
+                with open(f_path, "r", encoding="utf_8_sig") as f:
+                    lines = f.read()
+
+                keywords = self.extract_search_keyword(lines)
+
+                if keywords == None: # 翻訳がない
+                    continue
+
+                title = [k for k in keywords[0]]
+                entry = [k for k in keywords[1]]
+                js_title[0].append(title)
+                js_title[1].append(title)
+                js_body[0].append(entry)
+                js_body[1].append(entry)
+                files[0].append(real_path)
+                files[1].append(real_path)
+
+                if os.path.exists(f_ex_path):
+                    with open(f_ex_path, "r", encoding="utf_8_sig") as f:
+                        lines_ex = f.read()
+
+                    if lines_ex and lines_ex != lines:
+                        keywords = self.extract_search_keyword(lines_ex)
+
+                        js_title[1][-1] = [k for k in keywords[0]]
+                        js_body[1][-1] = [k for k in keywords[1]]
+
+        del js_body[0][0]
+        del js_body[1][0]
+        del js_title[0][0]
+        del js_title[1][0]
+        del files[0][0]
+        del files[1][0]
+
+        self.mapping_js_by_topics()
+        self.write_text_js(self.search_dict, [js_title[0], js_body[0]], files[0], os.path.join(self.db_dest_dir, 'text'))
+        self.write_text_js(self.search_fulltr_dict, [js_title[1], js_body[1]], files[1], os.path.join(self.db_dest_ex_dir, 'text'))
+        self.write_search_automap(self.search_dict, self.db_dest_dir)
+        self.write_search_automap(self.search_fulltr_dict, self.db_dest_ex_dir)
+        self.write_search_db(self.search_dict, self.db_dest_dir)
+        self.write_search_db(self.search_fulltr_dict, self.db_dest_ex_dir)
+
+        return
+
 
 ##############################################################################################
 
@@ -1146,6 +1581,7 @@ def sub(index_name,
         whxdata.translate_search_result()
         whxdata.translate_index()
         whxdata.translate_table_of_contents(out_file_path)
+        whxdata.write_search_files()
 
     # 出力ファイルに変更があるかどうかチェック
     if check_for_changes() == False:
