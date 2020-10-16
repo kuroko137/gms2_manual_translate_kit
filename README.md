@@ -96,8 +96,8 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
     （翻訳チーム名＋プロジェクトURL、プロジェクト名）
 
 * Discordへの通知:
-  * **DISCORD_WEBHOOK**というSecretsを作成してDiscordのウェブフックURLを登録すると、GitHhub Pagesが更新されたときに指定したチャンネルへ通知が送られます。
-  importer.ymlを編集することで通知メッセージの内容を変更可能です。
+  * **DISCORD_WEBHOOK**というSecretsを作成してDiscordのウェブフックURLを登録すると、GitHhub Pagesが更新されたときに指定したチャンネルへ通知メッセージが送られます。
+  通知メッセージには翻訳された行数、ワード数といった統計も付されています。
 
 ## 二次ファイル
 以下の機能を利用することで、DnDアクション名とイベント名を日本語化した二次ファイルを生成できます。いずれも有効にするにはimporter/main.pyの**ENABLE_FULL_TRANSLATION**を*True*に設定する必要があります。
