@@ -2,7 +2,7 @@
 
 if [ ! -e _COMMIT_RUN ]; then
   # 変更が見つからないため処理を中断
-  echo '::set-env name=action_state::yellow'
+  echo "action_state=yellow" > _ENV_ACTION_STATE
   echo 'NO CHANGES FOUND. The process was aborted.'
   exit
 fi
@@ -10,7 +10,7 @@ fi
 rm -rf _COMMIT_RUN
 
 if [ ! -e _VERSION ]; then
-  echo '::set-env name=action_state::yellow'
+  echo "action_state=yellow" > _ENV_ACTION_STATE
   echo '_VERSION cannot be found. The process was aborted.'
   exit
 fi
@@ -38,8 +38,8 @@ if [ $FOUND_TAG -eq 0 ]; then
   echo "TAG PUSH!"
 fi
 
-echo "::set-env name=release_tag::refs/tags/${BASE_VER}"
-echo "::set-env name=release_ver::refs/tags/${RELEASE_VAR}"
+echo "release_tag=refs/tags/${BASE_VER}" > _ENV_TAG
+echo "release_ver=refs/tags/${RELEASE_VAR}" > _ENV_VER
 
 
 if [ ! -e ./generated ]; then
@@ -96,7 +96,7 @@ zip -r ../YoYoStudioRoboHelp.zip ./
 cd ../../
 rm -rf ./Release/YoYoStudioRoboHelp
 
-echo '::set-env name=action_state::green'
+echo "action_state=green" > _ENV_ACTION_STATE
 
 
 if [ $GENERATE_EX -eq 1 ]; then
@@ -108,7 +108,17 @@ if [ $GENERATE_EX -eq 1 ]; then
   zip -r ../YoYoStudioRoboHelp_Alt.zip ./
   cd ../../
   rm -rf ./Release/YoYoStudioRoboHelp
-  echo '::set-env name=generate_ex::green'
+  echo "generate_ex=green" > _ENV_GENERATE_EX
 else
-  echo '::set-env name=generate_ex::red'
+  echo "generate_ex=red" > _ENV_GENERATE_EX
+fi
+
+COMMIT_DATE=$(TZ=UTC-9 date '+%Y-%m-%dT%H:%M:%S')
+STATS=`head -n 1 _UPDATE_STATS`
+set -- $STATS
+
+if [ $4 ]; then
+  echo "discord_message=${COMMIT_DATE}: オンラインヘルプに翻訳を反映: ${2}% (+${3}%, ${4} 行, ${5} 語)" > _ENV_DISCORD_MESSAGE
+else
+  echo "discord_message=${COMMIT_DATE}: オンラインヘルプに翻訳を反映: ${2}%" > _ENV_DISCORD_MESSAGE
 fi

@@ -4,6 +4,7 @@ import re
 import regex
 import urllib.request
 import zipfile
+import time
 
 from pathlib import Path
 from translate.convert.po2html import converthtml
@@ -87,6 +88,8 @@ index_data = {}
 index_data_full = {}
 index_exist_name_full = {}
 
+translation_info = [0, 0, 0, 0] # 合計行数、合計翻訳数、追加された翻訳数、ワード数
+
 ##############################################################################################
 
 def download_trans_zip_from_paratranz(project_id,
@@ -117,7 +120,50 @@ def download_trans_zip_from_paratranz(project_id,
     return out_file_path
 
 
+def set_translation_count(old_lines, new_lines):
+    global translation_info
+
+    word_count = 0
+    line_count = 0
+    tr_count = [0, 0]
+
+    old = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', old_lines).splitlines(False)
+    new = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', new_lines).splitlines(False)
+    pat_notags = re.compile(r'(<[^<]+>|(\{[^\}]+\}))')
+
+    if len(old) == len(new):
+        for idx in range(len(old)):
+            s_old = old[idx].split('\t')
+            s_new = new[idx].split('\t')
+
+            if s_old[0] != s_new[0]: # キーが異なる＝ファイルがアップデートされたため翻訳数に加算しない
+                word_count = 0
+                tr_count[1] = 0
+                break
+            elif len(s_old) < 3 and len(s_new) >= 3:
+                s_new[1] = pat_notags.sub('', s_new[1]) # タグはワード数としてカウントしない
+                word_count += len(s_new[1].split())
+                tr_count[1] += 1
+
+    for line in new:
+        line_count += 1
+        s = line.split('\t')
+        if len(s) >= 3:
+            if s[2]:
+                tr_count[0] += 1
+
+    translation_info[0] = translation_info[0] + line_count # 合計行数
+    translation_info[1] = translation_info[1] + tr_count[0] # 合計翻訳数
+
+    if word_count > 0:
+        translation_info[2] += tr_count[1] # ワード数
+        translation_info[3] += word_count # 追加翻訳数
+    return
+
+
 def convert_from_zip(paratranz_zip_path):
+    global translation_info
+
     with zipfile.ZipFile(paratranz_zip_path) as zip_file:
         infos = zip_file.infolist() # 各メンバのオブジェクトをリストとして返す
 
@@ -139,18 +185,29 @@ def convert_from_zip(paratranz_zip_path):
                 base_path = info.filename.replace(input_dir, '')
                 base_path = os.path.splitext(base_path)[0]
 
-                if mode != '':
+                if mode:
                     # イベント名、DnDアクション名が翻訳されたファイルは別のディレクトリに出力
                     dest_dir = os.path.join(output_ex_dir, output_manual_dirname)
                 else:
                     dest_dir = os.path.join(output_dir, output_manual_dirname)
 
-                # ParaTranzのバックアップ用CSVファイルを出力
                 path_csv = os.path.join(dest_dir, 'csv', base_path) + '.csv'
+                zip_lines = zip_file.read(info.filename).decode('utf-8-sig')
 
+                if mode == '':
+                    csv_old_path = os.path.join(generated_dir, output_manual_dirname, 'csv', base_path) + '.csv'
+                    old_lines = ''
+
+                    if os.path.exists(csv_old_path):
+                        with open(csv_old_path, 'r', encoding='utf_8_sig') as f:
+                            old_lines = f.read()
+
+                    set_translation_count(old_lines, zip_lines)
+
+                # ParaTranzのバックアップ用CSVファイルを出力
                 os.makedirs(os.path.split(path_csv)[0], exist_ok=True)
-                with open(path_csv, 'wb') as f:
-                    f.write(zip_file.read(info.filename))
+                with open(path_csv, 'w+', encoding='utf_8_sig') as f:
+                    f.write(zip_lines)
 
                 # 基本パスを復元
                 try:
@@ -167,32 +224,26 @@ def convert_from_zip(paratranz_zip_path):
 
                 format_l = format_lines(mode)
 
-                # 整形前のCSVファイルを出力
-                with open(path_source_csv, 'r', encoding='utf_8_sig', newline='\n') as f:
-                    source_lines = f.read()
-                with open(path_csv, 'r', encoding='utf_8_sig', newline='\n') as f:
-                    translated_lines = f.read()
-
-                csv_lines = format_l.restore_csv_commentout(source_lines, translated_lines) # コメントアウトしたCSV行を復元
-
-                with open(path_csv, 'w+', encoding='utf_8_sig', newline='\n') as f:
-                    f.write(csv_lines)
-
-
                 # 整形したCSVファイルを出力
+                with open(path_source_csv, 'r', encoding='utf_8_sig') as f:
+                    source_lines = f.read()
+
+                csv_lines = format_l.restore_csv_commentout(source_lines, zip_lines) # コメントアウトしたCSV行を復元
+
+
                 csv_lines = format_l._csv(csv_lines, base_path)
 
                 if mode:
-                    path_pre_cnv= os.path.join(output_dir, output_manual_dirname, 'cnv_csv', base_path) + '.csv'
+                    path_cnv_normal= os.path.join(output_dir, output_manual_dirname, 'cnv_csv', base_path) + '.csv'
 
-                    with open(path_pre_cnv, 'r', encoding='utf_8_sig', newline='\n') as f:
-                        lines_pre = f.read()
+                    with open(path_cnv_normal, 'r', encoding='utf_8_sig') as f:
+                        lines_normal = f.read()
 
-                        if lines_pre == csv_lines: # 自動翻訳前と内容が同じのためスキップ
+                        if lines_normal == csv_lines: # 自動翻訳前と内容が同じのためスキップ
                             continue
 
                 os.makedirs(os.path.split(path_cnv_csv)[0], exist_ok=True)
-                with open(path_cnv_csv, 'w+', encoding='utf_8_sig', newline='\n') as f_input:
+                with open(path_cnv_csv, 'w+', encoding='utf_8_sig') as f_input:
                     f_input.write(csv_lines)
 
 
@@ -218,12 +269,12 @@ def convert_from_zip(paratranz_zip_path):
                 
                 
                 # POの整形
-                with open(path_po, 'r', encoding='utf_8_sig', newline='\n') as f_po:
+                with open(path_po, 'r', encoding='utf_8_sig') as f_po:
                     po_lines = f_po.read()
 
                 po_lines = format_l._po(po_lines)
 
-                with open(path_po, 'w+', encoding='utf_8_sig', newline='\n') as f_po:
+                with open(path_po, 'w+', encoding='utf_8_sig') as f_po:
                     f_po.write(po_lines)
                 
 
@@ -595,14 +646,19 @@ class generate_file():
 
         with zipfile.ZipFile(paratranz_zip_path) as zip_file:
 
+            zip_lines = zip_file.read(ide_path).decode('utf-8-sig')
+            ide_old_path = os.path.join(generated_dir, os.path.split(ide_path)[1])
             ide_bak_path = os.path.join(output_dir, os.path.split(ide_path)[1])
 
             # ParaTranzの元ファイルをバックアップ
+            if os.path.exists(ide_old_path):
+                with open(ide_old_path, 'r', encoding='utf_8_sig') as f:
+                    old_lines = f.read()
+            set_translation_count(old_lines, zip_lines)
+
             os.makedirs(os.path.split(ide_bak_path)[0], exist_ok=True)
-            with open(ide_bak_path, 'wb') as f:
-                lines = zip_file.read(ide_path)
-                orig_lines = lines.decode('utf-8-sig')
-                f.write(lines)
+            with open(ide_bak_path, 'w', encoding='utf_8_sig') as f:
+                f.write(zip_lines)
 
         # GMS2本体の言語ファイルを生成
         os.makedirs(release_dir, exist_ok=True)
@@ -614,7 +670,7 @@ class generate_file():
         else:
             override_lines = ''
 
-        ide_lines = self.format_ide(orig_lines, self.generate_ide_dict(override_lines), False)
+        ide_lines = self.format_ide(zip_lines, self.generate_ide_dict(override_lines), False)
 
         with open(ide_base_output_path, 'w', encoding='utf_8_sig') as f:
             f.write(ide_lines)
@@ -625,10 +681,10 @@ class generate_file():
 
         ide_alt_output_path = os.path.join(release_dir, ide_alt_name)
 
-        with open(ide_overrides_alt_path, 'r', encoding='utf_8_sig', newline='\n') as f:
+        with open(ide_overrides_alt_path, 'r', encoding='utf_8_sig') as f:
             override_lines = f.read()
 
-        ide_lines = self.format_ide(orig_lines, self.generate_ide_dict(override_lines), True)
+        ide_lines = self.format_ide(zip_lines, self.generate_ide_dict(override_lines), True)
 
         with open(ide_alt_output_path, 'w', encoding='utf_8_sig') as f:
             f.write(ide_lines)
@@ -713,10 +769,18 @@ class generate_file():
             # ParaTranzの元ファイルをバックアップ
 
             for source_path in paths:
+                zip_lines = zip_file.read(source_path).decode('utf-8-sig')
+
+                old_path = os.path.join(generated_dir, os.path.split(source_path)[1])
+                if os.path.exists(old_path):
+                    with open(old_path, 'r', encoding='utf_8_sig') as f:
+                        old_lines = f.read()
+                set_translation_count(old_lines, zip_lines)
+
                 output_path = os.path.join(output_dir, os.path.split(source_path)[1])
                 os.makedirs(os.path.split(output_path)[0], exist_ok=True)
-                with open(output_path, 'wb') as f:
-                    lines = zip_file.read(source_path)
+                with open(output_path, 'w', encoding='utf_8_sig') as f:
+                    lines = zip_lines
                     f.write(lines)
 
         return
@@ -1535,6 +1599,29 @@ def check_for_changes():
 
     return False
 
+def write_update_stats(file_path):
+    lines = ''
+
+    if os.path.exists(file_path):
+        with open(file_path, "r") as f:
+            lines = f.read()
+
+    total_line = translation_info[0]
+    total_percentage = '{:.3f}'.format((translation_info[1] / translation_info[0]) * 100)
+    current_percentage = '{:.3f}'.format((translation_info[2] / translation_info[0]) * 100)
+    curent_line = '{:,}'.format(translation_info[2])
+    current_word = '{:,}'.format(translation_info[3])
+
+    if translation_info[2] > 0:
+        line = '{0}\t{1}\t{2}\t{3}\t{4}\n'.format(total_line, total_percentage, current_percentage, curent_line, current_word)
+    else:
+        line = '{0}\t{1}\n'.format(total_line, total_percentage)
+
+    with open(file_path, "w+") as f:
+        f.write(line + lines)
+
+    return
+
 ##############################################################################################
 
 
@@ -1588,8 +1675,11 @@ def sub(index_name,
         print("NO CHANGES FOUND.")
     else:
         print("complete")
-        with open('_COMMIT_RUN', "w") as f:
-            f.write('COMMIT_RUN')
+        commit_file = '_COMMIT_RUN'
+        with open(commit_file, "w+") as f:
+            f.write(commit_file)
+
+        write_update_stats('_UPDATE_STATS')
 
 
 def main(paratranz_secret):

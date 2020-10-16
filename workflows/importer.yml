@@ -6,6 +6,13 @@ name: Import from ParaTranz
 on:
   repository_dispatch:
     types: [test_trigger]
+    
+  workflow_dispatch:
+    inputs:
+      name:
+        description: 'Manual Run'
+        required: true
+        default: 'Manual Import'
 
   schedule:
     - cron:  '0 */3 * * *'
@@ -17,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2.3.3
       - name: Set up Python 3.8
         uses: actions/setup-python@v1
         with:
@@ -28,15 +35,36 @@ jobs:
         run: pip install translate-toolkit
       - name: Install regex
         run: pip install regex
+      - name: Install janome
+        run: pip install janome
+      - name: Install natsort
+        run: pip install natsort
       - name: Copy sources
         run: sudo sh ./Importer/copy_sources.sh
       - name: Run
-        run: python ./Importer/main.py # CSV > HTML‚Ì•ÏŠ·Às
+        run: python ./Importer/main.py # CSV > HTMLã®å¤‰æ›å®Ÿè¡Œ
         env:
           PARATRANZ_SECRET: ${{ secrets.PARATRANZ_SECRET }}
           PARATRANZ_CODE: ${{ secrets.PARATRANZ_CODE }}
       - name: Copy converted
         run: sudo sh ./Importer/copy_converted.sh
+      - name: Set Env
+        run: |
+             echo "$(<_ENV_ACTION_STATE)" >> $GITHUB_ENV
+             echo "$(<_ENV_TAG)" >> $GITHUB_ENV
+             echo "$(<_ENV_VER)" >> $GITHUB_ENV
+             echo "$(<_ENV_GENERATE_EX)" >> $GITHUB_ENV
+             echo "$(<_ENV_DISCORD_MESSAGE)" >> $GITHUB_ENV
+             ls
+             rm -f _ENV_*
+      - name: Show Env
+        run: |
+             ls
+             echo "action_state = ${{ env.action_state }}"
+             echo "release_tag = ${{ env.release_tag }}"
+             echo "release_ver = ${{ env.release_ver }}"
+             echo "generate_ex = ${{ env.generate_ex }}"
+             echo "discord_message = ${{ env.discord_message }}"
       - name: Delete
         if: ${{ env.action_state != 'yellow'}}
         uses: ame-yu/action-delete-latest-release@v2
@@ -99,15 +127,11 @@ jobs:
           asset_content_type: text/csv
       - name: Push
         if: ${{ env.action_state == 'green'}}
-        run: sudo sh ./Importer/push.sh # •ÏX‚ª‚ ‚ê‚ÎƒRƒ~ƒbƒg&ƒvƒbƒVƒ…
-      - name: Set COMMIT_DATE
-        run: echo ::set-env name=COMMIT_DATE::$(TZ=UTC-9 date '+%Y-%m-%dT%H:%M:%S' | tr '\n' ' ')
+        run: sudo sh ./Importer/push.sh # å¤‰æ›´ãŒã‚ã‚Œã°ã‚³ãƒŸãƒƒãƒˆ&ãƒ—ãƒƒã‚·ãƒ¥
       - name: Discord notification
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         if: ${{ env.action_state == 'green' && env.DISCORD_WEBHOOK}}
-        uses: Ilshidur/action-discord@master # Discord‚Ö‚ÌXV’Ê’m
+        uses: Ilshidur/action-discord@master # Discordã¸ã®æ›´æ–°é€šçŸ¥
         with:
-          # https://git.io/‚Å¶¬‚µ‚½’ZkURL‚ğ“ü‚ê‚é‚Æ•Ö—˜‚©‚à‚µ‚ê‚Ü‚¹‚ñ
-          # args: 'ParaTranz‚Ì–|–ó‚ğƒIƒ“ƒ‰ƒCƒ“ƒwƒ‹ƒv‚É”½‰f: ${{ env.COMMIT_DATE }} - https://git.io/*****'
-          args: 'ParaTranz‚Ì–|–ó‚ğƒIƒ“ƒ‰ƒCƒ“ƒwƒ‹ƒv‚É”½‰f: ${{ env.COMMIT_DATE }}'
+          args: '${{ env.discord_message }}'
