@@ -26,7 +26,7 @@ ENABLE_EXTRA_INDEX = True
 
 # IDEおよびマニュアルの二次ファイルを生成するかどうか
 #  これらはオーバーライドデータと専用の辞書により、イベント名、DnDアクション名を日本語に置き換えたものです。
-#  Github Pagesには影響せず、それぞれ別々のアーカイブ/csvとして出力されます。
+#  Github Pagesには影響せず、個別のアーカイブとして出力されます。
 ENABLE_FULL_TRANSLATION = False
 
 input_dir = 'utf8/csv/' # ParaTranzのCSVディレクトリ
@@ -45,6 +45,7 @@ output_manual_dirname = 'manual'
 generated_dir = 'generated/'
 
 dnd_dirname = 'Drag_And_Drop/Drag_And_Drop_Reference/'
+gml_dirname = 'GameMaker_Language/GML_Reference/'
 
 release_dir = 'Release/'
 ide_base_name = 'japanese.csv' # IDEの言語ファイル出力名
@@ -954,6 +955,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
         self.isEn = regex.compile(r'^[A-Za-z0-9\!-\/:-@\[-\^\{-\~_ ©]+$')
         self.isSymbol = regex.compile(r'^[\!-\*\.\,\/:-@\[-\^\{-\~\p{InCJKSymbolsAndPunctuation}]+$')
         self.isSymbolEx = regex.compile(r'^[\+\-_]+$')
+        self.isHiragana = regex.compile(r'^[\p{Hiragana}]+$')
 
         self.search_dict = {}
         self.search_fulltr_dict = {}
@@ -1129,8 +1131,10 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
 
 
     def separate_by_janome(self, lines):
+        p_noun = ['名詞,']
         p_ignore = ['名詞,代名詞'] # 無視する品詞
-        p_ignore_single = ['形容詞', '助詞,連体化', '名詞,非自立', '名詞,代名詞', '名詞,副詞可能', '名詞,形容動詞語幹', '名詞,接尾', '名詞,副詞可能', '名詞,動詞非自立的'] #単体NG（直前・直後が名詞ならOK）
+        p_ignore_single = ['形容詞', '助詞,連体化'] #単体NG（直前・直後が名詞ならOK）
+        p_ignore_single_hiragana = ['名詞,非自立', '名詞,代名詞', '名詞,副詞可能', '名詞,形容動詞語幹', '名詞,接尾', '名詞,副詞可能', '名詞,動詞非自立的'] #ひらがなの場合は単体NG
         p_strip = ['名詞,非自立', '助詞,連体化', '形容詞,非自立'] # 前後を取る
         p_allowed = ['名詞', '記号,空白', '記号,連体化', '助詞,連体化', '形容詞'] # 許可する品詞
         p_separate = ['助詞,連体化', '記号', '形容詞'] # 区切りとなる品詞
@@ -1187,14 +1191,17 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
                         parts.pop(0)
                         surfaces.pop(0)
 
-                    if len(parts) == 1 and any(parts[0].startswith(pat) for pat in p_ignore_single):
-                        SKIP = True
-
                     output = ''.join(surfaces)
                     output = output.rstrip('-')
                     output = output.strip(' "')
 
-                    if self.isEn.match(output) or len(output) <= 1:
+                    if len(parts) == 1 and any(parts[0].startswith(pat) for pat in p_ignore_single):
+                        SKIP = True
+
+                    if len(parts) == 1 and self.isHiragana.match(output) and any(parts[0].startswith(pat) for pat in p_ignore_single_hiragana):
+                        SKIP = True
+
+                    if len(output) <= 1:
                         SKIP = True
 
                     # キーワードの辞書への追加
@@ -1208,20 +1215,23 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
                             if any(parts[i].startswith(pat) for pat in p_separate):
 
                                 s = ''.join(s_output).strip(' "')
-                                if s and not self.isEn.match(s) and not s.startswith(r'"'):
+                                if s:
                                     result.append(s)
                                 s_output = []
                             else:
                                 s_output.append(surfaces[i])
+                                s = surfaces[i].strip(' "')
+                                if s and not self.isHiragana.match(surfaces[i]) and any(parts[i].startswith(pat) for pat in p_noun):
+                                    result.append(s) # 名詞を単体で抽出
                         else:
                             if len(s_output) > 1: # ループの余りを追加
                                 s = ''.join(s_output)
-                                if s and not self.isEn.match(s) and not s.startswith(r'"'):
+                                if s:
                                     result.append(''.join(s_output))
 
                         # スペースで分割
                         for s in output.split():
-                            if s and not s in result and not self.isEn.match(s) and not s.startswith(r'"'):
+                            if s and not s in result:
 
                                 if s != ''.join(self.separate_by_janome(s)):
                                     result.append('{_SPLIT_BY_SPACE}' + s) # '～の'などで終わっているキーワードは入力候補に出ないようにする
@@ -1273,8 +1283,9 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
             result[0].insert(0, title)
 
         result.append(self.separate_by_janome(lines))
-        result[0] = sorted(set(result[0])) # title
-        result[1] = sorted(set(result[1])) # body
+
+        result[0] = sorted(set(result[0]), key=result[0].index) # title
+        result[1] = sorted(set(result[1]), key=result[1].index) # body
 
         return result
 
@@ -1350,6 +1361,12 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
                                         no_automap = True
 
                                     d_body = d.replace(r'"', r'\"')
+
+                                    if d_body[0] == '\\':
+                                        continue
+                                    if self.isEn.match(d_body):
+                                        continue
+
                                     self.append_search_db(dic, d_body, d_body[0], str(len(d)), js_name, str(current_pos), str(cat), no_automap) # キーワードと関連情報をDB辞書にコピー
                                     text.append(d_body)
 
@@ -1357,7 +1374,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
                                         d_ns = re.sub(r'(([^A-Za-z0-9\!-\/:-@\[-`\{-~ ©]) +| +([^A-Za-z0-9\!-\/:-@\[-`\{-~ ©]))', r'\2\3', d)
                                         d_ns_body = d_ns.replace(r'"', r'\"')
                                         # ハイライトを有効にするため、位置情報はスペース入りのキーワードと同一にする
-                                        self.append_search_db(dic, d_ns_body, d_ns_body[0], str(len(d)), js_name, str(current_pos), str(cat), no_automap)
+                                        self.append_search_db(dic, d_ns_body, d_body[0], str(len(d)), js_name, str(current_pos), str(cat), no_automap)
                                         text.append(d_ns_body)
                                         current_pos += (1 + len(d_ns))
 
@@ -1479,13 +1496,13 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
             current_idx += 1
 
         # RoboHelpのソート順に合わせる
-        separated = [m.replace(r'\"', r'"{_B_QUOTE}') for m in separated] # 半角スペース（および'!'）が入るとズレるためダミー文字に変換
+        separated = [m.replace(r'\"', r'"{_C_QUOTE}') for m in separated] # 半角スペース（および'!'）が入るとズレるためダミー文字に変換
         separated = [m.replace(r' ', r'"{_A_SPACE}') for m in separated] # 半角スペース（および'!'）が入るとズレるためダミー文字に変換
-        separated = [m.replace(r'!', r'"{_C_EXCL}') for m in separated]
+        separated = [m.replace(r'!', r'"{_B_EXCL}') for m in separated]
         separated.sort()
-        separated = [m.replace(r'"{_B_QUOTE}', r'\"') for m in separated]
+        separated = [m.replace(r'"{_C_QUOTE}', r'\"') for m in separated]
         separated = [m.replace(r'"{_A_SPACE}', r' ') for m in separated]
-        separated = [m.replace(r'"{_C_EXCL}', r'!') for m in separated]
+        separated = [m.replace(r'"{_B_EXCL}', r'!') for m in separated]
 
         separated[-1] = separated[-1].rstrip(',')
         separated.insert(0, edges[0])
