@@ -651,6 +651,7 @@ class generate_file():
             ide_bak_path = os.path.join(output_dir, os.path.split(ide_path)[1])
 
             # ParaTranzの元ファイルをバックアップ
+            old_lines = ''
             if os.path.exists(ide_old_path):
                 with open(ide_old_path, 'r', encoding='utf_8_sig') as f:
                     old_lines = f.read()
@@ -772,6 +773,7 @@ class generate_file():
                 zip_lines = zip_file.read(source_path).decode('utf-8-sig')
 
                 old_path = os.path.join(generated_dir, os.path.split(source_path)[1])
+                old_lines = ''
                 if os.path.exists(old_path):
                     with open(old_path, 'r', encoding='utf_8_sig') as f:
                         old_lines = f.read()
@@ -1197,11 +1199,8 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
 
                     # キーワードの辞書への追加
                     if SKIP == False:
+                        # 全文を追加
                         result.append(output)
-
-                        if ' ' in output:
-                            nospace_output = re.sub(r'(([^A-Za-z0-9\!-\/:-@\[-`\{-~ ©]) +| +([^A-Za-z0-9\!-\/:-@\[-`\{-~ ©]))', r'\2\3', output)
-                            result.append(nospace_output) # 日本語前後の半角スペース抜き
 
                         # 区切り文字で分解し、それぞれのパーツを追加
                         s_output = []
@@ -1223,7 +1222,11 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
                         # スペースで分割
                         for s in output.split():
                             if s and not s in result and not self.isEn.match(s) and not s.startswith(r'"'):
-                                result.append(s)
+
+                                if s != ''.join(self.separate_by_janome(s)):
+                                    result.append('{_SPLIT_BY_SPACE}' + s) # '～の'などで終わっているキーワードは入力候補に出ないようにする
+                                else:
+                                    result.append(s)
 
                     surfaces = []
                     parts = []
@@ -1270,9 +1273,8 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
             result[0].insert(0, title)
 
         result.append(self.separate_by_janome(lines))
-
-        result[0] = sorted(set(result[0]))
-        result[1] = sorted(set(result[1]))
+        result[0] = sorted(set(result[0])) # title
+        result[1] = sorted(set(result[1])) # body
 
         return result
 
@@ -1296,7 +1298,6 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
         source_dir_path = os.path.join(self.db_base_dir, 'text')
         os.makedirs(dest_dir_path, exist_ok=True)
 
-
         for current, subfolders, subfiles in os.walk(source_dir_path):
             for file in subfiles:
                 source_path = os.path.join(current, file)
@@ -1306,13 +1307,13 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
                     lines = f.read()
 
                 separated = re.split(r'([,\]]*"[0-9]":\[)', lines)
-                data_pos = [-1, -1]
+                cat_pos = [-1, -1]
 
                 for idx, s in enumerate(separated):
                     if s.startswith('"0":['):
-                        data_pos[0] = idx + 1 # タイトル
+                        cat_pos[0] = idx + 1 # タイトル
                     elif s.startswith('],"3":['):
-                        data_pos[1] = idx + 1 # 本文
+                        cat_pos[1] = idx + 1 # 本文
                         break
                 else:
                     continue
@@ -1324,7 +1325,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
                 for idx, file in enumerate(files):
                     if file == f_path:
 
-                        for cat, pos in enumerate(data_pos):
+                        for cat, pos in enumerate(cat_pos):
                             if len(data[cat][idx]) > 0:
                                 text = separated[pos].split('","')
                                 text[-1] = text[-1].rstrip('"')
@@ -1335,17 +1336,32 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
                                 text_for_len = text_for_len.replace('\\\\', ' ') # 二重エスケープは一字
                                 text_for_len = text_for_len.replace('\\', '') # エスケープ文字は計測されないため削除
                                 text_for_len = text_for_len.replace('{_SEPARATOR}', ' ')
+                                text_for_len = text_for_len.lstrip('"')
 
                                 current_pos = len(text_for_len) + 1 # 日本語テキストを挿入する開始位置
 
                                 # 辞書からデータを取り出し
                                 for d in data[cat][idx]:
-                                    current_length = len(d.replace('\\', ''))
-                                    d = d.replace(r'"', r'\"')
-                                    text.append(d)
+                                    d = d.replace('\\', '')
 
-                                    self.append_search_db(dic, d, d[0], str(current_length), js_name, str(current_pos), str(cat)) # キーワードと関連情報をDB辞書にコピー
-                                    current_pos += (1 + current_length)
+                                    no_automap = False
+                                    if '{_SPLIT_BY_SPACE}' in d: # 入力候補から除外するキーワード
+                                        d = d.replace(r'{_SPLIT_BY_SPACE}', r'')
+                                        no_automap = True
+
+                                    d_body = d.replace(r'"', r'\"')
+                                    self.append_search_db(dic, d_body, d_body[0], str(len(d)), js_name, str(current_pos), str(cat), no_automap) # キーワードと関連情報をDB辞書にコピー
+                                    text.append(d_body)
+
+                                    if ' ' in d: # スペース抜きのキーワードを生成（'x 位置'→'x位置'など）
+                                        d_ns = re.sub(r'(([^A-Za-z0-9\!-\/:-@\[-`\{-~ ©]) +| +([^A-Za-z0-9\!-\/:-@\[-`\{-~ ©]))', r'\2\3', d)
+                                        d_ns_body = d_ns.replace(r'"', r'\"')
+                                        # ハイライトを有効にするため、位置情報はスペース入りのキーワードと同一にする
+                                        self.append_search_db(dic, d_ns_body, d_ns_body[0], str(len(d)), js_name, str(current_pos), str(cat), no_automap)
+                                        text.append(d_ns_body)
+                                        current_pos += (1 + len(d_ns))
+
+                                    current_pos += (1 + len(d))
 
                                 separated[pos] = '","'.join(text) + '"'
                         break
@@ -1358,18 +1374,22 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
                     f.write(output)
 
 
-    def append_search_db(self, dic, keyword, initial, length, js, pos, cat):
+    def append_search_db(self, dic, keyword, initial, length, js, pos, cat, no_automap=False):
         # {'keyword' : {'initial' : str, 'length' : 0-9+, 'js' : 1:2:3:4:5:6:7, 'pos' : js:pos:cat,js:pos:cat'}} # text/jsからの参照位置
 
         keyword = keyword.lower()
         initial = initial.lower()
-        js = '"' + js +'"'
+        if no_automap:
+            text_js = '"-1"'
+        else:
+            text_js = '"' + js +'"'
+        pos_js = '"' + js +'"'
 
         if dic.get(keyword): # 既存のキーワードにjsとposを追加
-            dic[keyword]['js'] += ',' + js
-            dic[keyword]['pos'] += ',' + ':'.join([js, pos, cat])
+            dic[keyword]['js'] += ',' + text_js
+            dic[keyword]['pos'] += ',' + ':'.join([pos_js, pos, cat])
         else:
-            dic[keyword] = {'initial' : initial, 'length' : length, 'js' : js, 'pos' : ':'.join([js, pos, cat])}
+            dic[keyword] = {'initial' : initial, 'length' : length, 'js' : text_js, 'pos' : ':'.join([pos_js, pos, cat])}
         return
 
 
@@ -1393,6 +1413,12 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
 
         for d in dic:
             idx = -1
+
+            js_name = dic[d].get('js')
+
+            if ' ' in d or '-1' in js_name:
+                continue
+            
             NOTFOUND = False
             try:
                 idx = initials.index(dic[d].get('initial'))
@@ -1403,7 +1429,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
 
             s = separated[idx][6:-2].split('],[')
             # "keyword",index,1,0,index,[js_files]'
-            s.append('"{0}",{1},1,0,{1},[{2}]'.format(d.lower(), current_idx, dic[d].get('js')))
+            s.append('"{0}",{1},1,0,{1},[{2}]'.format(d.lower(), current_idx, js_name))
             current_idx += 1
 
             if NOTFOUND:
@@ -1504,36 +1530,42 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
                 title = [k for k in keywords[0]]
                 entry = [k for k in keywords[1]]
                 js_title[0].append(title)
-                js_title[1].append(title)
                 js_body[0].append(entry)
-                js_body[1].append(entry)
                 files[0].append(real_path)
-                files[1].append(real_path)
 
-                if os.path.exists(f_ex_path):
-                    with open(f_ex_path, "r", encoding="utf_8_sig") as f:
-                        lines_ex = f.read()
+                if ENABLE_FULL_TRANSLATION:
+                    js_title[1].append(title)
+                    js_body[1].append(entry)
+                    files[1].append(real_path)
 
-                    if lines_ex and lines_ex != lines:
-                        keywords = self.extract_search_keyword(lines_ex)
+                    if os.path.exists(f_ex_path):
+                        with open(f_ex_path, "r", encoding="utf_8_sig") as f:
+                            lines_ex = f.read()
 
-                        js_title[1][-1] = [k for k in keywords[0]]
-                        js_body[1][-1] = [k for k in keywords[1]]
+                        if lines_ex and lines_ex != lines:
+                            keywords = self.extract_search_keyword(lines_ex)
 
-        del js_body[0][0]
+                            js_title[1][-1] = [k for k in keywords[0]]
+                            js_body[1][-1] = [k for k in keywords[1]]
         del js_body[1][0]
-        del js_title[0][0]
         del js_title[1][0]
-        del files[0][0]
         del files[1][0]
 
+        del js_body[0][0]
+        del js_title[0][0]
+        del files[0][0]
+
         self.mapping_js_by_topics()
+        
         self.write_text_js(self.search_dict, [js_title[0], js_body[0]], files[0], os.path.join(self.db_dest_dir, 'text'))
-        self.write_text_js(self.search_fulltr_dict, [js_title[1], js_body[1]], files[1], os.path.join(self.db_dest_ex_dir, 'text'))
+        if ENABLE_FULL_TRANSLATION:
+            self.write_text_js(self.search_fulltr_dict, [js_title[1], js_body[1]], files[1], os.path.join(self.db_dest_ex_dir, 'text'))
+
         self.write_search_automap(self.search_dict, self.db_dest_dir)
-        self.write_search_automap(self.search_fulltr_dict, self.db_dest_ex_dir)
         self.write_search_db(self.search_dict, self.db_dest_dir)
-        self.write_search_db(self.search_fulltr_dict, self.db_dest_ex_dir)
+        if ENABLE_FULL_TRANSLATION:
+            self.write_search_automap(self.search_fulltr_dict, self.db_dest_ex_dir)
+            self.write_search_db(self.search_fulltr_dict, self.db_dest_ex_dir)
 
         return
 
