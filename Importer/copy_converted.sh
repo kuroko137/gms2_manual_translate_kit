@@ -113,12 +113,12 @@ else
   echo "generate_ex=red" > _ENV_GENERATE_EX
 fi
 
-COMMIT_DATE=$(TZ=UTC-9 date '+%Y-%m-%dT%H:%M:%S')
-STATS=`head -n 1 _UPDATE_STATS`
+STATS=`head -n 1 ./logs/update_stats.log`
+IFS="$(echo -e '\t')"
 set -- $STATS
 
-if [ $4 ]; then
-  echo "discord_message=${COMMIT_DATE}: オンラインヘルプに翻訳を反映: ${2}% (+${3}%, ${4} 行, ${5} 語)" > _ENV_DISCORD_MESSAGE
+if [ $5 ]; then
+  echo "discord_message=${1}: オンラインヘルプに翻訳を反映: ${3}% (+${4}%, ${5} 行, ${6} 語)" > _ENV_DISCORD_MESSAGE
 else
-  echo "discord_message=${COMMIT_DATE}: オンラインヘルプに翻訳を反映: ${2}%" > _ENV_DISCORD_MESSAGE
+  echo "discord_message=${1}: オンラインヘルプに翻訳を反映: ${3}%" > _ENV_DISCORD_MESSAGE
 fi

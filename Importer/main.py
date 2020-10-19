@@ -4,7 +4,7 @@ import re
 import regex
 import urllib.request
 import zipfile
-import time
+import datetime
 
 from pathlib import Path
 from translate.convert.po2html import converthtml
@@ -1661,10 +1661,13 @@ def write_update_stats(file_path):
     curent_line = '{:,}'.format(translation_info[2])
     current_word = '{:,}'.format(translation_info[3])
 
+    dt = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-9)))
+    current_time = dt.strftime('%Y/%m/%d %H:%M:%S')
+
     if translation_info[2] > 0:
-        line = '{0}\t{1}\t{2}\t{3}\t{4}\n'.format(total_line, total_percentage, current_percentage, curent_line, current_word)
+        line = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\n'.format(current_time, total_line, total_percentage, current_percentage, curent_line, current_word)
     else:
-        line = '{0}\t{1}\n'.format(total_line, total_percentage)
+        line = '{0}\t{1}\t{2}\n'.format(current_time, total_line, total_percentage)
 
     with open(file_path, "w+") as f:
         f.write(line + lines)
@@ -1728,7 +1731,9 @@ def sub(index_name,
         with open(commit_file, "w+") as f:
             f.write(commit_file)
 
-        write_update_stats('_UPDATE_STATS')
+        logs_dir = "logs"
+        os.makedirs(logs_dir, exist_ok=True)
+        write_update_stats(os.path.join(logs_dir, 'update_stats.log'))
 
 
 def main(paratranz_secret):
