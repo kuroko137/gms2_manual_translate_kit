@@ -1650,7 +1650,7 @@ def check_for_changes():
 
 def write_update_stats(file_path):
     lines = []
-    header = 'time\ttotal_lines\ttotal_percentage\tadded_percentage\tadded_words'
+    header = 'time\ttotal_lines\ttotal_percentage\tadded_percentage\tadded_lines\tadded_words'
 
     if os.path.exists(file_path):
         with open(file_path, "r") as f:
@@ -1737,7 +1737,7 @@ def sub(index_name,
 
         logs_dir = "logs"
         os.makedirs(logs_dir, exist_ok=True)
-        write_update_stats(os.path.join(logs_dir, 'update_stats.log'))
+        write_update_stats(os.path.join(logs_dir, 'update_stats.csv'))
 
 
 def main(paratranz_secret):
