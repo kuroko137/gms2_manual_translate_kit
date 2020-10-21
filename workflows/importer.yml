@@ -84,6 +84,7 @@ jobs:
           gzip: false
           allow_override: true
       - name: Write Release Stats
+        if: ${{ env.action_state == 'green'}}
         run: python ./Importer/write_release_stats.py
         env:
           REPOSITORY_NAME: ${{ github.repository }}
