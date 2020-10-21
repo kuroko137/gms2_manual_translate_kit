@@ -42,7 +42,7 @@ jobs:
       - name: Copy sources
         run: sudo sh ./Importer/copy_sources.sh
       - name: Run
-        run: python ./Importer/main.py # CSV > HTMLの変換実行
+        run: python ./Importer/main.py # CSV > HTMLの変換を実行
         env:
           PARATRANZ_SECRET: ${{ secrets.PARATRANZ_SECRET }}
           PARATRANZ_CODE: ${{ secrets.PARATRANZ_CODE }}
@@ -57,74 +57,36 @@ jobs:
              echo "$(<_ENV_DISCORD_MESSAGE)" >> $GITHUB_ENV
              ls
              rm -f _ENV_*
-      - name: Show Env
-        run: |
-             ls
-             echo "action_state = ${{ env.action_state }}"
-             echo "release_tag = ${{ env.release_tag }}"
-             echo "release_ver = ${{ env.release_ver }}"
-             echo "generate_ex = ${{ env.generate_ex }}"
-             echo "discord_message = ${{ env.discord_message }}"
-      - name: Delete
-        if: ${{ env.action_state != 'yellow'}}
-        uses: ame-yu/action-delete-latest-release@v2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Create release
-        id: create_release
+      - name: Github Release create, update, and upload assets
         if: ${{ env.action_state == 'green'}}
-        uses: actions/create-release@v1.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: meeDamian/github-release@2.0
         with:
-          tag_name: ${{ env.release_tag }}
-          release_name: v${{ env.release_ver }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ env.release_tag }}
+          name: v${{ env.release_ver }}
+          files: >
+            ./Release/YoYoStudioRoboHelp.zip
+            ./Release/japanese.csv
           draft: false
-          prerelease: false
-      - name: Upload Manual
-        id: upload-release-asset_manual
-        if: ${{ env.action_state == 'green'}}
-        uses: actions/upload-release-asset@v1.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./Release/YoYoStudioRoboHelp.zip
-          asset_name: YoYoStudioRoboHelp.zip
-          asset_content_type: application/zip
-      - name: Upload Manual Alt
-        id: upload-release-asset_manual_alt
+          gzip: false
+          allow_override: true
+      - name: (for Alt) Github Release create, update, and upload assets
         if: ${{ env.generate_ex == 'green'}}
-        uses: actions/upload-release-asset@v1.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: meeDamian/github-release@2.0
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./Release/YoYoStudioRoboHelp_Alt.zip
-          asset_name: YoYoStudioRoboHelp_Alt.zip
-          asset_content_type: application/zip
-      - name: Upload CSV
-        id: upload-release-asset_ide
-        if: ${{ env.action_state == 'green'}}
-        uses: actions/upload-release-asset@v1.0.1
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ env.release_tag }}
+          name: v${{ env.release_ver }}
+          files: >
+            ./Release/YoYoStudioRoboHelp_Alt.zip
+            ./Release/japanese_alt.csv
+          draft: false
+          gzip: false
+          allow_override: true
+      - name: Write Release Stats
+        run: python ./Importer/write_release_stats.py
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./Release/japanese.csv
-          asset_name: japanese.csv
-          asset_content_type: text/csv
-      - name: Upload CSV Alt
-        id: upload-release-asset_ide_alt
-        if: ${{ env.generate_ex == 'green'}}
-        uses: actions/upload-release-asset@v1.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./Release/japanese_alt.csv
-          asset_name: japanese_alt.csv
-          asset_content_type: text/csv
+          REPOSITORY_NAME: ${{ github.repository }}
       - name: Push
         if: ${{ env.action_state == 'green'}}
         run: sudo sh ./Importer/push.sh # 変更があればコミット&プッシュ
