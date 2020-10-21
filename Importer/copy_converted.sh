@@ -113,7 +113,7 @@ else
   echo "generate_ex=red" > _ENV_GENERATE_EX
 fi
 
-STATS=`head -n 1 ./logs/update_stats.log`
+STATS=`sed -n 2p ./logs/update_stats.log`
 IFS="$(echo -e '\t')"
 set -- $STATS
 

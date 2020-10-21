@@ -1649,11 +1649,12 @@ def check_for_changes():
     return False
 
 def write_update_stats(file_path):
-    lines = ''
+    lines = []
+    header = 'time\ttotal_lines\ttotal_percentage\tadded_percentage\tadded_words'
 
     if os.path.exists(file_path):
         with open(file_path, "r") as f:
-            lines = f.read()
+            lines = f.read().splitlines(False)[1:]
 
     total_line = translation_info[0]
     total_percentage = '{:.3f}'.format((translation_info[1] / translation_info[0]) * 100)
@@ -1665,12 +1666,15 @@ def write_update_stats(file_path):
     current_time = dt.strftime('%Y/%m/%d %H:%M:%S')
 
     if translation_info[2] > 0:
-        line = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\n'.format(current_time, total_line, total_percentage, current_percentage, curent_line, current_word)
+        line = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}'.format(current_time, total_line, total_percentage, current_percentage, curent_line, current_word)
     else:
-        line = '{0}\t{1}\t{2}\n'.format(current_time, total_line, total_percentage)
+        line = '{0}\t{1}\t{2}'.format(current_time, total_line, total_percentage)
+
+    lines.insert(0, line)
+    lines.insert(0, header)
 
     with open(file_path, "w+") as f:
-        f.write(line + lines)
+        f.write('\n'.join(lines))
 
     return
 
