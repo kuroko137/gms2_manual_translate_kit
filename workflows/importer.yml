@@ -47,7 +47,7 @@ jobs:
           PARATRANZ_SECRET: ${{ secrets.PARATRANZ_SECRET }}
           PARATRANZ_CODE: ${{ secrets.PARATRANZ_CODE }}
       - name: Copy converted
-        run: sudo sh ./Importer/copy_converted.sh
+        run: sudo bash ./Importer/copy_converted.sh
       - name: Set Env
         run: |
              echo "$(<_ENV_ACTION_STATE)" >> $GITHUB_ENV
@@ -55,10 +55,9 @@ jobs:
              echo "$(<_ENV_VER)" >> $GITHUB_ENV
              echo "$(<_ENV_GENERATE_EX)" >> $GITHUB_ENV
              echo "$(<_ENV_DISCORD_MESSAGE)" >> $GITHUB_ENV
-             ls
              rm -f _ENV_*
       - name: Github Release create, update, and upload assets
-        if: ${{ env.action_state == 'green'}}
+        if: ${{ env.action_state == 'green' && env.generate_ex != 'green' }}
         uses: meeDamian/github-release@2.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -78,6 +77,8 @@ jobs:
           tag: ${{ env.release_tag }}
           name: v${{ env.release_ver }}
           files: >
+            ./Release/YoYoStudioRoboHelp.zip
+            ./Release/japanese.csv
             ./Release/YoYoStudioRoboHelp_Alt.zip
             ./Release/japanese_alt.csv
           draft: false

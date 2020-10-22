@@ -1650,25 +1650,26 @@ def check_for_changes():
 
 def write_update_stats(file_path):
     lines = []
-    header = 'time\ttotal_lines\ttotal_percentage\tadded_percentage\tadded_lines\tadded_words'
+    header = 'time\tlines\ttranslations\tpercentage\tadded_translations\tadded_percentage\tadded_words'
 
     if os.path.exists(file_path):
         with open(file_path, "r") as f:
             lines = f.read().splitlines(False)[1:]
 
     total_line = translation_info[0]
+    total_translation = translation_info[1]
     total_percentage = '{:.3f}'.format((translation_info[1] / translation_info[0]) * 100)
     current_percentage = '{:.3f}'.format((translation_info[2] / translation_info[0]) * 100)
     curent_line = '{:,}'.format(translation_info[2])
     current_word = '{:,}'.format(translation_info[3])
 
-    dt = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-9)))
+    dt = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
     current_time = dt.strftime('%Y/%m/%d %H:%M:%S')
 
     if translation_info[2] > 0:
-        line = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}'.format(current_time, total_line, total_percentage, current_percentage, curent_line, current_word)
+        line = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}'.format(current_time, total_line, total_translation, total_percentage, curent_line, current_percentage, current_word)
     else:
-        line = '{0}\t{1}\t{2}'.format(current_time, total_line, total_percentage)
+        line = '{0}\t{1}\t{2}\t{3}'.format(current_time, total_line, total_translation, total_percentage)
 
     lines.insert(0, line)
     lines.insert(0, header)

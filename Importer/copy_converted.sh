@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 if [ ! -e _COMMIT_RUN ]; then
   # 変更が見つからないため処理を中断
@@ -38,8 +38,8 @@ if [ $FOUND_TAG -eq 0 ]; then
   echo "TAG PUSH!"
 fi
 
-echo "release_tag=refs/tags/${BASE_VER}" > _ENV_TAG
-echo "release_ver=refs/tags/${RELEASE_VAR}" > _ENV_VER
+echo "release_tag=${BASE_VER}" > _ENV_TAG
+echo "release_ver=${RELEASE_VAR}" > _ENV_VER
 
 
 if [ ! -e ./generated ]; then
@@ -118,7 +118,7 @@ IFS="$(echo -e '\t')"
 set -- $STATS
 
 if [ $5 ]; then
-  echo "discord_message=${1}: オンラインヘルプに翻訳を反映: ${3}% (+${4}%, ${5} 行, ${6} 語)" > _ENV_DISCORD_MESSAGE
+  echo "discord_message=${1} - オンラインヘルプに翻訳を反映: ${4}% (+${6}%, ${5} 行, ${7} 語)" > _ENV_DISCORD_MESSAGE
 else
-  echo "discord_message=${1}: オンラインヘルプに翻訳を反映: ${3}%" > _ENV_DISCORD_MESSAGE
+  echo "discord_message=${1} - オンラインヘルプに翻訳を反映: ${4}%" > _ENV_DISCORD_MESSAGE
 fi
