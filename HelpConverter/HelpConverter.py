@@ -5,13 +5,15 @@ import shutil
 import zipfile
 import urllib.parse
 import regex
+import Levenshtein
+import time
 from pathlib import Path
 from natsort import natsorted
 from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 1.73'
+title = 'HelpConverter for GMS2 - 1.75'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
@@ -19,8 +21,8 @@ COUNTER_TRANSLATION = True
 # 構造の簡易化がオンの場合、GMLリファレンスの出力ディレクトリを[A-B]のようにアルファベットで細分化するかどうか
 GML_SEPARATE = True
 
-ignore_files_path = './ignore_files.txt' # 翻訳対象としないファイル
-last_used_path = './last_used.txt' # オプションの設定履歴
+ignore_files_path = './ignore_files.ini' # 翻訳対象としないファイル
+user_settings_path = './user_settings.ini' # オプションの設定履歴
 
 dir_name_output = 'output'
 dir_name_paratranz = 'paratranz'
@@ -49,22 +51,22 @@ re.compile(r'([^\r\n]+Copyright YoYo Games Ltd. 2020 All Rights Reserved[^\r\n]*
 
 ##############################################################################################
 
-class last_used: # オプションの設定履歴
+class user_settings: # オプションの設定履歴
     def __init__(self):
         self.defaults = [['import_path', '...'], ['export_path', '...'], ['gms_version', '0'], ['simplified', 'True'], 
         ['add_url', 'False'], ['en_url', 'https://manual.yoyogames.com/'], ['jp_url', ''], ['url_type', 'True']]
         self.current = []
 
     def create_txt(self): # テキストがなければ作成
-        if os.path.isfile(last_used_path):
+        if os.path.isfile(user_settings_path):
             return
 
         lines = [line[0] + ':=' + line[1] for idx, line in enumerate(self.defaults)]
-        with open(last_used_path, "w+") as f:
+        with open(user_settings_path, "w+") as f:
             f.write('\n'.join(lines))
 
     def generate_list(self): # テキストからリストを生成
-        with open(last_used_path, "r") as f:
+        with open(user_settings_path, "r") as f:
             lines = f.read()
 
         for line in lines.splitlines(False):
@@ -84,7 +86,7 @@ class last_used: # オプションの設定履歴
         if len(val) != len(self.current):
             return
 
-        with open(last_used_path, "r") as f:
+        with open(user_settings_path, "r") as f:
             lines = f.read()
 
         new_lines = []
@@ -98,7 +100,7 @@ class last_used: # オプションの設定履歴
                     break
             new_lines.append(':='.join(map(str, separated)))
 
-        with open(last_used_path, "w") as f:
+        with open(user_settings_path, "w") as f:
             f.write('\n'.join(new_lines))
 
 ##############################################################################################
@@ -110,7 +112,7 @@ class App(tkinter.Frame): # GUIの設定
         super().__init__(root, height=720, width=700)
         root.title(title)
 
-        self.lastused = last_used()
+        self.lastused = user_settings()
         self.lastused.create_txt()
         self.lastused.generate_list()
 
@@ -229,11 +231,11 @@ class App(tkinter.Frame): # GUIの設定
             tkinter.messagebox.showinfo('無効なアーカイブ', 'アーカイブが存在しない、または無効なアーカイブです。\nGame Maker Studio 2 のインストールディレクトリにある chm2web/YoYoStudioRoboHelp.zip を指定してください。')
             return
         elif not os.path.isfile(ignore_files_path):
-            tkinter.messagebox.showinfo('エラー', '無視ファイルリスト（ignore_files.txt）が存在しません。')
+            tkinter.messagebox.showinfo('エラー', '無視ファイルリスト（ignore_files.ini）が存在しません。')
             return
 
         if not os.path.isfile(ignore_files_path):
-            tkinter.messagebox.showinfo('エラー', '無視ファイルリスト（ignore_files.txt）が存在しません。')
+            tkinter.messagebox.showinfo('エラー', '無視ファイルリスト（ignore_files.ini）が存在しません。')
             return
 
         if export_path == '...' or export_path == '':
@@ -271,6 +273,8 @@ class App(tkinter.Frame): # GUIの設定
 
         # -----------------------------------------------------------------------
 
+
+        start = time.time()
 
         # 現在の設定をテキストに書き出し
         self.lastused.write_txt(import_path, export_path, gms_version, simple_structure, 
@@ -396,12 +400,12 @@ class App(tkinter.Frame): # GUIの設定
 
 
                 # HTMLの整形
-                with open(path_html, "r", encoding="utf_8_sig", newline="\n") as f_html:
+                with open(path_html, "r", encoding="utf_8_sig") as f_html:
                     html_lines = f_html.read()
 
                 html_lines = format_lines()._html(html_lines, base_dir)
 
-                with open(path_html, "w+", encoding="utf_8_sig", newline="\n") as f_html:
+                with open(path_html, "w+", encoding="utf_8_sig") as f_html:
                     f_html.write(html_lines)
 
 
@@ -424,17 +428,17 @@ class App(tkinter.Frame): # GUIの設定
 
 
                 # POの整形
-                with open(path_po, "r", encoding="utf_8_sig", newline="\n") as f_po:
+                with open(path_po, "r", encoding="utf_8_sig") as f_po:
                     po_lines = f_po.read()
 
                 po_lines = format_lines()._po(po_lines, import_path)
 
-                with open(path_po, "w", encoding="utf_8_sig",newline="\n") as f_po:
+                with open(path_po, "w", encoding="utf_8_sig") as f_po:
                     f_po.write(po_lines)
 
 
                 # Translate-Kit 3.0.0現在、空のPOTファイルが出力されてしまうためPOの内容をPOTに上書き
-                with open(path_pot, "w", encoding="utf_8_sig",newline="\n") as f_po:
+                with open(path_pot, "w", encoding="utf_8_sig") as f_po:
                     f_po.write(po_lines)
 
 
@@ -499,14 +503,14 @@ class App(tkinter.Frame): # GUIの設定
 
                 csv_lines = format_lines()._csv(csv_lines, base_dir, info.filename, url_is_add, url_en, url_jp, url_type)
 
-                with open(path_source_csv, "w", encoding="utf_8_sig") as f_csv:
+                with open(path_source_csv, "w", encoding="utf_8_sig", newline="\n") as f_csv:
                     f_csv.write(csv_lines)
 
                 # CSVの書き出し
                 csv_lines = re.sub(r'#CSV_COMMENT_OUT#[^\r\n]+[\r\n]+', '', csv_lines) # コメントアウトされたエントリを除外
 
                 os.makedirs(os.path.split(path_csv)[0], exist_ok=True)
-                with open(path_csv, "w+", encoding="utf_8_sig") as f_csv:
+                with open(path_csv, "w+", encoding="utf_8_sig", newline="\n") as f_csv:
                     f_csv.write(csv_lines)
 
 
@@ -525,25 +529,65 @@ class App(tkinter.Frame): # GUIの設定
                         lines = re.sub(r'\t', r',', lines)
 
                         os.makedirs(os.path.split(tmp_csv_path)[0], exist_ok=True)
-                        with open(tmp_csv_path, "w+", encoding="utf_8_sig") as f_csv:
+                        with open(tmp_csv_path, "w+", encoding="utf_8_sig", newline="\n") as f_csv:
                             f_csv.write(lines)
 
                         os.makedirs(os.path.split(output_csv_path)[0], exist_ok=True)
 
+                        # 全文一致
                         f_input_csv = open(tmp_csv_path, 'rb')
                         f_output_csv = open(output_csv_path, 'wb+')
                         f_tm = open(old_csv_path, 'rb')
 
-                        # 翻訳マージ
                         pretranslate_file(f_input_csv, f_output_csv, f_tm, min_similarity=100, fuzzymatching=False)
 
                         f_input_csv.close()
                         f_output_csv.close()
                         f_tm.close()
 
-                        # 再整形
                         with open(output_csv_path, "r", encoding="utf_8_sig") as f:
-                            lines = f.read()
+                            no_fuzzy_lines = f.read()
+
+                        # あいまい一致
+                        f_input_csv = open(tmp_csv_path, 'rb')
+                        f_output_csv = open(output_csv_path, 'wb+')
+                        f_tm = open(old_csv_path, 'rb')
+
+                        pretranslate_file(f_input_csv, f_output_csv, f_tm, min_similarity=75, fuzzymatching=True)
+
+                        f_input_csv.close()
+                        f_output_csv.close()
+                        f_tm.close()
+
+                        with open(output_csv_path, "r", encoding="utf_8_sig") as f:
+                            fuzzy_lines = f.read()
+
+                        # 全文一致とあいまい一致を比較し、あいまい一致のラインに目印となるキーワードを入れる
+                        no_fuzzy_lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', '\t', no_fuzzy_lines)
+                        fuzzy_lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', '\t', fuzzy_lines)
+
+                        fuzzy_lines = fuzzy_lines.splitlines(False)
+                        no_fuzzy_lines = no_fuzzy_lines.splitlines(False)
+
+                        fuzzy_lines = [line for line in fuzzy_lines if '\t' in line] 
+                        no_fuzzy_lines = [line for line in no_fuzzy_lines if '\t' in line]
+
+
+                        if len(fuzzy_lines) == len(no_fuzzy_lines):
+                            for idx, line in enumerate(fuzzy_lines):
+                                if line != no_fuzzy_lines[idx]:
+                                    s = line.split('\t')
+                                    if len(s) >= 3:
+                                        s[2] = re.sub(r'^("?)', r'\1（あいまい一致）', s[2])
+                                    fuzzy_lines[idx] = '\t'.join(s)
+
+                            lines = '\n'.join(fuzzy_lines)
+                        else:
+                            lines = '\n'.join(no_fuzzy_lines)
+
+                        lines = lines.replace('\t', ',')
+
+                        # マージ後のCSVを再整形
                         lines = format_lines()._csv(lines, base_dir, info.filename, url_is_add, url_en, url_jp, url_type)
 
                         with open(old_csv_path, "r", encoding="utf_8_sig") as f:
@@ -559,7 +603,7 @@ class App(tkinter.Frame): # GUIの設定
                             except OSError:
                                 pass
                         else:
-                            with open(output_csv_path, "w+", encoding="utf_8_sig") as f_output_csv:
+                            with open(output_csv_path, "w+", encoding="utf_8_sig", newline="\n") as f_output_csv:
                                 f_output_csv.write(lines)
 
                 # リストボックスにログを出力
@@ -608,6 +652,11 @@ class App(tkinter.Frame): # GUIの設定
         shutil.rmtree(po_output_dir, ignore_errors=True)
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
+
+        elapsed_time = time.time() - start
+        self.lb.insert('end', 'elapsed time = {0} sec'.format(elapsed_time))
+        self.lb.see('end')
+        self.update()
         tkinter.messagebox.showinfo('変換完了','CSV, POT ファイルへの変換が完了しました。')
         return
 
