@@ -31,7 +31,7 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   > サブディレクトリのファイルをすべてアップロードできなかった場合は、ParaTranzの該当ディレクトリを開いてファイルだけをアップロードするとうまくいくはずです。
 
 * リポジトリの構築:
-  * GitHubで新規リポジトリを作成します（リポジトリ名がGitHub PagesのURL名となります）。作成後、キットに含まれている**Importer**フォルダ、**.gitattributes**ファイル、さらにHelpConverterで生成された **repository** フォルダの中にあるすべてのファイル/フォルダを取り出し、リポジトリの最上位にコミットしてください。
+  * GitHubで新規リポジトリを作成します（リポジトリ名がGitHub PagesのURL名となります）。作成後、キットに含まれている**Importer**フォルダ、さらにHelpConverterで生成された **repository** フォルダの中にあるすべてのファイル/フォルダを取り出し、リポジトリの最上位にコミットしてください。
 
   * リポジトリのSettingsを開き、OptionsメニューからGitHub Pagesのソースディレクトリを**master branch / docs folder**にセットします。
 
@@ -53,17 +53,15 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 * リリースの利用:
   * GitHub Actionsの実行に成功すると、マニュアルをアーカイブ化したzipファイル、整形済みのIDE言語ファイル（csv）がリリースとして自動生成されます。これらはGamemaker Studio 2でそのまま利用することができます。
 
-  * リリースのURLは動的となるため、他のアプリを通してダウンロードする場合は *https://api.github.com/repos/ユーザー名/リポジトリ名/releases* または *https://api.github.com/repos/ユーザー名/リポジトリ名/releases/latest* からリリースのURLを取得してください。
-
-  * リリースの手動作成は非推奨です。これは自動生成される際、最新のリリースの情報が参照されるためです。どうしても手動作成しなければならない場合は、タグ名を*_VERSIONS*ファイルのバージョン名と異なるものにした上で、最新のリリースにならないよう調整してください。
+  * リリースのURLは動的となるため、他のアプリを通してダウンロードする場合は *https://api.github.com/repos/ユーザー名/リポジトリ名/releases* からリリースのURLを取得してください。
 
 * アップデート:
   * Gamemaker Studio 2のアップデートによってマニュアルに変更が加えられた場合、リポジトリの関連ファイルをHelpConverterで再生成したファイルに置き換えてください。
   ファイルの増減があった場合はtr_sources、docs、およびgeneratedディレクトリ内のファイルをいったん削除してやり直しても差し支えありません。
   >> 2020/07/17現在、ParaTranzにおけるファイルの更新/翻訳のインポートはディレクトリ単位で行うことができないため、各ディレクトリを直接開いてファイルのみアップロードする必要があります。
 
-  * HelpConverterでの変換時、**前バージョンの翻訳をコピー**欄にParaTranzからダウンロードした前バージョンのプロジェクトディレクトリを指定することで、前バージョンの翻訳がマージされたcsvを**paratranzwith_tr**ディレクトリに出力できます。  
-  このオプションを利用し、以下のようにすると翻訳ズレを起こさずにアップデートが可能です。  
+  * HelpConverterでの変換時、**前バージョンの翻訳をコピー**欄にParaTranzからダウンロードした前バージョンのプロジェクトディレクトリを指定すると、前バージョンの翻訳をマージしたcsvが**paratranzwith_tr**ディレクトリに出力されます。  
+  このオプションを利用し、以下のようにすると翻訳ズレや訳抜けを起こさずにアップデートできます。  
     - 1: **ParaTranz**以下のcsvを**Add Files**で追加  
     - 2: **paratranzwith_tr**以下のcsvを**Import Translations**で追加し、**Force Import**を実行  
 
@@ -86,6 +84,9 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   * **{SEARCH_RESULT}** 検索結果のページ内容テキストです。
   * **{INDEX_KEYWORD}** 索引のキーワード名です。
   * **{CTR_S}** 特定のエントリを対訳表示させるためのタグです。
+
+* あいまい翻訳に付加される文字列
+  * **（あいまい一致）** HelpConverterによる翻訳コピー時、あいまい翻訳が行われた項目に付加される文字列です。上記のタグと異なり残す必要がない文字列のため、翻訳を直したら消しておきましょう。
 
 * テキストの整形
   * Importer/main.pyの*SPACE_ADJUSTMENT*を変更することで日本語と英数字との間に自動で半角スペースを挿入できます。またそれとは逆に、スペースを削除して字間を詰めることもできます。
@@ -134,11 +135,11 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 |名称|概要|
 |:---:|:---:|
 |docs|GitHub Pagesの実体|
-|.gitattributes|マニュアル内ファイルの改行コードを統一するための設定ファイル|
 |.github/workflows|GitHub Actionsのワークフローファイル|
 |Importer|ParaTranzの翻訳をGitHub Pagesに反映するためのワークフロー用ツール|
 |tr_sources|翻訳対象となるベースファイル群（htm, pot, js, csv）。Importerによる変換処理時に参照|
 |_VERSION|マニュアルのバージョン|
+|logs|各種ログ|
 |override/docs|Importerの実行時、docsに上書きコピーされるファイル群|
 |override/_VERSION|overrideのバージョン|
 |override/ide_overrides.csv|IDEのオーバーライドcsv|
@@ -163,7 +164,7 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 |YoYoStudioRoboHelp_Alt.zip|アーカイブ化したマニュアル（DnDアクション名とイベント名も日本語）|
 
 ## コミットについて
-実装したい機能や直したい点などあれば、気軽にプルリクエストを出してください。特に問題がなければ取り込まれるはずです。
+実装したい機能や直したい点などあれば、気軽にプルリクエストいただければと思います。
 
 ## 謝辞
 * **☆ (ゝω・)v** - [**Trasnlation data importer**](https://github.com/matanki-saito/paratranz2es "Trasnlation data importer")
