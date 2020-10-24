@@ -232,8 +232,6 @@ def convert_from_zip(paratranz_zip_path):
                     source_lines = f.read()
 
                 csv_lines = format_l.restore_csv_commentout(source_lines, zip_lines) # コメントアウトしたCSV行を復元
-
-
                 csv_lines = format_l._csv(csv_lines, base_path)
 
                 if mode:
@@ -409,9 +407,7 @@ class format_lines():
             elif '{ANY_CODE}' in separated[2]: # コード行には何もしない
                 SKIP = True
 
-            if SKIP:
-                new_lines.append(','.join(separated))
-            else:
+            if SKIP == False:
                 source = separated[1] # 原文
                 translation = separated[2] # 翻訳
         
@@ -563,7 +559,6 @@ class format_lines():
         lines = re.sub(r'{IMG_TXT} ?', '', lines)
     
         # 対訳識別子を削除
-        lines = re.sub(r'{CTR_N} ?', '', lines)
         lines = re.sub(r'{CTR_S}', '', lines)
     
         # 抽出した検索結果テキストを削除
@@ -732,7 +727,8 @@ class generate_file():
                 if dict_var[0] == dict_var[1]: # 原文＝翻訳
                     continue
 
-                dict_var.append(r'((?:^|(?:[^a-zA-Z\p{S}\-_:;\.\,\/\% ])) *)(' + re.escape(dict_var[0]) + r')( *(?:$|(?:[^a-zA-Z\p{S}\-_:;\.\,\/\% ])))')
+                # dict_var.append(r'((?:^|(?:[^a-zA-Z\p{S}\-_:;\.\,\/\% ])) *)(' + re.escape(dict_var[0]) + r')( *(?:$|(?:[^a-zA-Z\p{S}\-_:;\.\,\/\% ])))')
+                dict_var.append(r'((\b)(' + re.escape(dict_var[0]) + r')(\b)')
                 dict_var.append(r'\1' + dict_var[1] + r'\3')
                 dict_var.append(r'i')
 
@@ -856,10 +852,8 @@ class namedict(): # DnDアクション、イベント名の辞書
                 else:
                     re_m = m.replace(tr[0], tr[1]) # 単純置換
 
-                if '{CTR_N}' in re_m: # スペースつき対訳置換
-                    re_m = regex.sub(r'{CTR_N} +' + tr[0], tr[1] + ' (' + tr[0] + ')', m, flags=re_flags)
-                elif '{CTR_S}' in re_m: # スペースなし対訳置換
-                    re_m = regex.sub(r'{CTR_S} +' + tr[0], ' ' + tr[1] + ' (' + tr[0] + ')', m, flags=re_flags)
+                if '{CTR_S}' in re_m: # 対訳置換
+                    re_m = regex.sub(r'{CTR_S} *' + tr[0], ' ' + tr[1] + ' (' + tr[0] + ')', m, flags=re_flags)
 
                 if m != re_m:
                     m = re_m
