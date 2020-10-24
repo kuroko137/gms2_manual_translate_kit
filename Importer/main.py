@@ -71,6 +71,8 @@ csv_commentout_tr = [
 
 compiled_raw_csv_file_patter = re.compile(r'^' + input_dir + '.*\.csv$')
 
+comma_replacer = re.compile(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', re.MULTILINE)
+
 
 dict_dnd = []
 dict_misc = []
@@ -128,8 +130,8 @@ def set_translation_count(old_lines, new_lines):
     line_count = 0
     tr_count = [0, 0]
 
-    old = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', old_lines).splitlines(False)
-    new = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', new_lines).splitlines(False)
+    old = comma_replacer.sub(r'\t', old_lines).splitlines(False)
+    new = comma_replacer.sub(r'\t', new_lines).splitlines(False)
     pat_notags = re.compile(r'(<[^<]+>|(\{[^\}]+\}))')
 
     if len(old) == len(new):
@@ -328,7 +330,7 @@ class format_lines():
         for idx, line in enumerate(source_lines):
             if '#CSV_COMMENT_OUT#' in line:
                 line = line.replace('#CSV_COMMENT_OUT#', '')
-                line = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', line)
+                line = comma_replacer.sub(r'\t', line)
                 separated = re.split(r'\t', line)
 
                 if len(separated) > 2:
@@ -345,7 +347,7 @@ class format_lines():
     
     def get_replaced_list(self, source, translation, strip_chr, finder, pattern = '', replacer = ''): # 原文/訳文を整形してリストで返す
         result = []
-        if translation.find(finder) == -1: # 翻訳が存在しない
+        if not finder[0] in finder[1]: # 翻訳が存在しない
             return ['']
 
         # 改行を削除
@@ -394,7 +396,7 @@ class format_lines():
     
     
         ############# 一行ごとの処理 #############
-        lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', lines)
+        lines = comma_replacer.sub(r'\t', lines)
         new_lines = []
     
         for line in lines.splitlines(False):
@@ -406,8 +408,10 @@ class format_lines():
                 SKIP = True
             elif '{ANY_CODE}' in separated[2]: # コード行には何もしない
                 SKIP = True
-    
-            if SKIP == False:
+
+            if SKIP:
+                new_lines.append(','.join(separated))
+            else:
                 source = separated[1] # 原文
                 translation = separated[2] # 翻訳
         
@@ -448,24 +452,24 @@ class format_lines():
                     notags_cnv.append(m)
         
                 translation = ''.join(notags_cnv)
-                 
+                
                 # whxdata用の辞書にメタデータ等を追加
-                append_list = self.get_replaced_list(source, translation, '"', '{SEARCH_RESULT} ', r'{SEARCH_RESULT} *', '')
+                append_list = self.get_replaced_list(source, translation, '"', ['{SEARCH_RESULT}', translation], r'{SEARCH_RESULT} *', '')
                 if append_list[0] != '':
                     search_results_full.append(append_list) if self.mode != '' else search_results.append(append_list)
                 
-                append_list = self.get_replaced_list(source, translation, '"', '{INDEX_KEYWORD} ', r'{INDEX_KEYWORD} *', '')
+                append_list = self.get_replaced_list(source, translation, '"', ['{INDEX_KEYWORD}', translation], r'{INDEX_KEYWORD} *', '')
                 if append_list[0] != '':
                     search_keywords_full.append(append_list) if self.mode != '' else search_keywords.append(append_list)
                 
-                append_list = self.get_replaced_list(source, translation, '"', '"<span data-open-text=""true"">', r'"<span data-open-text=""true"">([^<]+)</span>', r'\1')
+                append_list = self.get_replaced_list(source, translation, '"', ['<span data-open-text', translation], r'.*<span data-open-text *= *"+true"+ *>([^<]+)</span>.*', r'\1')
                 if append_list[0] != '':
                     topic_index_full.append(append_list) if self.mode != '' else topic_index.append(append_list)
                 
-                append_list = self.get_replaced_list(source, translation, '"', '.head.title:')
+                append_list = self.get_replaced_list(source, translation, '"', ['.head.title:', separated[0]])
                 if append_list[0] != '':
-                        topic_index_full.append(append_list) if self.mode != '' else topic_index.append(append_list)
-               
+                    topic_index_full.append(append_list) if self.mode != '' else topic_index.append(append_list)
+                    search_keywords_full.append(append_list) if self.mode != '' else search_keywords.append(append_list)
 
                 # Index用の辞書にデータを追加
                 global index_exist_name
@@ -476,7 +480,7 @@ class format_lines():
 
                 patterns = [ # 特定のタグから始まる行を分割
                 re.compile(r'(^[ "]*<strong>)([^<\,\./\\"]{2,})(</strong>)'), 
-                re.compile(r'(^[ "]*<span data-open-text="+true"+>)([^<\,\./\\"]{2,})(</span>)'),
+                re.compile(r'(^[ "]*<span data-open-text *= *"+true"+>)([^<\,\./\\"]{2,})(</span>)'),
                 re.compile(r'(^[ "]*<tt>)([^<\,\./\\"]{2,})(</tt>)')
                 ]
                 SPLITTER = '{_SPLIT}'
@@ -609,7 +613,7 @@ class generate_file():
         new_lines = ['Name,English,Translation,Restrictions,Comment']
 
         for line in lines.splitlines(False):
-            line = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', line)
+            line = comma_replacer.sub(r'\t', line)
             line = re.sub(r'"(["]+)', r'\1', line)
             line = line.replace('"""', '""')
 
@@ -636,7 +640,7 @@ class generate_file():
     def generate_ide_dict(self, lines):
         result = []
         for d in lines.splitlines(False):
-            d = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', d)
+            d = comma_replacer.sub(r'\t', d)
             dict_var = re.split(r'\t', d)
             result.append(dict_var)
 
@@ -718,7 +722,7 @@ class generate_file():
 
             if matched:
                 m = m.replace('"', '')
-                m = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', m)
+                m = comma_replacer.sub(r'\t', m)
                 dict_var = re.split(r'\t', m)
 
                 del dict_var[0]
@@ -871,7 +875,7 @@ def read_glossary(paratranz_zip_path): # 用語集のファイル内容をリス
     with zipfile.ZipFile(paratranz_zip_path) as zip_file:
         lines = zip_file.read(glossary_path).decode('utf-8-sig')
 
-    lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', lines)
+    lines = comma_replacer.sub(r'\t', lines)
     lines = re.sub(r'_(Name|Desc)\t', r'\t\1\t', lines)
     l_lines = lines.splitlines(False)
 
@@ -972,15 +976,22 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
         if len(keys) != len(tr_dict):
             return
 
+        tr_dict = list(tr_dict)
+
+        no_punctuations = re.compile(r'([ \,\.\\])')
+        for idx in range(len(tr_dict)):
+            tr_dict[idx] = {no_punctuations.sub('', x) : tr_dict[idx].get(x) for x in tr_dict[idx]}
+
         for m in separated:
 
             for idx, key in enumerate(keys):
 
                 if m.startswith(key):
                     m = m.replace(key, '')
+                    m_dictkey = no_punctuations.sub('', m)
 
-                    if tr_dict[idx].get(m):
-                        m = tr_dict[idx].get(m)
+                    if tr_dict[idx].get(m_dictkey):
+                        m = tr_dict[idx].get(m_dictkey)
                     m = key + m 
 
             new_lines.append(m)
@@ -1045,6 +1056,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
         whx_filename = 'idata1.new.js'
         source_path = os.path.join(self.db_base_dir, whx_filename)
         dest_path = os.path.join(self.db_dest_dir, whx_filename)
+
         topic_index.extend(search_keywords) # 検索結果のキーワードも含める
         self.translate_from_file(source_path, dest_path, separate_pat, keys, {x[0]:x[1] for x in topic_index})
         if ENABLE_EXTRA_INDEX:
@@ -1064,7 +1076,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
             lines = zip_file.read(table_of_contents_path).decode('utf-8-sig')
 
         # csvファイルから変換用の辞書を作成
-        lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', lines)
+        lines = comma_replacer.sub(r'\t', lines)
 
         names = {}
         names_with_idx = []
@@ -1259,7 +1271,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
         lines = re.sub(r'^"location","source","target"(,"")?[\r\n]+', '', lines)
 
         for line in lines.splitlines(False):
-            line = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', line)
+            line = comma_replacer.sub(r'\t', line)
             s = re.split(r'\t', line)
 
             if len(s) >= 3:
