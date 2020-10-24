@@ -54,7 +54,7 @@ def main():
                 for idx, rd in enumerate(repo_d[ver_idx][ver]):
                     if rd.get('name') in nd.values():
 
-                        if nd.get('created_at') != rd.get('created_at'):
+                        if nd.get('created_at') != rd.get('created_at'): # ‰‰ñˆÈ~
                             repo_d[ver_idx][ver][idx]['download_count'] = rd.get('download_count') + nd.get('download_count')
                         else:
                             repo_d[ver_idx][ver][idx]['download_count'] = nd.get('download_count')

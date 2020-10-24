@@ -56,6 +56,11 @@ jobs:
              echo "$(<_ENV_GENERATE_EX)" >> $GITHUB_ENV
              echo "$(<_ENV_DISCORD_MESSAGE)" >> $GITHUB_ENV
              rm -f _ENV_*
+      - name: Pre - Write Release Stats
+        if: ${{ env.action_state == 'green'}}
+        run: python ./Importer/write_release_stats.py
+        env:
+          REPOSITORY_NAME: ${{ github.repository }}
       - name: Github Release create, update, and upload assets
         if: ${{ env.action_state == 'green' && env.generate_ex != 'green' }}
         uses: meeDamian/github-release@2.0
@@ -84,11 +89,6 @@ jobs:
           draft: false
           gzip: false
           allow_override: true
-      - name: Write Release Stats
-        if: ${{ env.action_state == 'green'}}
-        run: python ./Importer/write_release_stats.py
-        env:
-          REPOSITORY_NAME: ${{ github.repository }}
       - name: Push
         if: ${{ env.action_state == 'green'}}
         run: sudo sh ./Importer/push.sh # 変更があればコミット&プッシュ
