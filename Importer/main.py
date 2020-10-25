@@ -843,6 +843,9 @@ class namedict(): # DnDアクション、イベント名の辞書
 
     def replace_by_dict(self, m, tr_dict): # グローバルリストから置換
 
+        if not tr_dict:
+            return m
+
         for tr in tr_dict:
 
             re_flags = 0
