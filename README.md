@@ -31,9 +31,9 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 
   * リポジトリのSettingsを開き、OptionsメニューからGitHub Pagesのソースディレクトリを**master branch / docs folder**にセットします。
 
-  * リポジトリのSettingsを開き、Secretsメニューから必要なSecretsを作成します（**NAME: VALUE**）
-  **PARATRANZ_SECRET:** - ParaTranzのプロフィールページ、鍵マークから確認できる英数字の文字列（********************************）
-  **PARATRANZ_CODE:** - ParaTranzのプロジェクト番号（projects/***の数字）
+  * リポジトリのSettingsを開き、Secretsメニューから必要なSecretsを作成します（**NAME: VALUE**）  
+  **PARATRANZ_SECRET:** - ParaTranzのプロフィールページ、鍵マークから確認できる英数字の文字列（********************************）  
+  **PARATRANZ_CODE:** - ParaTranzのプロジェクト番号（projects/***の数字）  
 
 * ワークフローの作成と実行:
   * リポジトリのActionsページを開き、**New workflow** > **set up a workflow yourself**でワークフローの作成ページを開きます。
