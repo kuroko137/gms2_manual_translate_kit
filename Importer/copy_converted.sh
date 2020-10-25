@@ -49,6 +49,8 @@ fi
 cp ./Converted/* ./generated -arf
 cp generated/manual/docs ./ -arf
 rm -rf generated/manual/docs
+rm -rf generated/manual/cnv_csv
+rm -rf generated/manual/cnv_po
 
 GENERATE_EX=0
 
