@@ -108,9 +108,6 @@ if [ $GENERATE_EX -eq 1 ]; then
   zip -r ../YoYoStudioRoboHelp_Alt.zip ./
   cd ../../
   rm -rf ./Release/YoYoStudioRoboHelp
-  echo "generate_ex=green" > _ENV_GENERATE_EX
-else
-  echo "generate_ex=red" > _ENV_GENERATE_EX
 fi
 
 STATS=`sed -n 2p ./logs/update_stats.csv`

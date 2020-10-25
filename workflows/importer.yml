@@ -53,39 +53,25 @@ jobs:
              echo "$(<_ENV_ACTION_STATE)" >> $GITHUB_ENV
              echo "$(<_ENV_TAG)" >> $GITHUB_ENV
              echo "$(<_ENV_VER)" >> $GITHUB_ENV
-             echo "$(<_ENV_GENERATE_EX)" >> $GITHUB_ENV
              echo "$(<_ENV_DISCORD_MESSAGE)" >> $GITHUB_ENV
              rm -f _ENV_*
-      - name: Pre - Write Release Stats
+      - name: Write Release Stats
         if: ${{ env.action_state == 'green'}}
         run: python ./Importer/write_release_stats.py
         env:
           REPOSITORY_NAME: ${{ github.repository }}
+      - name: Set FILES
+        id: file_path
+        run: echo ::set-output name=path::$(for file in `ls Release/`;do echo Release/$file;done)
       - name: Github Release create, update, and upload assets
-        if: ${{ env.action_state == 'green' && env.generate_ex != 'green' }}
+        if: ${{ env.action_state == 'green'}}
         uses: meeDamian/github-release@2.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ env.release_tag }}
           name: v${{ env.release_ver }}
           files: >
-            ./Release/YoYoStudioRoboHelp.zip
-            ./Release/japanese.csv
-          draft: false
-          gzip: false
-          allow_override: true
-      - name: (for Alt) Github Release create, update, and upload assets
-        if: ${{ env.generate_ex == 'green'}}
-        uses: meeDamian/github-release@2.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ env.release_tag }}
-          name: v${{ env.release_ver }}
-          files: >
-            ./Release/YoYoStudioRoboHelp.zip
-            ./Release/japanese.csv
-            ./Release/YoYoStudioRoboHelp_Alt.zip
-            ./Release/japanese_alt.csv
+            ${{ steps.file_path.outputs.path }}
           draft: false
           gzip: false
           allow_override: true

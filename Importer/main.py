@@ -30,7 +30,7 @@ ENABLE_EXTRA_INDEX = True
 ENABLE_FULL_TRANSLATION = False
 
 input_dir = 'utf8/csv/' # ParaTranzのCSVディレクトリ
-ide_path = 'utf8/english.csv' # ParaTranzのIDE言語ファイル
+ide_path = ['utf8/english.csv', 'utf8/ide_english_dnd.csv'] # ParaTranzのIDE言語ファイル
 glossary_path = 'utf8/manual_glossary.csv' # マニュアルの用語集
 table_of_contents_path = 'utf8/manual_leftmenu.csv' # 左メニューの翻訳ファイル
 
@@ -48,10 +48,8 @@ dnd_dirname = 'Drag_And_Drop/Drag_And_Drop_Reference/'
 gml_dirname = 'GameMaker_Language/GML_Reference/'
 
 release_dir = 'Release/'
-ide_base_name = 'japanese.csv' # IDEの言語ファイル出力名
-ide_alt_name = 'japanese_alt.csv' # IDEの二次言語ファイル出力名
-ide_overrides_path = 'override/ide_overrides.csv' # IDEのオーバーライドcsv
-ide_overrides_alt_path = 'override_extra/ide_overrides.csv' # IDEのオーバーライドcsv
+ide_base_name = [['japanese.csv', 'japanese_alt.csv'], ['ide_japanese_dnd.csv', 'ide_japanese_alt_dnd.csv']] # IDEの言語ファイル出力名
+ide_overrides_path = [['override', 'override_extra'], ['ide_overrides.csv', 'ide_dnd_overrides.csv']] # IDEのオーバーライドcsv
 
 dict_dnd_path = 'override_extra/dict/dict_dnd.dict' # マニュアルの置換辞書（DnDアクション名）
 dict_misc_all_path = 'override_extra/dict/dict_misc.dict' # マニュアルの置換辞書（イベント名とその他）
@@ -627,7 +625,7 @@ class generate_file():
             else:
                 s.append(s[1])
 
-            new_lines.append(','.join(s) + ',,')
+            new_lines.append(','.join(s) + ',' * (5 - len(s)))
 
         new_lines.append('')
         return '\n'.join(new_lines)
@@ -644,51 +642,59 @@ class generate_file():
 
     def _ide(self, paratranz_zip_path): # IDEの言語ファイルをバックアップし、さらに二次ファイルを生成
 
-        with zipfile.ZipFile(paratranz_zip_path) as zip_file:
+        for idx, file in enumerate(ide_path):
 
-            zip_lines = zip_file.read(ide_path).decode('utf-8-sig')
-            ide_old_path = os.path.join(generated_dir, os.path.split(ide_path)[1])
-            ide_bak_path = os.path.join(output_dir, os.path.split(ide_path)[1])
+            with zipfile.ZipFile(paratranz_zip_path) as zip_file:
+                try:
+                    zip_lines = zip_file.read(file).decode('utf-8-sig')
+                except:
+                    continue
 
-            # ParaTranzの元ファイルをバックアップ
-            old_lines = ''
-            if os.path.exists(ide_old_path):
-                with open(ide_old_path, 'r', encoding='utf_8_sig') as f:
-                    old_lines = f.read()
-            set_translation_count(old_lines, zip_lines)
+                ide_old_path = os.path.join(generated_dir, os.path.split(file)[1])
+                ide_bak_path = os.path.join(output_dir, os.path.split(file)[1])
 
-            os.makedirs(os.path.split(ide_bak_path)[0], exist_ok=True)
-            with open(ide_bak_path, 'w', encoding='utf_8_sig') as f:
-                f.write(zip_lines)
+                # ParaTranzの元ファイルをバックアップ
+                old_lines = ''
+                if os.path.exists(ide_old_path):
+                    with open(ide_old_path, 'r', encoding='utf_8_sig') as f:
+                        old_lines = f.read()
+                set_translation_count(old_lines, zip_lines)
 
-        # GMS2本体の言語ファイルを生成
-        os.makedirs(release_dir, exist_ok=True)
-        ide_base_output_path = os.path.join(release_dir, ide_base_name)
+                os.makedirs(os.path.split(ide_bak_path)[0], exist_ok=True)
+                with open(ide_bak_path, 'w', encoding='utf_8_sig') as f:
+                    f.write(zip_lines)
 
-        if os.path.exists(ide_overrides_path):
-            with open(ide_overrides_path, 'r', encoding='utf_8_sig', newline='\n') as f:
+            # GMS2本体の言語ファイルを生成
+            os.makedirs(release_dir, exist_ok=True)
+
+            overrides_path = os.path.join(ide_overrides_path[0][0], ide_overrides_path[1][idx])
+
+            if os.path.exists(overrides_path):
+                with open(overrides_path, 'r', encoding='utf_8_sig') as f:
+                    override_lines = f.read()
+            else:
+                override_lines = ''
+
+            ide_lines = self.format_ide(zip_lines, self.generate_ide_dict(override_lines), False)
+            ide_base_output_path = os.path.join(release_dir, ide_base_name[idx][0])
+
+            with open(ide_base_output_path, 'w', encoding='utf_8_sig', newline='\r\n') as f:
+                f.write(ide_lines)
+
+            overrides_alt_path = os.path.join(ide_overrides_path[0][1], ide_overrides_path[1][idx])
+
+            # 二次ファイルを生成
+            if ENABLE_FULL_TRANSLATION == False or not os.path.exists(overrides_alt_path):
+                return
+
+            with open(overrides_alt_path, 'r', encoding='utf_8_sig') as f:
                 override_lines = f.read()
-        else:
-            override_lines = ''
 
-        ide_lines = self.format_ide(zip_lines, self.generate_ide_dict(override_lines), False)
+            ide_lines = self.format_ide(zip_lines, self.generate_ide_dict(override_lines), True)
+            ide_alt_output_path = os.path.join(release_dir, ide_base_name[idx][1])
 
-        with open(ide_base_output_path, 'w', encoding='utf_8_sig') as f:
-            f.write(ide_lines)
-
-        # 二次ファイルを生成
-        if ENABLE_FULL_TRANSLATION == False or not os.path.exists(ide_overrides_alt_path):
-            return
-
-        ide_alt_output_path = os.path.join(release_dir, ide_alt_name)
-
-        with open(ide_overrides_alt_path, 'r', encoding='utf_8_sig') as f:
-            override_lines = f.read()
-
-        ide_lines = self.format_ide(zip_lines, self.generate_ide_dict(override_lines), True)
-
-        with open(ide_alt_output_path, 'w', encoding='utf_8_sig') as f:
-            f.write(ide_lines)
+            with open(ide_alt_output_path, 'w', encoding='utf_8_sig', newline='\r\n') as f:
+                f.write(ide_lines)
 
         return
 
@@ -698,7 +704,7 @@ class generate_file():
         tmp_dnd = []
         tmp_event_all = []
 
-        ide_output_path = os.path.join(output_dir, os.path.split(ide_path)[1])
+        ide_output_path = os.path.join(output_dir, os.path.split(ide_path[0])[1])
 
         if not os.path.exists(ide_output_path):
             return
@@ -1599,8 +1605,8 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
 def check_for_changes():
 
     # IDEの変更確認
-    ide_old_path = os.path.join(generated_dir, os.path.split(ide_path)[1])
-    ide_bak_path = os.path.join(output_dir, os.path.split(ide_path)[1])
+    ide_old_path = os.path.join(generated_dir, os.path.split(ide_path[0])[1])
+    ide_bak_path = os.path.join(output_dir, os.path.split(ide_path[0])[1])
 
     if not os.path.exists(ide_old_path):
         return True
