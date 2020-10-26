@@ -734,7 +734,7 @@ class generate_file():
                     continue
 
                 # dict_var.append(r'((?:^|(?:[^a-zA-Z\p{S}\-_:;\.\,\/\% ])) *)(' + re.escape(dict_var[0]) + r')( *(?:$|(?:[^a-zA-Z\p{S}\-_:;\.\,\/\% ])))')
-                dict_var.append(r'((\b)(' + re.escape(dict_var[0]) + r')(\b)')
+                dict_var.append(r'(\b)(' + re.escape(dict_var[0]) + r')(\b)')
                 dict_var.append(r'\1' + dict_var[1] + r'\3')
                 dict_var.append(r'i')
 
@@ -801,12 +801,12 @@ class namedict(): # DnDアクション、イベント名の辞書
         result = []
 
         if os.path.exists(path):
-            with open(path, 'r', encoding='utf_8_sig', newline='\n') as f:
-                lines = f.read().splitlines()
+            with open(path, 'r', encoding='utf_8_sig') as f:
+                lines = f.read().splitlines(False)
 
                 # 書式 - 原文\t訳文\t原文（正規表現パターン有）\t訳文（正規表現パターン有）\t小/大文字の区別フラグ
                 # 用例 - SOURCE    翻訳    ( ?)SOURCE() ?)    \1翻訳\2    i
-                for line in lines:
+                for idx, line in enumerate(lines):
                     dict_var = re.split(r'\t', line)
 
                     if len(dict_var) < 1:
@@ -819,7 +819,11 @@ class namedict(): # DnDアクション、イベント名の辞書
                         re_flags = re.IGNORECASE # 大文字・小文字の区別を無効にする
 
                     if len(dict_var) >= 3: # 正規表現パターンが存在する場合はコンパイル
-                        dict_var[2] = regex.compile(dict_var[2], flags=re_flags)
+                        try:
+                            dict_var[2] = regex.compile(dict_var[2], flags=re_flags)
+                        except:
+                            print('ERROR! {0} {1}: "{2}" failed to compile. The regular expression pattern is incorrect.'.format(path, idx, dict_var[2]))
+                            continue
                     result.append(dict_var)
         else:
             return False
