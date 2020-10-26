@@ -13,7 +13,7 @@ from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 1.75'
+title = 'HelpConverter for GMS2 - 1.80'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
@@ -518,28 +518,42 @@ class App(tkinter.Frame): # GUIの設定
                 if old_path:
                     output_csv_path = os.path.join(paratranz_path + 'with_tr', dir_name_csv, csv_root)
                     old_csv_path = os.path.join(old_path, csv_root)
-                    tmp_csv_path = os.path.join(tmp_dir, csv_root)
+                    tmp_old_path = os.path.join(tmp_dir, 'old.csv')
+                    tmp_new_path = os.path.join(tmp_dir, 'new.csv')
 
                     if os.path.isfile(old_csv_path):
 
+                        isJp = regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])')
 
-                        # 正確にマッチさせるため訳文より後の列を削除し、比較用の一時ファイルとして出力
-                        lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', csv_lines)
-                        lines = re.sub(r'^([^\t]+\t[^\t]+\t[^\t]+)[^\r\n]+', r'\1', lines)
+                        # 正確にマッチさせるため列と表記を合わせ、比較用の一時ファイルとして出力
+                        lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', csv_lines, flags=re.MULTILINE)
+                        lines = re.sub(r'^(([^\t\r\n]+\t?){0,3})\t[^\r\n]+', r'\1', lines, flags=re.MULTILINE)
                         lines = re.sub(r'\t', r',', lines)
 
-                        os.makedirs(os.path.split(tmp_csv_path)[0], exist_ok=True)
-                        with open(tmp_csv_path, "w+", encoding="utf_8_sig", newline="\n") as f_csv:
+                        os.makedirs(os.path.split(tmp_new_path)[0], exist_ok=True)
+                        with open(tmp_new_path, "w+", encoding="utf_8_sig", newline="\n") as f_csv:
                             f_csv.write(lines)
 
-                        os.makedirs(os.path.split(output_csv_path)[0], exist_ok=True)
+                        with open(old_csv_path, "r", encoding="utf_8_sig") as f:
+                            old_lines = f.read()
+
+                        old_lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', old_lines, flags=re.MULTILINE)
+                        old_lines = re.sub(r'(^[^"\r\n])', r'"\1', old_lines, flags=re.MULTILINE)
+                        old_lines = re.sub(r'([^"\r\n]$)', r'\1"', old_lines, flags=re.MULTILINE)
+                        old_lines = re.sub(r'(["]{0,1})\t(["]{0,1})', r'"\t"', old_lines, flags=re.MULTILINE)
+                        old_lines = re.sub(r'^(([^\t\r\n]+\t?){2,2})$', r'\1\t""', old_lines, flags=re.MULTILINE)
+                        old_lines = re.sub(r'\t', r',', old_lines)
+
+                        with open(tmp_old_path, "w+", encoding="utf_8_sig", newline="\n") as f_csv:
+                            f_csv.write(old_lines)
 
                         # 全文一致
-                        f_input_csv = open(tmp_csv_path, 'rb')
+                        os.makedirs(os.path.split(output_csv_path)[0], exist_ok=True)
+                        f_input_csv = open(tmp_new_path, 'rb')
                         f_output_csv = open(output_csv_path, 'wb+')
-                        f_tm = open(old_csv_path, 'rb')
+                        f_tm = open(tmp_old_path, 'rb')
 
-                        pretranslate_file(f_input_csv, f_output_csv, f_tm, min_similarity=100, fuzzymatching=False)
+                        pretranslate_file(f_input_csv, f_output_csv, f_tm, fuzzymatching=False)
 
                         f_input_csv.close()
                         f_output_csv.close()
@@ -549,9 +563,9 @@ class App(tkinter.Frame): # GUIの設定
                             no_fuzzy_lines = f.read()
 
                         # あいまい一致
-                        f_input_csv = open(tmp_csv_path, 'rb')
+                        f_input_csv = open(tmp_new_path, 'rb')
                         f_output_csv = open(output_csv_path, 'wb+')
-                        f_tm = open(old_csv_path, 'rb')
+                        f_tm = open(tmp_old_path, 'rb')
 
                         pretranslate_file(f_input_csv, f_output_csv, f_tm, min_similarity=75, fuzzymatching=True)
 
@@ -562,27 +576,30 @@ class App(tkinter.Frame): # GUIの設定
                         with open(output_csv_path, "r", encoding="utf_8_sig") as f:
                             fuzzy_lines = f.read()
 
-                        # 全文一致とあいまい一致を比較し、あいまい一致のラインに目印となるキーワードを入れる
-                        no_fuzzy_lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', '\t', no_fuzzy_lines)
-                        fuzzy_lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', '\t', fuzzy_lines)
-
-                        fuzzy_lines = fuzzy_lines.splitlines(False)
+                        # 全文一致とあいまい一致をマージし、あいまい一致のラインに目印となるキーワードを入れる
+                        no_fuzzy_lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', '\t', no_fuzzy_lines, flags=re.MULTILINE)
+                        fuzzy_lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', '\t', fuzzy_lines, flags=re.MULTILINE)
                         no_fuzzy_lines = no_fuzzy_lines.splitlines(False)
-
-                        fuzzy_lines = [line for line in fuzzy_lines if '\t' in line] 
+                        fuzzy_lines = fuzzy_lines.splitlines(False)
+                        # 破損したエントリは省略
                         no_fuzzy_lines = [line for line in no_fuzzy_lines if '\t' in line]
-
+                        fuzzy_lines = [line for line in fuzzy_lines if '\t' in line] 
 
                         if len(fuzzy_lines) == len(no_fuzzy_lines):
                             for idx, line in enumerate(fuzzy_lines):
                                 if line != no_fuzzy_lines[idx]:
                                     s = line.split('\t')
                                     if len(s) >= 3:
-                                        s[2] = re.sub(r'^("?)', r'\1（あいまい一致）', s[2])
+                                        if isJp.findall(s[2]):
+                                            s[2] = re.sub(r'^("?)', r'\1（あいまい一致）', s[2])
+                                        else:
+                                            s[2] = '""'
                                     fuzzy_lines[idx] = '\t'.join(s)
 
+                            fuzzy_lines.append('')
                             lines = '\n'.join(fuzzy_lines)
                         else:
+                            no_fuzzy_lines.append('')
                             lines = '\n'.join(no_fuzzy_lines)
 
                         lines = lines.replace('\t', ',')
@@ -596,7 +613,7 @@ class App(tkinter.Frame): # GUIの設定
                         old_key = [key for key in re.sub(r'(^|[\r\n]+)"?([^\r\n]+:[0-9]+-[0-9]+)"?,[^\r\n]+', r'\1\2', lines).splitlines(False)]
                         new_key = [key for key in re.sub(r'(^|[\r\n]+)"?([^\r\n]+:[0-9]+-[0-9]+)"?,[^\r\n]+', r'\1\2', old_lines).splitlines(False)]
 
-                        if old_key == new_key: # 変更がなければ削除
+                        if old_key == new_key or not isJp.findall(lines): # 変更がなければ削除
                             os.remove(output_csv_path)
                             try:
                                 os.removedirs(os.path.split(output_csv_path)[0])
