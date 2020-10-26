@@ -15,7 +15,11 @@ on:
         default: 'Manual Import'
 
   schedule:
-    - cron:  '0 */3 * * *'
+#    - cron:  '1 0 */1 * *' # 一日に一度
+#    - cron:  '1 */3 * * *' # 3時間
+    - cron:  '1 */3 * * *' # 1時間30分 (1)
+    - cron:  '31 1-23/3 * * *' # 1時間30分 (2)
+#    - cron:  '1 */1 * * *' # 1時間 (ParaTranzのアーカイブ生成時間に合わせた最小実行時間)
 
 jobs:
   generate:
@@ -61,6 +65,7 @@ jobs:
         env:
           REPOSITORY_NAME: ${{ github.repository }}
       - name: Set FILES
+        if: ${{ env.action_state == 'green'}}
         id: file_path
         run: echo ::set-output name=path::$(for file in `ls Release/`;do echo Release/$file;done)
       - name: Github Release create, update, and upload assets
