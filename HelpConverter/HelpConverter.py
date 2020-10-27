@@ -13,7 +13,7 @@ from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 1.80'
+title = 'HelpConverter for GMS2 - 1.81'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
@@ -47,6 +47,9 @@ csv_source_commentout = [
 re.compile(r'([^\r\n]+Click here to see this page in full context[^\r\n]*)'),
 re.compile(r'([^\r\n]+Copyright YoYo Games Ltd. 2020 All Rights Reserved[^\r\n]*)')
 ]
+
+comma_replacer = re.compile(r',(?=(?:[^"\r\n]*"[^"\r\n]*")*[^"\r\n]*$)', re.MULTILINE | re.DOTALL)
+isJp = regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])')
 
 
 ##############################################################################################
@@ -518,92 +521,10 @@ class App(tkinter.Frame): # GUIの設定
                 if old_path:
                     output_csv_path = os.path.join(paratranz_path + 'with_tr', dir_name_csv, csv_root)
                     old_csv_path = os.path.join(old_path, csv_root)
-                    tmp_old_path = os.path.join(tmp_dir, 'old.csv')
-                    tmp_new_path = os.path.join(tmp_dir, 'new.csv')
 
-                    if os.path.isfile(old_csv_path):
+                    lines = merge_translation(old_csv_path, path_csv, output_csv_path, tmp_dir)
 
-                        isJp = regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])')
-
-                        # 正確にマッチさせるため列と表記を合わせ、比較用の一時ファイルとして出力
-                        lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', csv_lines, flags=re.MULTILINE)
-                        lines = re.sub(r'^(([^\t\r\n]+\t?){0,3})\t[^\r\n]+', r'\1', lines, flags=re.MULTILINE)
-                        lines = re.sub(r'\t', r',', lines)
-
-                        os.makedirs(os.path.split(tmp_new_path)[0], exist_ok=True)
-                        with open(tmp_new_path, "w+", encoding="utf_8_sig", newline="\n") as f_csv:
-                            f_csv.write(lines)
-
-                        with open(old_csv_path, "r", encoding="utf_8_sig") as f:
-                            old_lines = f.read()
-
-                        old_lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', r'\t', old_lines, flags=re.MULTILINE)
-                        old_lines = re.sub(r'(^[^"\r\n])', r'"\1', old_lines, flags=re.MULTILINE)
-                        old_lines = re.sub(r'([^"\r\n]$)', r'\1"', old_lines, flags=re.MULTILINE)
-                        old_lines = re.sub(r'(["]{0,1})\t(["]{0,1})', r'"\t"', old_lines, flags=re.MULTILINE)
-                        old_lines = re.sub(r'^(([^\t\r\n]+\t?){2,2})$', r'\1\t""', old_lines, flags=re.MULTILINE)
-                        old_lines = re.sub(r'\t', r',', old_lines)
-
-                        with open(tmp_old_path, "w+", encoding="utf_8_sig", newline="\n") as f_csv:
-                            f_csv.write(old_lines)
-
-                        # 全文一致
-                        os.makedirs(os.path.split(output_csv_path)[0], exist_ok=True)
-                        f_input_csv = open(tmp_new_path, 'rb')
-                        f_output_csv = open(output_csv_path, 'wb+')
-                        f_tm = open(tmp_old_path, 'rb')
-
-                        pretranslate_file(f_input_csv, f_output_csv, f_tm, fuzzymatching=False)
-
-                        f_input_csv.close()
-                        f_output_csv.close()
-                        f_tm.close()
-
-                        with open(output_csv_path, "r", encoding="utf_8_sig") as f:
-                            no_fuzzy_lines = f.read()
-
-                        # あいまい一致
-                        f_input_csv = open(tmp_new_path, 'rb')
-                        f_output_csv = open(output_csv_path, 'wb+')
-                        f_tm = open(tmp_old_path, 'rb')
-
-                        pretranslate_file(f_input_csv, f_output_csv, f_tm, min_similarity=75, fuzzymatching=True)
-
-                        f_input_csv.close()
-                        f_output_csv.close()
-                        f_tm.close()
-
-                        with open(output_csv_path, "r", encoding="utf_8_sig") as f:
-                            fuzzy_lines = f.read()
-
-                        # 全文一致とあいまい一致をマージし、あいまい一致のラインに目印となるキーワードを入れる
-                        no_fuzzy_lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', '\t', no_fuzzy_lines, flags=re.MULTILINE)
-                        fuzzy_lines = re.sub(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', '\t', fuzzy_lines, flags=re.MULTILINE)
-                        no_fuzzy_lines = no_fuzzy_lines.splitlines(False)
-                        fuzzy_lines = fuzzy_lines.splitlines(False)
-                        # 破損したエントリは省略
-                        no_fuzzy_lines = [line for line in no_fuzzy_lines if '\t' in line]
-                        fuzzy_lines = [line for line in fuzzy_lines if '\t' in line] 
-
-                        if len(fuzzy_lines) == len(no_fuzzy_lines):
-                            for idx, line in enumerate(fuzzy_lines):
-                                if line != no_fuzzy_lines[idx]:
-                                    s = line.split('\t')
-                                    if len(s) >= 3:
-                                        if isJp.findall(s[2]):
-                                            s[2] = re.sub(r'^("?)', r'\1（あいまい一致）', s[2])
-                                        else:
-                                            s[2] = '""'
-                                    fuzzy_lines[idx] = '\t'.join(s)
-
-                            fuzzy_lines.append('')
-                            lines = '\n'.join(fuzzy_lines)
-                        else:
-                            no_fuzzy_lines.append('')
-                            lines = '\n'.join(no_fuzzy_lines)
-
-                        lines = lines.replace('\t', ',')
-
+                    if lines:
                         # マージ後のCSVを再整形
                         lines = format_lines()._csv(lines, base_dir, info.filename, url_is_add, url_en, url_jp, url_type)
 
@@ -678,6 +599,130 @@ class App(tkinter.Frame): # GUIの設定
         return
 
 ##############################################################################################
+
+
+def merge_translation(old_path, new_path, output_path, tmp_path):
+
+    tmp_old_path = os.path.join(tmp_path, 'old.csv')
+    tmp_new_path = os.path.join(tmp_path, 'new.csv')
+    lines = ''
+
+    if os.path.isfile(old_path):
+
+        # 正確にマッチさせるため列と表記を合わせ、比較用の一時ファイルとして出力
+        with open(old_path, "r", encoding="utf_8_sig", newline="\n") as f_csv:
+            old_lines = f_csv.read()
+
+        old_lines = comma_replacer.sub(r'\t', old_lines)
+        old_lines = re.sub(r'(^[^"\r\n])', r'"\1', old_lines, flags=re.MULTILINE)
+        old_lines = re.sub(r'([^"\r\n]$)', r'\1"', old_lines, flags=re.MULTILINE)
+        old_lines = re.sub(r'(["]{0,1})\t(["]{0,1})', r'"\t"', old_lines, flags=re.MULTILINE)
+        old_lines = re.sub(r'^(([^\t\r\n]+\t?){2,2})$', r'\1\t""', old_lines, flags=re.MULTILINE)
+        old_lines = re.sub(r'\t', r',', old_lines)
+
+        with open(new_path, "r", encoding="utf_8_sig", newline="\n") as f_csv:
+            new_lines = f_csv.read()
+
+        new_lines = comma_replacer.sub(r'\t', new_lines)
+        new_lines = re.sub(r'^(([^\t\r\n]+\t?){0,3})\t[^\r\n]+', r'\1', new_lines, flags=re.MULTILINE)
+        new_lines = re.sub(r'\t', r',', new_lines)
+
+        with open(tmp_old_path, "w+", encoding="utf_8_sig", newline="\n") as f_csv:
+            f_csv.write(old_lines)
+
+        with open(tmp_new_path, "w+", encoding="utf_8_sig", newline="\n") as f_csv:
+            f_csv.write(new_lines)
+
+        os.makedirs(os.path.split(output_path)[0], exist_ok=True)
+
+        # 全文一致
+        f_input_csv = open(tmp_new_path, 'rb')
+        f_output_csv = open(output_path, 'wb+')
+        f_tm = open(tmp_old_path, 'rb')
+
+        pretranslate_file(f_input_csv, f_output_csv, f_tm, fuzzymatching=False)
+
+        f_input_csv.close()
+        f_output_csv.close()
+        f_tm.close()
+
+        with open(output_path, "r", encoding="utf_8_sig") as f:
+            no_fuzzy_lines = f.read()
+
+
+        # あいまい一致用に原文のタグを消す
+        new_lines = comma_replacer.sub(r'\t', new_lines)
+        notags_lines = []
+        for line in new_lines.splitlines(False):
+            if line.count('"') % 2 != 0: # クォーテーションが一致しない＝破損したエントリ
+                notags_lines.append(line)
+            s = line.split('\t')
+            if len(s) >= 2:
+                s[1] = re.sub(r'(<[^>]+>)|(\{[^\}]+\})', '', s[1])
+            notags_lines.append(','.join(s))
+
+        with open(tmp_new_path, "w+", encoding="utf_8_sig", newline="\n") as f_csv:
+            f_csv.write('\n'.join(notags_lines))
+
+        old_lines = comma_replacer.sub(r'\t', old_lines)
+        notags_lines = []
+        for line in old_lines.splitlines(False):
+            if line.count('"') % 2 != 0:
+                notags_lines.append(line)
+            s = line.split('\t')
+            if len(s) >= 2:
+                s[1] = re.sub(r'(<[^>]+>)|(\{[^\}]+\})', '', s[1])
+            notags_lines.append(','.join(s))
+
+        with open(tmp_old_path, "w+", encoding="utf_8_sig", newline="\n") as f_csv:
+            f_csv.write('\n'.join(notags_lines))
+
+        # あいまい一致
+        f_input_csv = open(tmp_new_path, 'rb')
+        f_output_csv = open(output_path, 'wb+')
+        f_tm = open(tmp_old_path, 'rb')
+
+        pretranslate_file(f_input_csv, f_output_csv, f_tm, min_similarity=75, fuzzymatching=True)
+
+        f_input_csv.close()
+        f_output_csv.close()
+        f_tm.close()
+
+        with open(output_path, "r", encoding="utf_8_sig") as f:
+            fuzzy_lines = f.read()
+
+
+        # 全文一致とあいまい一致を比較し、あいまい一致のラインに目印となるキーワードを入れる
+        no_fuzzy_lines = comma_replacer.sub('\t', no_fuzzy_lines)
+        fuzzy_lines = comma_replacer.sub('\t', fuzzy_lines)
+        no_fuzzy_lines = no_fuzzy_lines.splitlines(False)
+        fuzzy_lines = fuzzy_lines.splitlines(False)
+        # 破損したエントリを削除
+        no_fuzzy_lines = [line for line in no_fuzzy_lines if '\t' in line]
+        fuzzy_lines = [line for line in fuzzy_lines if '\t' in line] 
+
+
+        if len(no_fuzzy_lines) == len(fuzzy_lines):
+            for idx, line in enumerate(no_fuzzy_lines):
+                s = line.split('\t')
+                nt_s = fuzzy_lines[idx].split('\t')
+
+                if len(s) > 2 and s[2] == '""':
+                    if isJp.findall(nt_s[2]):
+                        s[2] = re.sub(r'^("?)', r'\1（あいまい一致）', nt_s[2])
+                    else:
+                        nt_s[2] = '""'
+                no_fuzzy_lines[idx] = '\t'.join(s)
+
+            no_fuzzy_lines.append('')
+            lines = '\n'.join(no_fuzzy_lines)
+        else:
+            no_fuzzy_lines.append('')
+            lines = '\n'.join(no_fuzzy_lines)
+
+        lines = lines.replace('\t', ',')
+
+    return lines
 
 
 class format_lines():

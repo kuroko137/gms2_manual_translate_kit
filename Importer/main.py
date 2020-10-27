@@ -69,7 +69,7 @@ csv_commentout_tr = [
 
 compiled_raw_csv_file_patter = re.compile(r'^' + input_dir + '.*\.csv$')
 
-comma_replacer = re.compile(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', re.MULTILINE)
+comma_replacer = re.compile(r',(?=(?:[^"\r\n]*"[^"\r\n]*")*[^"\r\n]*[\r\n]+)', re.MULTILINE | re.DOTALL)
 
 
 dict_dnd = []
