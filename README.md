@@ -38,7 +38,7 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 * ワークフローの作成と実行:
   * リポジトリのActionsページを開き、**New workflow** > **set up a workflow yourself**でワークフローの作成ページを開きます。
   入力欄にキットのworkflows/**importer.yml**ファイルの中身をコピーし、**Start Commit**からymlファイルをコミットしてワークフローを作成します。
-  以上でワークフローが有効となり、一定時間おきにParaTranzの翻訳データがGitHub Pagesに反映されます。
+  以上でGitHub Actionsが有効となり、一定時間おきにParaTranzの翻訳データがGitHub Pagesに反映されます。
 
   * デフォルトでは3時間おきにデータが取得されます。時間を変更する場合は、ymlファイルの ***- cron:  '0 */3 * * *'*** （クーロン形式のスケジュール設定）を任意の値に変更してください。
 
@@ -49,16 +49,13 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 
 - - -
 
-
-* リリースの利用:
-  * GitHub Actionsの実行に成功すると、マニュアルをアーカイブ化したzipファイル、整形済みのIDE言語ファイル（csv）がリリースとして自動生成されます。これらはGamemaker Studio 2でそのまま利用することができます。
-
-  * リリースのURLは動的となるため、他のアプリを通してダウンロードする場合は *https://api.github.com/repos/ユーザー名/リポジトリ名/releases* からリリースのURLを取得してください。
-
 * アップデート:
   * Gamemaker Studio 2のアップデートによってマニュアルに変更が加えられた場合、リポジトリの関連ファイルをHelpConverterで再生成したファイルに置き換えてください。
   ファイルの増減があった場合はtr_sources、docs、およびgeneratedディレクトリ内のファイルをいったん削除してやり直しても差し支えありません。
   >> 2020/07/17現在、ParaTranzにおけるファイルの更新/翻訳のインポートはディレクトリ単位で行うことができないため、各ディレクトリを直接開いてファイルのみアップロードする必要があります。
+  
+  * 意図せぬ動作を防ぐため、アップデート作業中はGitHub Actionsを無効にしてください。  
+    リポジトリのSettings > Actions > Disable Actionsでアクションを無効にできます。
   
   * [**Winmerge**](https://winmerge.org/?lang=ja)などで新旧のディレクトリを比較すると、どのファイルが追加/削除されたかを簡単に見分けることができます。
 
@@ -68,6 +65,14 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
     - 2: **paratranzwith_tr**以下のcsvを**Import Translations**で追加し、**Force Import**を実行  
 
   * それぞれの_VERSIONファイルが更新されるまでoverride、override_extraのコピー機能は無効となります。
+
+- - -
+
+
+* リリースの利用:
+  * GitHub Actionsの実行に成功すると、マニュアルをアーカイブ化したzipファイル、整形済みのIDE言語ファイル（csv）がリリースとして自動生成されます。これらはGamemaker Studio 2でそのまま利用することができます。
+
+  * リリースのURLは動的となるため、他のアプリを通してダウンロードする場合は *https://api.github.com/repos/ユーザー名/リポジトリ名/releases* からリリースのURLを取得してください。
 
 * ParaTranzの管理外ファイルの翻訳
   * **override/docs**以下にアップロードされたファイルはImporterの実行時、コミットの直前でdocsに上書きコピーされます。翻訳したファイルをこのディレクトリに追加することで、ParaTranzの管理対象外となっている.jsファイルや画像ファイルを日本語化できます。
