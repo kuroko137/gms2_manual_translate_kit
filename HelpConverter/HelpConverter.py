@@ -13,7 +13,7 @@ from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 1.81'
+title = 'HelpConverter for GMS2 - 1.82'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
@@ -703,13 +703,29 @@ def merge_translation(old_path, new_path, output_path, tmp_path):
 
 
         if len(no_fuzzy_lines) == len(fuzzy_lines):
+
+            old_dict = {}
+            for line in old_lines.splitlines(False):
+                s = line.split('\t')
+                if len(s) > 2 and s[2] != '""':
+                    old_dict[s[2]] = s[1]
+
             for idx, line in enumerate(no_fuzzy_lines):
                 s = line.split('\t')
                 nt_s = fuzzy_lines[idx].split('\t')
 
                 if len(s) > 2 and s[2] == '""':
-                    if isJp.findall(nt_s[2]):
-                        s[2] = re.sub(r'^("?)', r'\1（あいまい一致）', nt_s[2])
+                    if isJp.findall(nt_s[2]) and not ('（あいまい一致_') in nt_s[2]:
+
+                        isdiff_source = (re.sub(r'<[^>]+>', '', s[1]) != re.sub(r'<[^>]+>', '', old_dict.get(nt_s[2], '')))
+                        isdiff_tag = (''.join(re.findall(r'<[^>]+>', s[1])) != ''.join(re.findall(r'<[^>]+>', old_dict.get(nt_s[2], ''))))
+
+                        if isdiff_tag and not isdiff_source:
+                            s[2] = re.sub(r'^("?)', r'\1（あいまい一致_タグに差異）', nt_s[2])
+                        elif isdiff_source and not isdiff_tag:
+                            s[2] = re.sub(r'^("?)', r'\1（あいまい一致_原文に差異）', nt_s[2])
+                        else:
+                            s[2] = re.sub(r'^("?)', r'\1（あいまい一致）', nt_s[2])
                     else:
                         nt_s[2] = '""'
                 no_fuzzy_lines[idx] = '\t'.join(s)
