@@ -69,7 +69,7 @@ csv_commentout_tr = [
 
 compiled_raw_csv_file_patter = re.compile(r'^' + input_dir + '.*\.csv$')
 
-comma_replacer = re.compile(r',(?=(?:[^"\r\n]*"[^"\r\n]*")*[^"\r\n]*[\r\n]+)', re.MULTILINE | re.DOTALL)
+comma_replacer = re.compile(r',(?=(?:[^"\r\n]*"[^"\r\n]*")*[^"\r\n]*$)', re.MULTILINE | re.DOTALL)
 
 
 dict_dnd = []
@@ -165,6 +165,16 @@ def set_translation_count(old_lines, new_lines):
 def convert_from_zip(paratranz_zip_path):
     global translation_info
 
+    # リポジトリでのパスを辞書に代入
+    source_files_dict = {}
+    for current, subfolders, subfiles in os.walk(template_csv_dir):
+        for file in subfiles:
+            path = os.path.join(current, file)
+            path = path.replace(template_csv_dir, '')
+            path = os.path.splitext(path)[0]
+            source_files_dict[path.lower()] = path
+
+    # アーカイブ内のファイルを個別に処理
     with zipfile.ZipFile(paratranz_zip_path) as zip_file:
         infos = zip_file.infolist() # 各メンバのオブジェクトをリストとして返す
 
@@ -210,22 +220,30 @@ def convert_from_zip(paratranz_zip_path):
                 with open(path_csv, 'w+', encoding='utf_8_sig') as f:
                     f.write(zip_lines)
 
+
                 # 基本パスを復元
                 try:
                     encoded_path = base_path.encode('cp437').decode('cp932')
                 except UnicodeEncodeError:
                     encoded_path = base_path
                 base_path = encoded_path
-
                 base_path = base_path.replace('／', chr(47)) # 置き換えられたファイル名の'／'をパスとしての'/'に復元
+                
                 base_path = re.sub(r'GML_Reference/[A-Z]-[A-Z]/', r'GML_Reference/', base_path) # GMLリファレンスの細分化した一時ディレクトリをパスから取り除く
+
+                try:
+                    base_path = source_files_dict[base_path.lower()] # ParaTranzのパスからリポジトリでのパスを取得
+                except:
+                    print('SKIP! {0} : No csv template for {1} was found'.format(os.path.join(template_csv_dir, base_path) + '.csv'), path_csv)
+                    continue
 
                 path_source_csv = os.path.join(template_csv_dir, base_path) + '.csv'
                 path_cnv_csv = os.path.join(dest_dir, 'cnv_csv', base_path) + '.csv'
 
-                format_l = format_lines(mode)
 
                 # 整形したCSVファイルを出力
+                format_l = format_lines(mode)
+
                 with open(path_source_csv, 'r', encoding='utf_8_sig') as f:
                     source_lines = f.read()
 
