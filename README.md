@@ -152,19 +152,19 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 |override_extra/ide_overrides.csv|二次ファイル用。IDEのオーバーライドcsv|
 |override_extra/dict/dict_dnd.dict|自動置換の辞書ファイル（DnDアクション名）|
 |override_extra/dict/dict_event_all.dict|自動置換の辞書ファイル|
-|generated/english.csv|ParaTranzのバックアップ（IDE用CSV）|
+|generated/english.csv|ParaTranzのバックアップ（IDE用csv）|
 |generated/manual/csv|ParaTranzのバックアップ（マニュアル用csv）|
-|generated/manual/cnv_csv, cnv_po|バックアップに復元処理を施し、ファイル形式を変換したもの。ParaTranz外で翻訳する場合のバックアップ|
 |generated/ide/dict_template|自動置換の辞書サンプル|
-|generated/ide/japanese_alt.csv|二次IDE言語ファイル|
 
 * リリースの出力ファイル:
 
 |名称|概要|
 |:---:|:---:|
 |japanese.csv|IDE言語ファイル|
+|ide_japanese_dnd.csv|DnDのノード用言語ファイル|
 |YoYoStudioRoboHelp.zip|アーカイブ化したマニュアル|
 |japanese_alt.csv|IDE言語ファイル（DnDアクション名とイベント名も日本語）|
+|ide_japanese_alt_dnd.csv|DnDのノード用言語ファイル（DnDアクション名とイベント名も日本語）|
 |YoYoStudioRoboHelp_Alt.zip|アーカイブ化したマニュアル（DnDアクション名とイベント名も日本語）|
 
 ## コミットについて
