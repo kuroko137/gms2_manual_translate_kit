@@ -59,7 +59,6 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   
   * ParaTranzのファイルをアップデートする際は、HelpConverterで出力された**ParaTranz**以下のcsvを**Add Files**で追加してファイルをアップデートしてください。また、不要となったファイルはCleanUpdaterの**log_paratranz.txt**を参考に削除しておきましょう。  
     前バージョンの翻訳を反映させるには、**paratranzwith_tr**以下のcsvを**Import Translations**で追加し、**Force Import**を実行してください。
-  >> 2020/07/17現在、ParaTranzにおけるファイルの更新/翻訳のインポートはディレクトリ単位で行うことができないため、各ディレクトリを直接開いてファイルのみアップロードする必要があります。  
   
 
   * それぞれの_VERSIONファイルが更新されるまでoverride、override_extraのコピー機能は無効となります。
