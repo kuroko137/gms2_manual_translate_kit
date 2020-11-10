@@ -229,12 +229,12 @@ def convert_from_zip(paratranz_zip_path):
                 base_path = encoded_path
                 base_path = base_path.replace('／', chr(47)) # 置き換えられたファイル名の'／'をパスとしての'/'に復元
                 
-                base_path = re.sub(r'GML_Reference/[A-Z]-[A-Z]/', r'GML_Reference/', base_path) # GMLリファレンスの細分化した一時ディレクトリをパスから取り除く
+                base_path = re.sub(r'(GML_Reference)/[A-Z]-[A-Z]/', r'\1/', base_path, flags=re.IGNORECASE) # GMLリファレンスの細分化した一時ディレクトリをパスから取り除く
 
                 try:
                     base_path = source_files_dict[base_path.lower()] # ParaTranzのパスからリポジトリでのパスを取得
                 except:
-                    print('SKIP! {0} : No csv template for {1} was found'.format(os.path.join(template_csv_dir, base_path) + '.csv'), path_csv)
+                    print('SKIP! {0} : No csv template for {1} was found'.format((os.path.join(template_csv_dir, base_path) + '.csv'), path_csv))
                     continue
 
                 path_source_csv = os.path.join(template_csv_dir, base_path) + '.csv'
