@@ -1,6 +1,0 @@
-*.psd filter=lfs diff=lfs merge=lfs -text
-*search_db.js filter=lfs diff=lfs merge=lfs -text
-*search_auto_model_0.js filter=lfs diff=lfs merge=lfs -text
-*search_auto_map_0.js filter=lfs diff=lfs merge=lfs -text
-*search_topics.js filter=lfs diff=lfs merge=lfs -text
-*search_db.js filter=lfs diff=lfs merge=lfs -text
