@@ -1784,6 +1784,9 @@ def sub(index_name,
     if GENERATE_AS_PREVIEW:
         docs_preview.format_pages(os.path.join(output_dir, output_manual_dirname, doc_dir), output_preview_dir, os.environ.get("REPOSITORY_NAME"))
 
+    if not ENABLE_FULL_TRANSLATION:
+        shutil.rmtree(output_ex_dir, ignore_errors=True)
+
     print("complete")
     commit_file = '_COMMIT_RUN'
     with open(commit_file, "w+") as f:
