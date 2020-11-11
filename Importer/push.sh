@@ -5,6 +5,7 @@ time=$(TZ=UTC-9 date '+%F %R')
 rm -rf repo
 rm -rf Converted
 rm -rf Converted_EX
+rm -rf Preview
 rm -rf Release
 rm -rf tmp
 rm -rf ex_tmp

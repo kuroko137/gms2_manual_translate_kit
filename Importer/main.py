@@ -6,6 +6,8 @@ import urllib.request
 import zipfile
 import datetime
 
+import docs_preview
+
 from pathlib import Path
 from translate.convert.po2html import converthtml
 from translate.convert.csv2po import convertcsv
@@ -29,10 +31,17 @@ ENABLE_EXTRA_INDEX = True
 #  Github Pagesには影響せず、個別のアーカイブとして出力されます。
 ENABLE_FULL_TRANSLATION = False
 
+# GitHub Pagesをプレビュー版仕様にするかどうか
+#  リポジトリ容量の肥大化を防ぐために検索機能を無効化（関連するjsファイルをdocsから削除）し、トップページをプレビュー版であることを示すものに変更します。
+#  GitHub Pagesのみに影響し、リリースは影響を受けません。
+GENERATE_AS_PREVIEW = True
+
 input_dir = 'utf8/csv/' # ParaTranzのCSVディレクトリ
 ide_path = ['utf8/english.csv', 'utf8/ide_english_dnd.csv'] # ParaTranzのIDE言語ファイル
 glossary_path = 'utf8/manual_glossary.csv' # マニュアルの用語集
 table_of_contents_path = 'utf8/manual_leftmenu.csv' # 左メニューの翻訳ファイル
+
+doc_dir = 'docs'
 
 template_html_dir = 'repo/tr_sources/source_html/' # GitPagesリポジトリのテンプレートHTML
 template_pot_dir = 'repo/tr_sources/source_pot/' # GitPagesリポジトリのテンプレートPOT
@@ -41,6 +50,7 @@ template_db_dir = 'repo/tr_sources/source_db/' # GitPagesリポジトリのテ�
 
 output_dir = 'Converted/'
 output_ex_dir = 'Converted_EX/'
+output_preview_dir = 'Preview/'
 output_manual_dirname = 'manual'
 generated_dir = 'generated/'
 
@@ -172,7 +182,7 @@ def convert_from_zip(paratranz_zip_path):
             path = os.path.join(current, file)
             path = path.replace(template_csv_dir, '')
             path = os.path.splitext(path)[0]
-            source_files_dict[path.lower()] = path
+            source_files_dict[re.sub(r'[\\/]', '', path).lower()] = path
 
     # アーカイブ内のファイルを個別に処理
     with zipfile.ZipFile(paratranz_zip_path) as zip_file:
@@ -227,12 +237,12 @@ def convert_from_zip(paratranz_zip_path):
                 except UnicodeEncodeError:
                     encoded_path = base_path
                 base_path = encoded_path
-                base_path = base_path.replace('／', chr(47)) # 置き換えられたファイル名の'／'をパスとしての'/'に復元
+                base_path = base_path.replace('／', '/') # 置き換えられたファイル名の'／'をパスとしての'/'に復元
                 
                 base_path = re.sub(r'(GML_Reference)/[A-Z]-[A-Z]/', r'\1/', base_path, flags=re.IGNORECASE) # GMLリファレンスの細分化した一時ディレクトリをパスから取り除く
 
                 try:
-                    base_path = source_files_dict[base_path.lower()] # ParaTranzのパスからリポジトリでのパスを取得
+                    base_path = source_files_dict[re.sub(r'\/', '', base_path).lower()] # ParaTranzのパスからリポジトリでのパスを取得
                 except:
                     print('SKIP! {0} : No csv template for {1} was found'.format((os.path.join(template_csv_dir, base_path) + '.csv'), path_csv))
                     continue
@@ -296,7 +306,7 @@ def convert_from_zip(paratranz_zip_path):
                 
 
                 # HTMLへの変換を開始
-                path_output = os.path.join(dest_dir, 'docs', base_path) + '.htm'
+                path_output = os.path.join(dest_dir, doc_dir, base_path) + '.htm'
                 path_template_html = os.path.join(template_html_dir, base_path) + '.htm'
                 
                 if not os.path.exists(path_template_html):
@@ -408,6 +418,8 @@ class format_lines():
         regex.compile(r'(([a-zA-Z0-9™])(\p{Pe}?)) ?((<[^>]+>)*)((\p{Ps})?) ?([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])')
         ]
     
+        base_path = base_path.replace('\\', '\\\\')
+
     
         ############# 一行ごとの処理 #############
         lines = comma_replacer.sub(r'\t', lines)
@@ -488,7 +500,7 @@ class format_lines():
                 global index_data
                 global index_exist_name_full
                 global index_data_full
-                filename = base_path + '.htm'
+                filename = base_path.replace('\\\\', '/') + '.htm'
 
                 patterns = [ # 特定のタグから始まる行を分割
                 re.compile(r'(^[ "]*<strong>)([^<\,\./\\"]{2,})(</strong>)'), 
@@ -546,9 +558,9 @@ class format_lines():
         # キーを復元
         orig_key = 'YoYoStudioRoboHelp'
         if os.path.split(base_path)[0]:
-            orig_key = orig_key + chr(47) + os.path.split(base_path)[0]
-        orig_key = orig_key.replace(chr(47), chr(92) + chr(92))
-        lines = re.sub(r'([^"\r\n]+\.html?\+[^:]+:[0-9]+\-[0-9]+)', orig_key + chr(92) + chr(92) + r'\1', lines)
+            orig_key = orig_key + '/' + os.path.split(base_path)[0]
+        orig_key = orig_key.replace('/', '\\\\')
+        lines = re.sub(r'([^"\r\n]+\.html?\+[^:]+:[0-9]+\-[0-9]+)', orig_key + '\\\\' + r'\1', lines)
     
         # ダウンロード後にコメント列が削除されてしまうため空の列を挿入
         lines = re.sub(r'([\r\n]+)', r',""\1', lines)
@@ -974,8 +986,8 @@ def extract_exist_topics(): # 既存のトピック名を辞書に代入
 class whx(): # whxdataディレクトリ以下にあるファイルの処理
     def __init__(self):
         self.db_base_dir = os.path.join(template_db_dir, 'whxdata')
-        self.db_dest_dir = os.path.join(output_dir, output_manual_dirname, 'docs', 'whxdata')
-        self.db_dest_ex_dir = os.path.join(output_ex_dir, output_manual_dirname, 'docs', 'whxdata')
+        self.db_dest_dir = os.path.join(output_dir, output_manual_dirname, doc_dir, 'whxdata')
+        self.db_dest_ex_dir = os.path.join(output_ex_dir, output_manual_dirname, doc_dir, 'whxdata')
         os.makedirs(self.db_dest_dir, exist_ok=True)
         if ENABLE_FULL_TRANSLATION:
             os.makedirs(self.db_dest_ex_dir, exist_ok=True)
@@ -1567,7 +1579,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
                 real_path = f_path.replace(doc_dir, '')
                 real_path = real_path[1:]
                 real_path = real_path.replace('\\', '/')
-                real_path = real_path.replace('／', chr(47)) # 置き換えられたファイル名の'／'をパスとしての'/'に復元
+                real_path = real_path.replace('／', '/') # 置き換えられたファイル名の'／'をパスとしての'/'に復元
                 real_path = re.sub(r'GML_Reference/[A-Z]-[A-Z]/', r'GML_Reference/', real_path) # GMLリファレンスの細分化した一時ディレクトリをパスから取り除く
                 real_path = real_path.replace('.csv', '')
 
@@ -1646,7 +1658,6 @@ def check_for_changes():
             return True
 
     # マニュアルの変更確認
-    doc_dir = 'docs'
     converted_dir = os.path.join(output_dir, output_manual_dirname, doc_dir)
     
     source_dict = {}
@@ -1674,7 +1685,7 @@ def check_for_changes():
 
             with open(f_path, "r", encoding="utf_8_sig") as f:
                 lines = f.read()
-            f_path = re.sub(os.path.join(output_dir, output_manual_dirname) + r'.docs', 'docs', f_path)
+            f_path = re.sub(os.path.join(output_dir, output_manual_dirname) + r'.' + doc_dir, doc_dir, f_path)
             dest_dict[f_path] = lines
 
     for k in source_dict:
@@ -1767,15 +1778,22 @@ def sub(index_name,
     # 出力ファイルに変更があるかどうかチェック
     if check_for_changes() == False:
         print("NO CHANGES FOUND.")
-    else:
-        print("complete")
-        commit_file = '_COMMIT_RUN'
-        with open(commit_file, "w+") as f:
-            f.write(commit_file)
+        return
 
-        logs_dir = "logs"
-        os.makedirs(logs_dir, exist_ok=True)
-        write_update_stats(os.path.join(logs_dir, 'update_stats.csv'))
+    # プレビュー版に変更
+    if GENERATE_AS_PREVIEW:
+        docs_preview.format_pages(os.path.join(output_dir, output_manual_dirname, doc_dir), output_preview_dir, os.environ.get("REPOSITORY_NAME"))
+
+    print("complete")
+    commit_file = '_COMMIT_RUN'
+    with open(commit_file, "w+") as f:
+        f.write(commit_file)
+
+    logs_dir = "logs"
+    os.makedirs(logs_dir, exist_ok=True)
+    write_update_stats(os.path.join(logs_dir, 'update_stats.csv'))
+
+    return
 
 
 def main(paratranz_secret):

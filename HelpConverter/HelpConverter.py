@@ -13,7 +13,7 @@ from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 1.82'
+title = 'HelpConverter for GMS2 - 1.90'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
@@ -22,6 +22,7 @@ COUNTER_TRANSLATION = True
 GML_SEPARATE = True
 
 ignore_files_path = './ignore_files.ini' # 翻訳対象としないファイル
+del_files_path = './del_files.ini' # docsから削除するファイル
 user_settings_path = './user_settings.ini' # オプションの設定履歴
 
 dir_name_output = 'output'
@@ -38,7 +39,8 @@ dir_name_source_db = 'tr_sources/source_db'
 dir_name_source_pot = 'tr_sources/source_pot'
 dir_name_source_csv = 'tr_sources/source_csv'
 
-dnd_dirname = 'Drag_And_Drop/Drag_And_Drop_Reference/'
+dnd_dirname = ['Drag_And_Drop/', 'Drag_And_Drop_Reference/']
+gml_dirname = ['GameMaker_Language/', 'GML_Reference/']
 
 
 csv_source_remove_key = [re.compile(r'("location","source","target"[^\r\n]*[\r\n]+)')]
@@ -233,12 +235,13 @@ class App(tkinter.Frame): # GUIの設定
         elif not os.path.isfile(import_path):
             tkinter.messagebox.showinfo('無効なアーカイブ', 'アーカイブが存在しない、または無効なアーカイブです。\nGame Maker Studio 2 のインストールディレクトリにある chm2web/YoYoStudioRoboHelp.zip を指定してください。')
             return
-        elif not os.path.isfile(ignore_files_path):
-            tkinter.messagebox.showinfo('エラー', '無視ファイルリスト（ignore_files.ini）が存在しません。')
-            return
 
         if not os.path.isfile(ignore_files_path):
             tkinter.messagebox.showinfo('エラー', '無視ファイルリスト（ignore_files.ini）が存在しません。')
+            return
+
+        if not os.path.isfile(del_files_path):
+            tkinter.messagebox.showinfo('エラー', '削除ファイルリスト（del_files.ini）が存在しません。')
             return
 
         if export_path == '...' or export_path == '':
@@ -288,6 +291,11 @@ class App(tkinter.Frame): # GUIの設定
             lines = f.read()
         ignore_files = [file for file in lines.splitlines(False)]
 
+        # docsから削除するファイルを追加
+        with open(del_files_path, "r") as f:
+            lines = f.read()
+        del_files = [file for file in lines.splitlines(False)]
+
         # 各ディレクトリのパスを定義
         export_path = os.path.join(export_path, dir_name_output)
         paratranz_path = os.path.join(export_path, dir_name_paratranz)
@@ -301,9 +309,6 @@ class App(tkinter.Frame): # GUIの設定
         html_output_dir = os.path.join(repository_path, dir_name_source_html)
         db_output_dir = os.path.join(repository_path, dir_name_source_db)
         docs_output_dir = os.path.join(repository_path, dir_name_docs)
-        override_docs_dir = os.path.join(repository_path, dir_name_override, 'docs')
-        override_ex_docs_dir = os.path.join(repository_path, dir_name_override_ex, 'docs')
-        override_ex_dict_dir = os.path.join(repository_path, dir_name_override_ex, 'dict')
 
         zip_output_dir = os.path.join(export_path, os.path.splitext(os.path.split(import_path)[1])[0])
         tmp_dir = os.path.join(export_path, 'tmp')
@@ -375,20 +380,23 @@ class App(tkinter.Frame): # GUIの設定
                 # 無視するファイルを検索
                 if passed == False:
                     for ignore in ignore_files:
-                        if re.match(ignore, info.filename):
+                        if re.search(ignore, info.filename):
                             passed = True
-                            continue
+                            break
 
                 # 翻訳対象ファイルでないためdocs（GitHub Pagesのディレクトリ）にコピー
                 if passed == True:
-                    path_others = os.path.join(export_path, docs_output_dir, os.path.join(os.path.split(info.filename)[0]), os.path.split(info.filename)[1])
+                    for del_f in del_files:
+                        if re.search(del_f, info.filename): # docsから削除（除外）するファイルを検索
+                            break
+                    else:
+                        path_others = os.path.join(export_path, docs_output_dir, os.path.join(os.path.split(info.filename)[0]), os.path.split(info.filename)[1])
 
-                    os.makedirs(os.path.split(path_others)[0], exist_ok=True)
+                        os.makedirs(os.path.split(path_others)[0], exist_ok=True)
 
-                    with open(path_others, "wb+") as f:
-                        f.write(zip_file.read(info.filename))
+                        with open(path_others, "wb+") as f:
+                            f.write(zip_file.read(info.filename))
                     continue
-
 
                 # 基本パス
                 base_dir = os.path.join(os.path.split(info.filename)[0])
@@ -452,7 +460,7 @@ class App(tkinter.Frame): # GUIの設定
 
                 if simple_structure: # ディレクトリ構成の簡易化がチェックされている場合
 
-                    separated = re.findall(r'^([^/]+/)(Drag_And_Drop_Reference/|GML_Reference/)?(.*)', base_dir)
+                    separated = re.findall(r'^([^/]+/)(' + dnd_dirname[1] + '|' + gml_dirname[1] + ')?(.*)', base_dir, flags=re.IGNORECASE)
                     new_path = []
 
                     split_range = ['A-B', 'C-D', 'E-L', 'M-P', 'Q-Z']
@@ -461,14 +469,15 @@ class App(tkinter.Frame): # GUIの設定
                     if len(separated) > 0:
 
                         for idx, item in enumerate(separated[0]):
-                            if idx > 0 and item != 'Drag_And_Drop_Reference/' and item != 'GML_Reference/':
+
+                            if idx > 0 and not re.match(dnd_dirname[1], item, flags=re.IGNORECASE) and not re.match(gml_dirname[1], item, flags=re.IGNORECASE):
                                 item = item.replace('/', '／') # パスのスラッシュをファイル名としてのスラッシュに置換
 
-                            if GML_SEPARATE and item == 'GML_Reference/': # GML_SEPARATEがTrueに設定されている場合、GMLリファレンスのパス名を細分化
+                            if GML_SEPARATE and re.match(gml_dirname[1], item, flags=re.IGNORECASE): # GML_SEPARATEがTrueに設定されている場合、GMLリファレンスのパス名を細分化
                                 is_split = True
                             elif is_split:
                                 for pattern in split_range: # アルファベット区間ごとに細分化する
-                                    if re.match(r'[' + pattern + ']', item, re.IGNORECASE):
+                                    if re.match(r'[' + pattern + ']', item, flags=re.IGNORECASE):
                                         item = os.path.join(pattern, item)
                                         break
                                 is_split = False
@@ -555,10 +564,6 @@ class App(tkinter.Frame): # GUIの設定
                     self.update()
 
 
-        os.makedirs(override_docs_dir, exist_ok=True)
-        os.makedirs(override_ex_docs_dir, exist_ok=True)
-        os.makedirs(override_ex_dict_dir, exist_ok=True)
-
         # バージョンファイルを生成
 
         version_path = os.path.join(repository_path, '_VERSION')
@@ -566,30 +571,15 @@ class App(tkinter.Frame): # GUIの設定
             lines = str(gms_version)
             f.write(lines)
 
-        # .nojekyllを生成
-        jerky_path = os.path.join(docs_output_dir, '.nojekyll')
-        with open(jerky_path, "w+") as f:
-            f.write('')
-
-        # .gitkeepを生成
-        gitkeep_path = os.path.join(override_ex_docs_dir, '.gitkeep')
-        with open(gitkeep_path, "w+") as f:
-            f.write('')
-
-        gitkeep_path = os.path.join(override_ex_dict_dir, '.gitkeep')
-        with open(gitkeep_path, "w+") as f:
-            f.write('')
-
-        gitkeep_path = os.path.join(override_docs_dir, '.gitkeep')
-        with open(gitkeep_path, "w+") as f:
-            f.write('')
-
         # 不要となったディレクトリを削除
         shutil.rmtree(html_output_dir, ignore_errors=True)
         os.rename(zip_output_dir, html_output_dir)
         shutil.rmtree(po_output_dir, ignore_errors=True)
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
+        # その他のファイルをテンプレートからコピー
+        if os.path.exists("./template"):
+            shutil.copytree("./template", repository_path, dirs_exist_ok=True)
 
         elapsed_time = time.time() - start
         self.lb.insert('end', 'elapsed time = {0} sec'.format(elapsed_time))
@@ -756,7 +746,7 @@ class format_lines():
 
         # 対訳を付加するエントリにタグを挿入
         if COUNTER_TRANSLATION:
-            if dnd_dirname in base_dir:
+            if re.match(''.join(dnd_dirname), base_dir, flags=re.IGNORECASE):
                 lines = re.sub(r'(<h1><img alt=[^>]+(?=(?:Scripting_Reference/Drag_And_Drop/Reference))[^>]+>)([^>]+)', r'\1{CTR_S}\2', lines)
                 lines = re.sub(r'(<div class="title" title=[^>]+>[\r\n ]*<span>)([^<]+)', r'\1{CTR_S}\2', lines)
 

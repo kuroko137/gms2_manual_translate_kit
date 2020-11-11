@@ -112,6 +112,17 @@ if [ $GENERATE_EX -eq 1 ]; then
   rm -rf ./Release/YoYoStudioRoboHelp
 fi
 
+
+if [ -e ./Preview ]; then
+  cp ./Preview/* ./docs -arf
+  rm -rf ./docs/whxdata/search_db.js
+  rm -rf ./docs/whxdata/search_auto_map_0.js
+  rm -rf ./docs/whxdata/search_auto_model_0.js
+  rm -rf ./docs/whxdata/search_topics.js
+  rm -rf ./docs/whxdata/text
+fi
+
+
 STATS=`sed -n 2p ./logs/update_stats.csv`
 IFS="$(echo -e '\t')"
 set -- $STATS
