@@ -1668,7 +1668,7 @@ def check_for_changes():
 
             f_path = os.path.join(current, file)
 
-            if not f_path.endswith('.htm') and not f_path.endswith('.js'):
+            if not f_path.endswith('.htm') and not f_path.endswith('.new.js'):
                 continue
 
             with open(f_path, "r", encoding="utf_8_sig") as f:
@@ -1680,7 +1680,7 @@ def check_for_changes():
 
             f_path = os.path.join(current, file)
 
-            if not f_path.endswith('.htm') and not f_path.endswith('.js'):
+            if not f_path.endswith('.htm') and not f_path.endswith('.new.js'):
                 continue
 
             with open(f_path, "r", encoding="utf_8_sig") as f:
