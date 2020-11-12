@@ -3,6 +3,7 @@ import sys
 import re
 import regex
 import urllib.request
+import shutil
 import zipfile
 import datetime
 
