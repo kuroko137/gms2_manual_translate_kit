@@ -197,7 +197,7 @@ def convert_from_zip(paratranz_zip_path):
             exoport_mode = ['']
 
             if ENABLE_FULL_TRANSLATION: # イベント名、DnDアクション名の翻訳が有効となっている場合は再実行する
-                if info.filename.find(dnd_dirname) != -1:
+                if re.search(dnd_dirname, info.filename, flags=re.IGNORECASE):
                     exoport_mode.append('dnd')
                 else:
                     exoport_mode.append('ev')
@@ -878,7 +878,7 @@ class namedict(): # DnDアクション、イベント名の辞書
 
     def replace_by_dict(self, m, tr_dict): # グローバルリストから置換
 
-        if not tr_dict:
+        if not tr_dict or m == '""':
             return m
 
         for tr in tr_dict:
@@ -897,7 +897,7 @@ class namedict(): # DnDアクション、イベント名の辞書
                     re_m = m.replace(tr[0], tr[1]) # 単純置換
 
                 if '{CTR_S}' in re_m: # 対訳置換
-                    re_m = regex.sub(r'{CTR_S} *' + tr[0], ' ' + tr[1] + ' (' + tr[0] + ')', m, flags=re_flags)
+                    re_m = regex.sub(r'{CTR_S} *' + tr[0], ' ' + tr[1] + ' : ' + tr[0], m, flags=re_flags)
 
                 if m != re_m:
                     m = re_m
@@ -1643,51 +1643,68 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
 def check_for_changes():
 
     # IDEの変更確認
-    ide_old_path = os.path.join(generated_dir, os.path.split(ide_path[0])[1])
-    ide_bak_path = os.path.join(output_dir, os.path.split(ide_path[0])[1])
+    source_dir = os.path.join(generated_dir)
+    converted_dir = os.path.join(output_dir)
 
-    if not os.path.exists(ide_old_path):
-        return True
-    else:
-        with open(ide_old_path, 'rb') as f:
-            ide_old_lines = f.read()
+    source_dict = {}
+    dest_dict = {}
 
-        with open(ide_bak_path, 'rb') as f:
-            ide_bak_lines = f.read()
+    for file in os.listdir(source_dir):
+        f_path = os.path.join(source_dir, file)
 
-        if ide_old_lines != ide_bak_lines:
-            return True
+        if not os.path.isfile(f_path) or not f_path.endswith('.csv'):
+            continue
+
+        with open(f_path, "r", encoding="utf_8_sig") as f:
+            source_dict[file] = f.read()
+
+    for file in os.listdir(converted_dir):
+        f_path = os.path.join(converted_dir, file)
+
+        if not os.path.isfile(f_path) or not f_path.endswith('.csv'):
+            continue
+
+        with open(f_path, "r", encoding="utf_8_sig") as f:
+            dest_dict[file] = f.read()
+
+    for k in source_dict:
+        if dest_dict.get(k) != None and source_dict.get(k) != None:
+
+            if source_dict.get(k) != dest_dict.get(k):
+                return True
 
     # マニュアルの変更確認
-    converted_dir = os.path.join(output_dir, output_manual_dirname, doc_dir)
+    source_dir = os.path.join(generated_dir, output_manual_dirname, 'csv')
+    converted_dir = os.path.join(output_dir, output_manual_dirname, 'csv')
     
     source_dict = {}
     dest_dict = {}
 
-    for current, subfolders, subfiles in os.walk(doc_dir):
+    for current, subfolders, subfiles in os.walk(source_dir):
         for file in subfiles:
 
             f_path = os.path.join(current, file)
+            key = f_path.replace(source_dir, '')
 
-            if not f_path.endswith('.htm') and not f_path.endswith('.new.js'):
+            if not f_path.endswith('.csv'):
                 continue
 
             with open(f_path, "r", encoding="utf_8_sig") as f:
                 lines = f.read()
-                source_dict[f_path] = lines
-    
+                source_dict[key] = lines
+
     for current, subfolders, subfiles in os.walk(converted_dir):
         for file in subfiles:
 
             f_path = os.path.join(current, file)
+            key = f_path.replace(converted_dir, '')
 
-            if not f_path.endswith('.htm') and not f_path.endswith('.new.js'):
+            if not f_path.endswith('.csv'):
                 continue
 
             with open(f_path, "r", encoding="utf_8_sig") as f:
                 lines = f.read()
-            f_path = re.sub(os.path.join(output_dir, output_manual_dirname) + r'.' + doc_dir, doc_dir, f_path)
-            dest_dict[f_path] = lines
+            dest_dict[key] = lines
 
     for k in source_dict:
         if dest_dict.get(k) != None and source_dict.get(k) != None:
@@ -1785,7 +1802,7 @@ def sub(index_name,
     if GENERATE_AS_PREVIEW:
         docs_preview.format_pages(os.path.join(output_dir, output_manual_dirname, doc_dir), output_preview_dir, os.environ.get("REPOSITORY_NAME"))
 
-    if not ENABLE_FULL_TRANSLATION:
+    if ENABLE_FULL_TRANSLATION == False:
         shutil.rmtree(output_ex_dir, ignore_errors=True)
 
     print("complete")

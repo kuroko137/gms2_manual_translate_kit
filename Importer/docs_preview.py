@@ -5,6 +5,9 @@ import re
 
 def format_pages(input_dir, output_dir, repository_url):
 
+    if repository_url == None:
+        return
+
     target_files = [
     ['index.htm', re.compile(r'(<div class="title">[\r\n]+[\t ]+)[^\r\n]+'), r'\1GameMaker Studio 2 マニュアル Preview'], 
     ['index.htm', re.compile(r'<title>[^\r\n]+</title>'), 
@@ -15,7 +18,7 @@ def format_pages(input_dir, output_dir, repository_url):
     r'Gamemaker Studio 2 日本語化プロジェクト</a></p><hr><!-- GitHub_Pages_Preview -->\n']
     ]
 
-    if not os.path.exists(input_dir) or repository_url == '':
+    if not os.path.exists(input_dir):
         return
 
     for target in target_files:

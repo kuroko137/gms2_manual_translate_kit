@@ -81,7 +81,6 @@ if [ -r ./_VERSION ]; then
       cp ./Converted_EX/manual/docs ./ex_tmp/docs -arf
       cp ./override_extra/docs ./ex_tmp -arf # 連続で同じ場所にコピーするとコピー先が変化するため直下にコピー
       find ./ex_tmp -name 'git_noadd_*' | xargs rm
-      rm -rf ./ex_tmp/docs/gitkeep
       GENERATE_EX=1
     else
       echo OVERRIDE_EXTRA is OUTDATED. No override is done.
@@ -90,8 +89,10 @@ if [ -r ./_VERSION ]; then
 fi
 
 
+shopt -s dotglob
+
 cp ./docs ./Release -arf
-rm -rf ./Release/docs/.nojekyll
+find ./Release/docs -name "*.gitkeep" -or -name "*.gitattributes" -or -name "*.nojekyll" | xargs rm
 mv ./Release/docs ./Release/YoYoStudioRoboHelp
 cd Release/YoYoStudioRoboHelp
 zip -r ../YoYoStudioRoboHelp.zip ./
@@ -104,13 +105,38 @@ echo "action_state=green" > _ENV_ACTION_STATE
 if [ $GENERATE_EX -eq 1 ]; then
   cp ./docs ./Release -arf
   cp ./ex_tmp/docs ./Release -arf
-  rm -rf ./Release/docs/.nojekyll
+  find ./Release/docs -name "*.gitkeep" -or -name "*.gitattributes" -or -name "*.nojekyll" | xargs rm
   mv ./Release/docs ./Release/YoYoStudioRoboHelp
   cd Release/YoYoStudioRoboHelp
   zip -r ../YoYoStudioRoboHelp_Alt.zip ./
   cd ../../
   rm -rf ./Release/YoYoStudioRoboHelp
 fi
+
+shopt -u dotglob
+
+
+cd Release
+
+mkdir -p ./IDE_Japanese_Alt
+mv *_alt*.csv ./IDE_Japanese_Alt
+if [ -n "$(ls -A ./IDE_Japanese_Alt)" ]; then
+  cd IDE_Japanese_Alt
+  zip -r ../IDE_Japanese_Alt.zip ./
+  cd ../
+fi
+rm -rf ./IDE_Japanese_Alt
+
+mkdir -p ./IDE_Japanese
+mv *.csv ./IDE_Japanese
+if [ -n "$(ls -A ./IDE_Japanese)" ]; then
+  cd IDE_Japanese
+  zip -r ../IDE_Japanese.zip ./
+  cd ../
+fi
+rm -rf ./IDE_Japanese
+
+cd ../
 
 
 if [ -e ./Preview ]; then
