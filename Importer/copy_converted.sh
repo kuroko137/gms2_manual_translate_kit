@@ -70,8 +70,8 @@ if [ -r ./_VERSION ]; then
       echo OVERRIDE is OUTDATED. No override is done.
     fi
   fi
-  
-  if [ -r ./override_extra/_VERSION ]; then
+
+  if [ -r ./override_extra/_VERSION -a -e ./Converted_EX ]; then
 
     OVERRIDE_VER=`cat override_extra/_VERSION`
     echo OVERRIDE_EX_VER=$OVERRIDE_VER

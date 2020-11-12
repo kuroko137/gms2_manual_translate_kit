@@ -716,7 +716,7 @@ class generate_file():
 
             # 二次ファイルを生成
             if ENABLE_FULL_TRANSLATION == False or not os.path.exists(overrides_alt_path):
-                return
+                continue
 
             with open(overrides_alt_path, 'r', encoding='utf_8_sig') as f:
                 override_lines = f.read()
