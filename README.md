@@ -160,12 +160,11 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 
 |名称|概要|
 |:---:|:---:|
-|japanese.csv|IDE言語ファイル|
-|ide_japanese_dnd.csv|DnDのノード用言語ファイル|
-|YoYoStudioRoboHelp.zip|アーカイブ化したマニュアル|
-|japanese_alt.csv|IDE言語ファイル（DnDアクション名とイベント名も日本語）|
-|ide_japanese_alt_dnd.csv|DnDのノード用言語ファイル（DnDアクション名とイベント名も日本語）|
-|YoYoStudioRoboHelp_Alt.zip|アーカイブ化したマニュアル（DnDアクション名とイベント名も日本語）|
+|IDE_Japanese.zip|IDE言語ファイル|
+|YoYoStudioRoboHelp.zip|マニュアル|
+|IDE_Japanese_Alt.csv|IDE言語ファイル : DnDアクション名とイベント名も日本語|
+|YoYoStudioRoboHelp_Alt.zip|マニュアル : DnDアクション名とイベント名も日本語|
+|IDE_Debug.zip|IDE言語ファイル : デバッグ用|
 
 ## コミットについて
 実装したい機能や直したい点などあれば、気軽にプルリクエストいただければと思います。
