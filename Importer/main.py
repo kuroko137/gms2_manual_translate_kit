@@ -588,7 +588,7 @@ class format_lines():
         lines = re.sub(r'{IMG_TXT} ?', '', lines)
     
         # 対訳識別子を削除
-        lines = re.sub(r'{CTR_S}', '', lines)
+        lines = re.sub(r'{WITH_ENG}', '', lines)
     
         # 抽出した検索結果テキストを削除
         lines = re.sub(r'<p>[^<]*{SEARCH_RESULT}[^<]*</p>', '', lines)
@@ -896,8 +896,8 @@ class namedict(): # DnDアクション、イベント名の辞書
                 else:
                     re_m = m.replace(tr[0], tr[1]) # 単純置換
 
-                if '{CTR_S}' in re_m: # 対訳置換
-                    re_m = regex.sub(r'{CTR_S} *' + tr[0], ' ' + tr[1] + ' : ' + tr[0], m, flags=re_flags)
+                if '{WITH_ENG}' in re_m: # 対訳置換
+                    re_m = regex.sub(r'{WITH_ENG} *' + tr[0], ' ' + tr[1] + ' : ' + tr[0], m, flags=re_flags)
 
                 if m != re_m:
                     m = re_m

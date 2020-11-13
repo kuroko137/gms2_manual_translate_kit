@@ -13,7 +13,7 @@ from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 1.91'
+title = 'HelpConverter for GMS2 - 1.92'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
@@ -747,8 +747,8 @@ class format_lines():
         # 対訳を付加するエントリにタグを挿入
         if COUNTER_TRANSLATION:
             if re.match(''.join(dnd_dirname), base_dir, flags=re.IGNORECASE):
-                lines = re.sub(r'(<h1><img alt=[^>]+(?=(?:Scripting_Reference/Drag_And_Drop/Reference))[^>]+>)([^>]+)', r'\1{CTR_S}\2', lines)
-                lines = re.sub(r'(<div class="title" title=[^>]+>[\r\n ]*<span>)([^<]+)', r'\1{CTR_S}\2', lines)
+                lines = re.sub(r'(<h1><img alt=[^>]+(?=(?:Scripting_Reference/Drag_And_Drop/Reference))[^>]+>)([^>]+)', r'\1{WITH_ENG}\2', lines)
+                lines = re.sub(r'(<div class="title" title=[^>]+>[\r\n ]*<span>)([^<]+)', r'\1{WITH_ENG}\2', lines)
 
         # 検索結果の表示テキストを抽出
         matched = re.search(r'<meta name="topic-comment" content="([^>]+)"/>', lines)
