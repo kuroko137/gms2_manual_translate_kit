@@ -43,6 +43,7 @@ glossary_path = 'utf8/manual_glossary.csv' # マニュアルの用語集
 table_of_contents_path = 'utf8/manual_leftmenu.csv' # 左メニューの翻訳ファイル
 
 doc_dir = 'docs'
+override_dir = ['override', 'override_extra']
 
 template_html_dir = 'repo/tr_sources/source_html/' # GitPagesリポジトリのテンプレートHTML
 template_pot_dir = 'repo/tr_sources/source_pot/' # GitPagesリポジトリのテンプレートPOT
@@ -59,11 +60,14 @@ dnd_dirname = 'Drag_And_Drop/Drag_And_Drop_Reference/'
 gml_dirname = 'GameMaker_Language/GML_Reference/'
 
 release_dir = 'Release/'
-ide_base_name = [['japanese.csv', 'japanese_alt.csv'], ['ide_japanese_dnd.csv', 'ide_japanese_alt_dnd.csv']] # IDEの言語ファイル出力名
-ide_overrides_path = [['override', 'override_extra'], ['ide_overrides.csv', 'ide_dnd_overrides.csv']] # IDEのオーバーライドcsv
 
-dict_dnd_path = 'override_extra/dict/dict_dnd.dict' # マニュアルの置換辞書（DnDアクション名）
-dict_misc_all_path = 'override_extra/dict/dict_misc.dict' # マニュアルの置換辞書（イベント名とその他）
+ide_base_name = [['japanese.csv', 'japanese_alt.csv', 'japanese_debug.csv'], 
+['ide_japanese_dnd.csv', 'ide_japanese_alt_dnd.csv', 'ide_japanese_debug_dnd.csv']] # IDEの言語ファイル出力名
+ide_overrides_name = [['ide_overrides.csv', 'ide_dnd_overrides.csv'], 
+['ide_debug_overrides.csv', 'ide_dnd_debug_overrides.csv']] # IDEのオーバーライドcsv
+
+dict_dnd_path = os.path.join(override_dir[1], 'dict/dict_dnd.dict') # マニュアルの置換辞書（DnDアクション名）
+dict_misc_all_path = os.path.join(override_dir[1], 'dict/dict_misc.dict') # マニュアルの置換辞書（イベント名とその他）
 
 
 po_replacer = [
@@ -633,7 +637,7 @@ class format_lines():
 
 class generate_file():
 
-    def format_ide(self, lines, override_dict, is_alt):
+    def format_ide(self, lines, override_dict, is_alt=False, is_debug=False):
         new_lines = ['Name,English,Translation,Restrictions,Comment']
 
         for line in lines.splitlines(False):
@@ -644,11 +648,6 @@ class generate_file():
             s = re.split(r'\t', line)
 
             if len(s) > 2:
-                for d in override_dict:
-                    if s[0] == d[0]:
-                        s[1] = d[1]
-                        s[2] = d[2]
-                        break
 
                 if is_alt == False:
                     if s[0].startswith('Event_') or (s[0].startswith('GMStd') and s[0].endswith('_Name')):
@@ -656,12 +655,22 @@ class generate_file():
             else:
                 s.append(s[1])
 
+            if is_debug:
+                s[2] = re.sub(r'(^[\"\$]|[\"\$]$)', '', s[0])
+
+            if override_dict:
+                for d in override_dict:
+                    if s[0] == d[0]:
+                        s[1] = d[1]
+                        s[2] = d[2]
+                        break
+
             new_lines.append(','.join(s) + ',' * (5 - len(s)))
 
         new_lines.append('')
         return '\n'.join(new_lines)
 
-    def generate_ide_dict(self, lines):
+    def craete_ide_override_dict(self, lines):
         result = []
         for d in lines.splitlines(False):
             d = comma_replacer.sub(r'\t', d)
@@ -695,10 +704,11 @@ class generate_file():
                 with open(ide_bak_path, 'w', encoding='utf_8_sig') as f:
                     f.write(zip_lines)
 
+
             # GMS2本体の言語ファイルを生成
             os.makedirs(release_dir, exist_ok=True)
 
-            overrides_path = os.path.join(ide_overrides_path[0][0], ide_overrides_path[1][idx])
+            overrides_path = os.path.join(override_dir[0], ide_overrides_name[0][idx])
 
             if os.path.exists(overrides_path):
                 with open(overrides_path, 'r', encoding='utf_8_sig') as f:
@@ -706,26 +716,39 @@ class generate_file():
             else:
                 override_lines = ''
 
-            ide_lines = self.format_ide(zip_lines, self.generate_ide_dict(override_lines), False)
+            ide_lines = self.format_ide(zip_lines, self.craete_ide_override_dict(override_lines))
             ide_base_output_path = os.path.join(release_dir, ide_base_name[idx][0])
 
             with open(ide_base_output_path, 'w', encoding='utf_8_sig', newline='\r\n') as f:
                 f.write(ide_lines)
 
-            overrides_alt_path = os.path.join(ide_overrides_path[0][1], ide_overrides_path[1][idx])
 
             # 二次ファイルを生成
-            if ENABLE_FULL_TRANSLATION == False or not os.path.exists(overrides_alt_path):
-                continue
+            overrides_alt_path = os.path.join(override_dir[1], ide_overrides_name[0][idx])
 
-            with open(overrides_alt_path, 'r', encoding='utf_8_sig') as f:
-                override_lines = f.read()
+            if ENABLE_FULL_TRANSLATION and os.path.exists(overrides_alt_path):
+                with open(overrides_alt_path, 'r', encoding='utf_8_sig') as f:
+                    override_lines = f.read()
 
-            ide_lines = self.format_ide(zip_lines, self.generate_ide_dict(override_lines), True)
-            ide_alt_output_path = os.path.join(release_dir, ide_base_name[idx][1])
+                ide_lines = self.format_ide(zip_lines, self.craete_ide_override_dict(override_lines), is_alt=True)
+                ide_alt_output_path = os.path.join(release_dir, ide_base_name[idx][1])
 
-            with open(ide_alt_output_path, 'w', encoding='utf_8_sig', newline='\r\n') as f:
-                f.write(ide_lines)
+                with open(ide_alt_output_path, 'w', encoding='utf_8_sig', newline='\r\n') as f:
+                    f.write(ide_lines)
+
+
+            # デバッグ用の言語ファイルを生成
+            overrides_debug_path = os.path.join(override_dir[0], ide_overrides_name[1][idx])
+
+            if os.path.exists(overrides_debug_path):
+                with open(overrides_debug_path, 'r', encoding='utf_8_sig') as f:
+                    override_lines = f.read()
+
+                ide_lines = self.format_ide(zip_lines, self.craete_ide_override_dict(override_lines), is_debug=True)
+                ide_debug_output_path = os.path.join(release_dir, ide_base_name[idx][2])
+
+                with open(ide_debug_output_path, 'w', encoding='utf_8_sig', newline='\r\n') as f:
+                    f.write(ide_lines)
 
         return
 

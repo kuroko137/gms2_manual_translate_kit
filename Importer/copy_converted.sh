@@ -118,6 +118,15 @@ shopt -u dotglob
 
 cd Release
 
+mkdir -p ./IDE_Debug
+mv *_debug*.csv ./IDE_Debug
+if [ -n "$(ls -A ./IDE_Debug)" ]; then
+  cd IDE_Debug
+  zip -r ../IDE_Debug.zip ./
+  cd ../
+fi
+rm -rf ./IDE_Debug
+
 mkdir -p ./IDE_Japanese_Alt
 mv *_alt*.csv ./IDE_Japanese_Alt
 if [ -n "$(ls -A ./IDE_Japanese_Alt)" ]; then
