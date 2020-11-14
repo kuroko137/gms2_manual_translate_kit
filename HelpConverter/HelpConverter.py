@@ -13,7 +13,7 @@ from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 1.92'
+title = 'HelpConverter for GMS2 - 1.93'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
@@ -537,14 +537,24 @@ class App(tkinter.Frame): # GUIの設定
                         # マージ後のCSVを再整形
                         lines = format_lines()._csv(lines, base_dir, info.filename, url_is_add, url_en, url_jp, url_type)
 
+                        # 変更確認
                         with open(old_csv_path, "r", encoding="utf_8_sig") as f:
                             old_lines = f.read()
 
-                        old_key = [key for key in re.sub(r'(^|[\r\n]+)"?([^\r\n]+:[0-9]+-[0-9]+)"?,[^\r\n]+', r'\1\2', lines).splitlines(False)]
-                        new_key = [key for key in re.sub(r'(^|[\r\n]+)"?([^\r\n]+:[0-9]+-[0-9]+)"?,[^\r\n]+', r'\1\2', old_lines).splitlines(False)]
+                        old_data = []
+                        for line in comma_replacer.sub(r'\t', old_lines).splitlines(False):
+                            s = line.split('\t')
+                            if len(s) > 1:
+                                old_data.append(s[0].strip('"') + s[1].strip('"'))
 
-                        if old_key == new_key or not isJp.findall(lines): # 変更がなければ削除
-                            os.remove(output_csv_path)
+                        new_data = []
+                        for line in comma_replacer.sub(r'\t', lines).splitlines(False):
+                            s = line.split('\t')
+                            if len(s) > 1:
+                                new_data.append(s[0].strip('"') + s[1].strip('"'))
+
+                        if old_data == new_data or not isJp.findall(lines):
+                            os.remove(output_csv_path) # 変更がなければ削除
                             try:
                                 os.removedirs(os.path.split(output_csv_path)[0])
                             except OSError:
