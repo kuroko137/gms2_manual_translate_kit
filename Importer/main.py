@@ -1222,6 +1222,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
         lines = re.sub(r'^ *{[^\}]+\}.*', r'', lines, flags=re.MULTILINE) # htmlの外で使われるテキストは除外
         lines = re.sub(r'\{[^\}]+\}', r'', lines) # ダミータグは除外
         lines = re.sub(r'<img alt=[^>]+>', r'', lines) # IMG_TXTは除外
+        lines = re.sub(r'<span data-close-text=[^>]+>[^<]+</span>', r'', lines) # クローズボタンは除外
 
         # 見出し（タグ区切りのテキスト）を辞書に追加
         for line in lines.splitlines(False):
