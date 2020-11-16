@@ -37,6 +37,10 @@ ENABLE_FULL_TRANSLATION = False
 #  GitHub Pagesのみに影響し、リリースは影響を受けません。
 GENERATE_AS_PREVIEW = True
 
+# IDEの半角スペースをノーブレークスペースに置換
+#  有効にするとメッセージが複数行にまたがった場合、アセット名の前後で行が分けられてしまう問題を修正できます
+SPACE_TO_NO_BREAK = True
+
 input_dir = 'utf8/csv/' # ParaTranzのCSVディレクトリ
 ide_path = ['utf8/english.csv', 'utf8/ide_english_dnd.csv'] # ParaTranzのIDE言語ファイル
 glossary_path = 'utf8/manual_glossary.csv' # マニュアルの用語集
@@ -664,7 +668,8 @@ class generate_file():
                         s[1] = d[1]
                         s[2] = d[2]
                         break
-
+            if SPACE_TO_NO_BREAK:
+                s[2] = s[2].replace(' ', '\u00a0')
             new_lines.append(','.join(s) + ',' * (5 - len(s)))
 
         new_lines.append('')
