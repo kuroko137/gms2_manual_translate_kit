@@ -158,12 +158,22 @@ if [ -e ./Preview ]; then
 fi
 
 
-STATS=`sed -n 2p ./logs/update_stats.csv`
 IFS="$(echo -e '\t')"
+
+PRE=`sed -n 3p ./logs/update_stats.csv`
+set -- $PRE
+VER=${2}
+if [ -z "${VER}" ]; then
+  VER=0
+fi
+
+STATS=`sed -n 2p ./logs/update_stats.csv`
 set -- $STATS
 
-if [ $5 ]; then
-  echo "discord_message=${1} - オンラインヘルプに翻訳を反映: ${4}% (+${6}%, ${5} 行, ${7} 語)" > _ENV_DISCORD_MESSAGE
+if [ $VER -gt 0 -a $2 -gt $VER ]; then
+  echo "discord_message=${1} - オンラインヘルプに翻訳を反映: ${7}% (バージョン ${VER} > ${2})" > _ENV_DISCORD_MESSAGE
+elif [ $8 ]; then
+  echo "discord_message=${1} - オンラインヘルプに翻訳を反映: ${7}% (+${8}%, ${9} 行, ${10} 語)" > _ENV_DISCORD_MESSAGE
 else
-  echo "discord_message=${1} - オンラインヘルプに翻訳を反映: ${4}%" > _ENV_DISCORD_MESSAGE
+  echo "discord_message=${1} - オンラインヘルプに翻訳を反映: ${7}% (変更のみ)" > _ENV_DISCORD_MESSAGE
 fi

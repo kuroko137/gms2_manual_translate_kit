@@ -15,6 +15,8 @@ from translate.convert.csv2po import convertcsv
 from janome.tokenizer import Tokenizer
 from natsort import natsorted
 
+REPO_VERSION = [0, [0, 0]]
+
 ################# 各種設定 ###############
 
 # 日本語と英数字の間に半角スペースを自動で挿入するかどうか
@@ -108,7 +110,7 @@ index_data = {}
 index_data_full = {}
 index_exist_name_full = {}
 
-translation_info = [0, 0, 0, 0] # 合計行数、合計翻訳数、追加された翻訳数、ワード数
+translation_info = [0, 0, 0, 0, 0, 0] # 行数, 翻訳行数, 追加された翻訳行数, ワード数, 翻訳ワード数, 追加された翻訳ワード数
 
 ##############################################################################################
 
@@ -143,46 +145,56 @@ def download_trans_zip_from_paratranz(project_id,
 def set_translation_count(old_lines, new_lines):
     global translation_info
 
-    word_count = 0
     line_count = 0
-    tr_count = [0, 0]
+    word_count = 0
+    tr_line = [0, 0]
+    tr_word = [0, 0]
 
     old = comma_replacer.sub(r'\t', old_lines).splitlines(False)
     new = comma_replacer.sub(r'\t', new_lines).splitlines(False)
     pat_notags = re.compile(r'(<[^<]+>|(\{[^\}]+\}))')
 
-    if len(old) == len(new):
-        for idx in range(len(old)):
+    IS_UPDATE = False
+    for idx in range(len(new)):
+        s_new = new[idx].split('\t')
+        if len(s_new) < 2:
+            continue
+
+        s_new[1] = pat_notags.sub('', s_new[1]) # タグはワード数としてカウントしない
+
+        line_count += 1
+        words = len(s_new[1].split())
+        word_count += words
+
+        if len(s_new) >= 3:
+            tr_line[0] += 1
+            tr_word[0] += words
+
+        if len(old) == len(new) and IS_UPDATE == False:
             s_old = old[idx].split('\t')
-            s_new = new[idx].split('\t')
 
             if s_old[0] != s_new[0]: # キーが異なる＝ファイルがアップデートされたため翻訳数に加算しない
-                word_count = 0
-                tr_count[1] = 0
-                break
+                IS_UPDATE = True
             elif len(s_old) < 3 and len(s_new) >= 3:
-                s_new[1] = pat_notags.sub('', s_new[1]) # タグはワード数としてカウントしない
-                word_count += len(s_new[1].split())
-                tr_count[1] += 1
+                tr_line[1] += 1
+                tr_word[1] += words
 
-    for line in new:
-        line_count += 1
-        s = line.split('\t')
-        if len(s) >= 3:
-            if s[2]:
-                tr_count[0] += 1
+    if IS_UPDATE:
+        tr_line[1] = 0
+        tr_word[1] = 0
 
-    translation_info[0] = translation_info[0] + line_count # 合計行数
-    translation_info[1] = translation_info[1] + tr_count[0] # 合計翻訳数
+    translation_info[0] = translation_info[0] + line_count # 行数
+    translation_info[1] = translation_info[1] + tr_line[0] # 翻訳行数
+    translation_info[2] = translation_info[2] + tr_line[1] # 追加された翻訳行数
 
-    if word_count > 0:
-        translation_info[2] += tr_count[1] # ワード数
-        translation_info[3] += word_count # 追加翻訳数
+    translation_info[3] = translation_info[3] + word_count # ワード数
+    translation_info[4] = translation_info[4] + tr_word[0] # 翻訳ワード数
+    translation_info[5] = translation_info[5] + tr_word[1] # 追加された翻訳ワード数
+
     return
 
 
 def convert_from_zip(paratranz_zip_path):
-    global translation_info
 
     # リポジトリでのパスを辞書に代入
     source_files_dict = {}
@@ -411,20 +423,20 @@ class format_lines():
     
         # 正規表現パターン定義
         insert_pat = [ # 半角スペースの挿入パターン
-        regex.compile(r'([^ \p{Ps}\p{Pe}">])((<[^>]+>)*)(<b>|<strong>)((<[^>]+>)*)'),
-        regex.compile(r'((<[^>]+>)*)(</b>|</strong>)((<[^>]+>)*)([^ \p{Ps}\p{Pe}"<])'),
-        regex.compile(r'([^ \p{Ps}\p{Pe}">])((<[^>]+>)*)(<a href=[^>]+>)((<[^>]+>)*)'),
-        regex.compile(r'((<[^>]+>)*)(</a>)((<[^>]+>)*)([^ \p{Ps}\p{Pe}"<])'),
-        regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])((<[^>]+>)*)((\p{Ps})?)([a-zA-Z0-9™])'),
-        regex.compile(r'(([a-zA-Z0-9™])(\p{Pe}?))((<[^>]+>)*)((\p{Ps})?)([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])'),
+#        regex.compile(r'([^ \p{Ps}\p{Pe}">])((<[^>]+>)*)(<b>|<strong>)((<[^>]+>)*)'),
+#        regex.compile(r'((<[^>]+>)*)(</b>|</strong>)((<[^>]+>)*)([^ \p{Ps}\p{Pe}"<])'),
+#        regex.compile(r'([^ \p{Ps}\p{Pe}">])((<[^>]+>)*)(<a href=[^>]+>)((<[^>]+>)*)'),
+#        regex.compile(r'((<[^>]+>)*)(</a>)((<[^>]+>)*)([^ \p{Ps}\p{Pe}"<])'),
+        regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])((<[^>]+>)*)((\p{Ps})?)([a-zA-Z0-9™°])'),
+        regex.compile(r'(([a-zA-Z0-9™°])(\p{Pe}?))((<[^>]+>)*)((\p{Ps})?)([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])'),
         re.compile(r'(、|。|！|？) '),
         re.compile(r' (、|。|！|？)'),
         re.compile(r'\\n ')
         ]
     
         remove_pat = [ # 半角スペースの削除パターン
-        regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}]) ?((<[^>]+>)*) ?((\p{Ps})?)([a-zA-Z0-9™])'),
-        regex.compile(r'(([a-zA-Z0-9™])(\p{Pe}?)) ?((<[^>]+>)*)((\p{Ps})?) ?([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])')
+        regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}]) ?((<[^>]+>)*) ?((\p{Ps})?)([a-zA-Z0-9™°])'),
+        regex.compile(r'(([a-zA-Z0-9™°])(\p{Pe}?)) ?((<[^>]+>)*)((\p{Ps})?) ?([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])')
         ]
     
         base_path = base_path.replace('\\', '\\\\')
@@ -1669,6 +1681,27 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
 ##############################################################################################
 
 
+def set_version():
+    global REPO_VERSION
+
+    path = '_VERSION'
+    if os.path.exists(path):
+        with open(path, 'r') as f:
+            REPO_VERSION[0] = f.readline()
+
+    path = os.path.join(override_dir[0], '_VERSION')
+    if os.path.exists(path):
+        with open(path, 'r') as f:
+            REPO_VERSION[1][0] = f.readline()
+
+    path = os.path.join(override_dir[1], '_VERSION')
+    if os.path.exists(path):
+        with open(path, 'r') as f:
+            REPO_VERSION[1][1] = f.readline()
+
+    print('VERSION = ', REPO_VERSION)
+    return
+
 def check_for_changes():
 
     # IDEの変更確認
@@ -1677,6 +1710,9 @@ def check_for_changes():
 
     source_dict = {}
     dest_dict = {}
+
+    if not os.path.exists(source_dir):
+        return True
 
     for file in os.listdir(source_dir):
         f_path = os.path.join(source_dir, file)
@@ -1708,6 +1744,9 @@ def check_for_changes():
     
     source_dict = {}
     dest_dict = {}
+
+    if not os.path.exists(source_dir):
+        return True
 
     for current, subfolders, subfiles in os.walk(source_dir):
         for file in subfiles:
@@ -1745,26 +1784,30 @@ def check_for_changes():
 
 def write_update_stats(file_path):
     lines = []
-    header = 'time\tlines\ttranslations\tpercentage\tadded_translations\tadded_percentage\tadded_words'
+    header = 'time\tver\tlines\ttr_lines\twords\ttr_words\tpct_lines\tadd_pct_lines\tadd_lines\tadd_words'
 
     if os.path.exists(file_path):
         with open(file_path, "r") as f:
             lines = f.read().splitlines(False)[1:]
 
-    total_line = translation_info[0]
-    total_translation = translation_info[1]
-    total_percentage = '{:.3f}'.format((translation_info[1] / translation_info[0]) * 100)
-    current_percentage = '{:.3f}'.format((translation_info[2] / translation_info[0]) * 100)
-    curent_line = '{:,}'.format(translation_info[2])
-    current_word = '{:,}'.format(translation_info[3])
+    ver = REPO_VERSION[0]
+    total_lines = translation_info[0]
+    total_words = translation_info[3]
+    tr_lines = translation_info[1]
+    tr_words = translation_info[4]
+    add_lines = '{:,}'.format(translation_info[2])
+    add_words = '{:,}'.format(translation_info[5])
+
+    total_pct = '{:.3f}'.format((translation_info[1] / translation_info[0]) * 100)
+    add_pct = '{:.3f}'.format((translation_info[2] / translation_info[0]) * 100)
 
     dt = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
-    current_time = dt.strftime('%Y/%m/%d %H:%M:%S')
+    time = dt.strftime('%Y/%m/%d %H:%M:%S')
 
     if translation_info[2] > 0:
-        line = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}'.format(current_time, total_line, total_translation, total_percentage, curent_line, current_percentage, current_word)
+        line = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}'.format(time, ver, total_lines, tr_lines, total_words, tr_words, total_pct, add_pct, add_lines, add_words)
     else:
-        line = '{0}\t{1}\t{2}\t{3}'.format(current_time, total_line, total_translation, total_percentage)
+        line = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}'.format(time, ver, total_lines, tr_lines, total_words, tr_words, total_pct)
 
     lines.insert(0, line)
     lines.insert(0, header)
@@ -1783,6 +1826,8 @@ def sub(index_name,
     out_file_path = "tmp/paratranz_%s.zip" % paratranz_project_code
 
     print("index_name=%s,code=%s" % (index_name, paratranz_project_code))
+
+    set_version()
 
     if not os.path.exists(out_file_path):
         # paratranzからzipファイルのダウンロード
