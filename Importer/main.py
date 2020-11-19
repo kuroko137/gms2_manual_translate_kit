@@ -462,15 +462,15 @@ class format_lines():
         
                 # 日本語/英数字、および<b>, <a href>タグの間に半角スペースを挿入・削除
                 if SPACE_ADJUSTMENT == 1: # 半角スペースを挿入する場合
-                    translation = insert_pat[0].sub(r'\1 \2\4\5', translation)
-                    translation = insert_pat[1].sub(r'\1\3\4 \6', translation)
-                    translation = insert_pat[2].sub(r'\1 \2\4\5', translation)
-                    translation = insert_pat[3].sub(r'\1\3\4 \6', translation)
-                    translation = insert_pat[4].sub(r'\1 \2\4\6', translation)
-                    translation = insert_pat[5].sub(r'\1\4 \6\8', translation)
-                    translation = insert_pat[6].sub(r'\1', translation)
-                    translation = insert_pat[7].sub(r'\1', translation)
-                    translation = insert_pat[8].sub(r'\\n', translation)
+#                    translation = insert_pat[0].sub(r'\1 \2\4\5', translation)
+#                    translation = insert_pat[1].sub(r'\1\3\4 \6', translation)
+#                    translation = insert_pat[2].sub(r'\1 \2\4\5', translation)
+#                    translation = insert_pat[3].sub(r'\1\3\4 \6', translation)
+                    translation = insert_pat[0].sub(r'\1 \2\4\6', translation)
+                    translation = insert_pat[1].sub(r'\1\4 \6\8', translation)
+                    translation = insert_pat[2].sub(r'\1', translation)
+                    translation = insert_pat[3].sub(r'\1', translation)
+                    translation = insert_pat[4].sub(r'\\n', translation)
         
                 elif SPACE_ADJUSTMENT == 2: # 半角スペースを削除する場合
                     translation = remove_pat[0].sub(r'\1\2\4\6', translation)
