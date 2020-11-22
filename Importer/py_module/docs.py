@@ -3,7 +3,7 @@ import sys
 import re
 
 
-def format_pages(input_dir, output_dir, repository_url):
+def format_preview_pages(input_dir, output_dir, repository_url):
 
     if repository_url == None:
         return

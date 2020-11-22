@@ -28,6 +28,7 @@ jobs:
     if: "! contains(github.event.head_commit.message, '[ci skip]')"
 
     steps:
+      # 環境のセットアップ
       - name: Checkout
         uses: actions/checkout@v2.3.3
       - name: Set up Python 3.8
@@ -44,26 +45,35 @@ jobs:
         run: pip install janome
       - name: Install natsort
         run: pip install natsort
+
+      # HTML化処理
       - name: Copy sources
         run: sudo sh ./Importer/copy_sources.sh
-      - name: Run
-        run: python -B ./Importer/main.py # CSV > HTMLの変換を実行
+      - name: Run # CSV > HTMLの変換を実行
+        run: python -B ./Importer/main.py
         env:
           PARATRANZ_SECRET: ${{ secrets.PARATRANZ_SECRET }}
           PARATRANZ_CODE: ${{ secrets.PARATRANZ_CODE }}
+          DISCORD_INTERVAL: ${{ secrets.DISCORD_INTERVAL }}
+          DISCORD_DETAILS: ${{ secrets.DISCORD_DETAILS }}
           REPOSITORY_NAME: ${{ github.repository }}
       - name: Copy converted
         run: sudo bash ./Importer/copy_converted.sh
+
+      # 実行結果を環境変数にセット
       - name: Set Env
         run: |
              echo "$(<_ENV_ACTION_STATE)" >> $GITHUB_ENV
              echo "$(<_ENV_TAG)" >> $GITHUB_ENV
              echo "$(<_ENV_VER)" >> $GITHUB_ENV
-             echo "$(<_ENV_DISCORD_MESSAGE)" >> $GITHUB_ENV
+             echo "$(<_ENV_NOTIFY_MESSAGE)" >> $GITHUB_ENV
+             echo "$(<_ENV_NOTIFY_DETAILS)" >> $GITHUB_ENV
              rm -f _ENV_*
+
+      # リリースを作成
       - name: Write Release Stats
         if: ${{ env.action_state == 'green'}}
-        run: python ./Importer/write_release_stats.py
+        run: python ./Importer/write_release_stats.py # リリースログを更新
         env:
           REPOSITORY_NAME: ${{ github.repository }}
       - name: Set FILES
@@ -82,13 +92,33 @@ jobs:
           draft: false
           gzip: false
           allow_override: true
+
+      # コミット処理
       - name: Push
         if: ${{ env.action_state == 'green'}}
         run: sudo sh ./Importer/push.sh # 変更があればコミット&プッシュ
+
+      # Discordへの通知
       - name: Discord notification
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        if: ${{ env.action_state == 'green' && env.DISCORD_WEBHOOK}}
-        uses: Ilshidur/action-discord@master # Discordへの更新通知
+        if: ${{ env.notify_message && env.notify_details == null && env.action_state == 'green' && env.DISCORD_WEBHOOK}}
+        uses: Ilshidur/action-discord@master
         with:
-          args: '${{ env.discord_message }}'
+          args: '${{ env.notify_message }}'
+      - name: Discord notification with details
+        env:
+          DISCORD_WEBHOOK_ID: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_WEBHOOK_TOKEN: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
+        if: ${{ env.notify_details && env.action_state == 'green' && env.DISCORD_WEBHOOK_ID && env.DISCORD_WEBHOOK_TOKEN}}
+        uses: "hugoalh/GitHubAction.SendToDiscord@v3.0.0"
+        with:
+          webhook_id: "${{secrets.DISCORD_WEBHOOK_ID}}"
+          webhook_token: "${{secrets.DISCORD_WEBHOOK_TOKEN}}"
+          variable_join: "."
+          variable_prefix: "%"
+          variable_suffix: "%"
+          message_text: "${{env.notify_message}}"
+          message_usetexttospeech: "false"
+          message_embed_colour: "white"
+          message_embed_description: "${{env.notify_details}}"

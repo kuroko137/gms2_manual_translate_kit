@@ -5,9 +5,9 @@ import regex
 import urllib.request
 import shutil
 import zipfile
-import datetime
 
-import docs_preview
+import py_module.docs
+import py_module.stats
 
 from pathlib import Path
 from translate.convert.po2html import converthtml
@@ -111,6 +111,7 @@ index_data_full = {}
 index_exist_name_full = {}
 
 translation_info = [0, 0, 0, 0, 0, 0] # 行数, 翻訳行数, 追加された翻訳行数, ワード数, 翻訳ワード数, 追加された翻訳ワード数
+translation_files = [] # 追加翻訳・変更されたファイル
 
 ##############################################################################################
 
@@ -142,7 +143,7 @@ def download_trans_zip_from_paratranz(project_id,
     return out_file_path
 
 
-def set_translation_count(old_lines, new_lines):
+def set_translation_count(old_lines, new_lines, file):
     global translation_info
 
     line_count = 0
@@ -182,6 +183,9 @@ def set_translation_count(old_lines, new_lines):
     if IS_UPDATE:
         tr_line[1] = 0
         tr_word[1] = 0
+    else:
+        if old_lines != new_lines:
+            translation_files.append(os.path.split(file)[1])
 
     translation_info[0] = translation_info[0] + line_count # 行数
     translation_info[1] = translation_info[1] + tr_line[0] # 翻訳行数
@@ -244,7 +248,7 @@ def convert_from_zip(paratranz_zip_path):
                         with open(csv_old_path, 'r', encoding='utf_8_sig') as f:
                             old_lines = f.read()
 
-                    set_translation_count(old_lines, zip_lines)
+                    set_translation_count(old_lines, zip_lines, csv_old_path)
 
                 # ParaTranzのバックアップ用CSVファイルを出力
                 os.makedirs(os.path.split(path_csv)[0], exist_ok=True)
@@ -715,7 +719,7 @@ class generate_file():
                 if os.path.exists(ide_old_path):
                     with open(ide_old_path, 'r', encoding='utf_8_sig') as f:
                         old_lines = f.read()
-                set_translation_count(old_lines, zip_lines)
+                set_translation_count(old_lines, zip_lines, ide_old_path)
 
                 os.makedirs(os.path.split(ide_bak_path)[0], exist_ok=True)
                 with open(ide_bak_path, 'w', encoding='utf_8_sig') as f:
@@ -855,7 +859,7 @@ class generate_file():
                 if os.path.exists(old_path):
                     with open(old_path, 'r', encoding='utf_8_sig') as f:
                         old_lines = f.read()
-                set_translation_count(old_lines, zip_lines)
+                set_translation_count(old_lines, zip_lines, old_path)
 
                 output_path = os.path.join(output_dir, os.path.split(source_path)[1])
                 os.makedirs(os.path.split(output_path)[0], exist_ok=True)
@@ -1782,41 +1786,6 @@ def check_for_changes():
 
     return False
 
-def write_update_stats(file_path):
-    lines = []
-    header = 'time\tver\tlines\ttr_lines\twords\ttr_words\tpct_lines\tadd_pct_lines\tadd_lines\tadd_words'
-
-    if os.path.exists(file_path):
-        with open(file_path, "r") as f:
-            lines = f.read().splitlines(False)[1:]
-
-    ver = REPO_VERSION[0]
-    total_lines = translation_info[0]
-    total_words = translation_info[3]
-    tr_lines = translation_info[1]
-    tr_words = translation_info[4]
-    add_lines = '{:,}'.format(translation_info[2])
-    add_words = '{:,}'.format(translation_info[5])
-
-    total_pct = '{:.3f}'.format((translation_info[1] / translation_info[0]) * 100)
-    add_pct = '{:.3f}'.format((translation_info[2] / translation_info[0]) * 100)
-
-    dt = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
-    time = dt.strftime('%Y/%m/%d %H:%M:%S')
-
-    if translation_info[2] > 0:
-        line = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}'.format(time, ver, total_lines, tr_lines, total_words, tr_words, total_pct, add_pct, add_lines, add_words)
-    else:
-        line = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}'.format(time, ver, total_lines, tr_lines, total_words, tr_words, total_pct)
-
-    lines.insert(0, line)
-    lines.insert(0, header)
-
-    with open(file_path, "w+") as f:
-        f.write('\n'.join(lines))
-
-    return
-
 ##############################################################################################
 
 
@@ -1874,7 +1843,7 @@ def sub(index_name,
 
     # プレビュー版に変更
     if GENERATE_AS_PREVIEW:
-        docs_preview.format_pages(os.path.join(output_dir, output_manual_dirname, doc_dir), output_preview_dir, os.environ.get("REPOSITORY_NAME"))
+        py_module.docs.format_preview_pages(os.path.join(output_dir, output_manual_dirname, doc_dir), output_preview_dir, os.environ.get("REPOSITORY_NAME"))
 
     if ENABLE_FULL_TRANSLATION == False:
         shutil.rmtree(output_ex_dir, ignore_errors=True)
@@ -1886,7 +1855,7 @@ def sub(index_name,
 
     logs_dir = "logs"
     os.makedirs(logs_dir, exist_ok=True)
-    write_update_stats(os.path.join(logs_dir, 'update_stats.csv'))
+    py_module.stats.write_update_stats(logs_dir, int(REPO_VERSION[0]), translation_info, translation_files)
 
     return
 
