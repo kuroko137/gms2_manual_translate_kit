@@ -109,7 +109,7 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   |DISCORD_WEBHOOK_ID|ウェブフックのID|ウェブフックURLのdiscord.com/api/webhooks/[この部分を登録]/***|
   |DISCORD_WEBHOOK_TOKEN|ウェブフックのトークン|ウェブフックURLのdiscord.com/api/webhooks/***/[この部分を登録]|
   |DISCORD_DETAILS|（任意）TrueかFalse|Trueにすると変更があったファイルを一覧表示します。|
-  |DISCORD_INTERVAL|（任意）整数|通知を行うまでのインターバルを1時間単位で設定できます。たとえば24にすると、前の通知から24時間経過するまで（それまでにアクションが完走したとしても）通知しなくなります。|
+  |DISCORD_INTERVAL|（任意）整数|通知を行うまでのインターバルを1時間単位で設定できます。たとえば24にすると、前の通知から24時間経過するまで（それまでにActionが完走したとしても）通知しなくなります。|
 
 ## 二次ファイル
 以下の機能を利用することで、DnDアクション名とイベント名を日本語化した二次ファイルを生成できます。いずれも有効にするにはimporter/main.pyの**ENABLE_FULL_TRANSLATION**を*True*に設定する必要があります。
