@@ -103,7 +103,7 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
 * Discordへの通知:
   * 以下のSecretsを作成すると、GitHhub Pagesが更新されたときにDiscordへ通知メッセージが送られます。通知メッセージには翻訳された行数、ワード数といった統計情報も含まれます。  
   
-  |Secrets|登録するデータ|詳細|
+  |Secrets|登録内容|詳細|
   |:---:|:---:|:---:|
   |DISCORD_WEBHOOK|DiscordのウェブフックURL|Discordのサーバー設定から作成したウェブフックのURL|
   |DISCORD_WEBHOOK_ID|ウェブフックのID|ウェブフックURLのdiscord.com/api/webhooks/[この部分を登録]/***|
