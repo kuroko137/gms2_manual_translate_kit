@@ -54,10 +54,17 @@ def write_update_stats(log_dir, ver, infos, files):
     # 通知インターバルのチェック
 
     NOTIFICATION_SKIP = False
-    if log_lines:
+
+    WEBHOOK = os.environ.get("DISCORD_WEBHOOK")
+    WEBHOOK_ID = os.environ.get("DISCORD_WEBHOOK_ID")
+
+    if WEBHOOK == None or WEBHOOK == '' or WEBHOOK_ID == None or WEBHOOK_ID == '':
+        NOTIFICATION_SKIP = True
+
+    if log_lines and NOTIFICATION_SKIP == False:
 
         interval = os.environ.get("DISCORD_INTERVAL")
-        if interval != None:
+        if interval != None and interval != '':
             interval = int(interval)
             if interval < 0:
                 interval = 0

@@ -54,6 +54,8 @@ jobs:
         env:
           PARATRANZ_SECRET: ${{ secrets.PARATRANZ_SECRET }}
           PARATRANZ_CODE: ${{ secrets.PARATRANZ_CODE }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_WEBHOOK_ID: ${{ secrets.DISCORD_WEBHOOK_ID }}
           DISCORD_INTERVAL: ${{ secrets.DISCORD_INTERVAL }}
           DISCORD_DETAILS: ${{ secrets.DISCORD_DETAILS }}
           REPOSITORY_NAME: ${{ github.repository }}
@@ -76,7 +78,7 @@ jobs:
         run: python ./Importer/write_release_stats.py # リリースログを更新
         env:
           REPOSITORY_NAME: ${{ github.repository }}
-      - name: Set FILES
+      - name: Get FILES
         if: ${{ env.action_state == 'green'}}
         id: file_path
         run: echo ::set-output name=path::$(for file in `ls Release/`;do echo Release/$file;done)
