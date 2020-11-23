@@ -80,30 +80,32 @@ def write_update_stats(log_dir, ver, infos, files):
 
         if os.path.exists(latest_path):
             with open(latest_path) as f:
-                ls = [int(d) for d in re.split(r'[/ :]', f.readline())]
-                ld = datetime.datetime(ls[0], ls[1], ls[2], ls[3], ls[4])
+                latest_line = f.readline()
 
-                if cd < (ld + datetime.timedelta(seconds=(interval - interval_play))): # 現在時間がインターバル未満
-                    NOTIFICATION_SKIP = True
+            ls = [int(d) for d in re.split(r'[/ :]', latest_line)]
+            ld = datetime.datetime(ls[0], ls[1], ls[2], ls[3], ls[4])
 
-        if interval > 0 and NOTIFICATION_SKIP == False:
-            for line in log_lines:
-                s = line.replace(',', '').split('\t')
-                ls = [int(d) for d in re.split(r'[/ :]', s[0])]
-                nd = datetime.datetime(ls[0], ls[1], ls[2], ls[3], ls[4])
+            if cd < (ld + datetime.timedelta(seconds=(interval - interval_play))): # 現在時間がインターバル未満
+                NOTIFICATION_SKIP = True
 
-                if nd < (cd - datetime.timedelta(seconds=interval)):
-                    break
+            if interval > 0 and NOTIFICATION_SKIP == False:
+                for line in log_lines:
+                    s = line.replace(',', '').split('\t')
+                    ps = [int(d) for d in re.split(r'[/ :]', s[0])]
+                    nd = datetime.datetime(ps[0], ps[1], ps[2], ps[3], ps[4])
 
-                if len(s) > 9:
-                    infos[2] += int(s[8])
-                    infos[5] += int(s[9])
+                    if nd <= ld or nd < (cd - datetime.timedelta(seconds=interval)):
+                        break
 
-            add_lines = '{:,}'.format(infos[2])
-            add_words = '{:,}'.format(infos[5])
+                    if len(s) > 9:
+                        infos[2] += int(s[8])
+                        infos[5] += int(s[9])
 
-            total_pct = '{:.3f}'.format((infos[1] / infos[0]) * 100)
-            add_pct = '{:.3f}'.format((infos[2] / infos[0]) * 100)
+                add_lines = '{:,}'.format(infos[2])
+                add_words = '{:,}'.format(infos[5])
+
+                total_pct = '{:.3f}'.format((infos[1] / infos[0]) * 100)
+                add_pct = '{:.3f}'.format((infos[2] / infos[0]) * 100)
 
     if NOTIFICATION_SKIP:
         print('The interval has not passed. Cancel notification.')
