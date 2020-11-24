@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if [ -e _DISCORD_NOTIFICATION ]; then
+  echo "dicord_send_state=green" > _ENV_DISCORD_SEND_STATE
+fi
+
+rm -rf _DISCORD_NOTIFICATION
+
 if [ ! -e _COMMIT_RUN ]; then
   # 変更が見つからないため処理を中断
   echo "action_state=yellow" > _ENV_ACTION_STATE

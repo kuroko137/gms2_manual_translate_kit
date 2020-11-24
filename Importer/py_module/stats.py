@@ -40,28 +40,28 @@ def write_update_stats(log_dir, ver, infos, files):
     else:
         line = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}'.format(time, ver, total_lines, tr_lines, total_words, tr_words, total_pct)
 
-    lines.insert(0, line)
-    lines.insert(0, header)
-    lines = lines + log_lines
+    if len(files) > 0:
+        lines.insert(0, line)
+        lines.insert(0, header)
+        lines = lines + log_lines
 
-    with open(log_path, "w+") as f:
-        f.write('\n'.join(lines))
+        with open(log_path, "w+") as f:
+            f.write('\n'.join(lines))
 
 
     # ------------------------------------
     # Discordへの通知メッセージを環境変数にセット
 
     # 通知インターバルのチェック
-
-    NOTIFICATION_SKIP = False
-
     WEBHOOK = os.environ.get("DISCORD_WEBHOOK")
     WEBHOOK_ID = os.environ.get("DISCORD_WEBHOOK_ID")
 
     if WEBHOOK == None or WEBHOOK == '' or WEBHOOK_ID == None or WEBHOOK_ID == '':
-        NOTIFICATION_SKIP = True
+        print('WEBHOOK or WEBHOOK_ID is not registered in secrets. Cancel notification.')
+        return
 
-    if log_lines and NOTIFICATION_SKIP == False:
+    NOTIFICATION_SKIP = False
+    if log_lines:
 
         interval = os.environ.get("DISCORD_INTERVAL")
         if interval != None and interval != '':
@@ -113,6 +113,10 @@ def write_update_stats(log_dir, ver, infos, files):
     else:
         with open(latest_path, "w+") as f:
             f.write(time)
+
+        notify_file = '_DISCORD_NOTIFICATION'
+        with open(notify_file, "w+") as f:
+            f.write(notify_file)
 
     # 通知メッセージを設定
     if old_ver > 0 and ver > old_ver:

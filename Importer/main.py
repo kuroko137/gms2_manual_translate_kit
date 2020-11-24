@@ -1836,6 +1836,10 @@ def sub(index_name,
         whxdata.translate_table_of_contents(out_file_path)
         whxdata.write_search_files()
 
+    logs_dir = "logs"
+    os.makedirs(logs_dir, exist_ok=True)
+    py_module.stats.write_update_stats(logs_dir, int(REPO_VERSION[0]), translation_info, translation_files)
+
     # 出力ファイルに変更があるかどうかチェック
     if check_for_changes() == False:
         print("NO CHANGES FOUND.")
@@ -1852,10 +1856,6 @@ def sub(index_name,
     commit_file = '_COMMIT_RUN'
     with open(commit_file, "w+") as f:
         f.write(commit_file)
-
-    logs_dir = "logs"
-    os.makedirs(logs_dir, exist_ok=True)
-    py_module.stats.write_update_stats(logs_dir, int(REPO_VERSION[0]), translation_info, translation_files)
 
     return
 
