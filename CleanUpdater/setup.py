@@ -13,7 +13,7 @@ if sys.platform == 'win32':
 exe = Executable(script = "CleanUpdater.pyw", base= base, icon='icons/icon.ico')
  
 setup(name = 'CleanUpdater',
-    version = '1.00',
+    version = '1.01',
     description = 'CleanUpdater',
       options = {"build_exe": {"excludes":excludes}},
     executables = [exe])

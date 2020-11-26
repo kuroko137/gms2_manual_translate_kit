@@ -5,7 +5,7 @@ import shutil
 import filecmp
 from pathlib import Path
 
-title = 'Clean Updater for GMS2 Manual - 1.00'
+title = 'Clean Updater for GMS2 Manual - 1.01'
 
 user_settings_path = 'user_settings.ini' # オプションの設定履歴
 log_path = 'log.txt'
@@ -145,12 +145,6 @@ class App(tkinter.Frame):
         if not os.path.exists(version_path):
             tkinter.messagebox.showinfo('エラー', '_VERSIONファイルが見つかりません。')
             return
-        else:
-            with open(version_path, "r") as f:
-                VERSION = f.readline()
-                msg = '[--VERSION_{0}--]'.format(VERSION)
-                log_data.append(msg)
-                log_paratranz_data.append(msg)
 
         if not tkinter.messagebox.askokcancel(title="HelpConverterの出力ファイルをコピー", message="ローカルリポジトリに新バージョンのファイルをコピーします。\n変更のあるファイルのみコピーされ、新バージョンで消されたファイルは\nリポジトリでも削除されます。"):
             return
@@ -178,13 +172,22 @@ class App(tkinter.Frame):
         self.update()
         tkinter.messagebox.showinfo('コピー完了', 'ローカルリポジトリに新バージョンのファイルをコピーしました。')
 
-        if len(log_data) > 1:
-            with open(log_path, "w+", encoding="utf_8_sig") as f:
-                f.write('\n'.join(log_data))
+        with open(version_path, "r") as f:
+            VERSION = f.readline()
 
-        if len(log_paratranz_data) > 1:
-            with open(log_paratranz_path, "w+", encoding="utf_8_sig") as f:
-                f.write('\n'.join(log_paratranz_data))
+        ver_msg = '[--VERSION_{0}--]'.format(VERSION)
+
+        log_data.insert(0, ver_msg)
+        if len(log_data) <= 1:
+            log_data.append('変更なし')
+        with open(log_path, "w+", encoding="utf_8_sig") as f:
+            f.write('\n'.join(log_data))
+
+        log_paratranz_data.insert(0, ver_msg)
+        if len(log_paratranz_data) <= 1:
+            log_paratranz_data.append('未使用ファイルなし')
+        with open(log_paratranz_path, "w+", encoding="utf_8_sig") as f:
+            f.write('\n'.join(log_paratranz_data))
 
         return
 
@@ -204,7 +207,7 @@ class update_dir():
         for current, subfolders, subfiles in os.walk(source_dir):
             for file in subfiles:
                 path = os.path.join(current, file)
-                key = path.replace(source_dir + os.sep, '')
+                key = path.replace(source_dir + os.sep, '').lower()
                 source_files[key] = path
 
         dest_files = {}
@@ -213,7 +216,7 @@ class update_dir():
         for current, subfolders, subfiles in os.walk(dest_dir):
             for file in subfiles:
                 path = os.path.join(current, file)
-                key = path.replace(dest_dir + os.sep, '')
+                key = path.replace(dest_dir + os.sep, '').lower()
                 dest_files[key] = path
 
                 if source_files.get(key, ''):
