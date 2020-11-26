@@ -13,13 +13,15 @@ from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 1.93'
+title = 'HelpConverter for GMS2 - 1.94'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
 
 # 構造の簡易化がオンの場合、GMLリファレンスの出力ディレクトリを[A-B]のようにアルファベットで細分化するかどうか
 GML_SEPARATE = True
+
+archive_name = 'GMS2-Robohelp.zip' # アーカイブ名＝キー名
 
 ignore_files_path = './ignore_files.ini' # 翻訳対象としないファイル
 del_files_path = './del_files.ini' # docsから削除するファイル
@@ -132,7 +134,7 @@ class App(tkinter.Frame): # GUIの設定
         self.w_url_type = BooleanVar(value=self.lastused.read_by_key('url_type'))
 
         # ウィジェットの作成
-        l_import_path = Label(root, text = 'YoYoStudioRoboHelp.zip:\n[.../GameMaker Studio 2/chm2web/YoYoStudioRoboHelp.zip]')
+        l_import_path = Label(root, text = 'GMS2-Robohelp-en.zip:\n[.../ProgramData/GameMakerStudio2/GMS2-Robohelp-en.zip]')
         e_import_path = Entry(textvariable = self.w_import_path)
         b_import_path = Button(root, text = 'パスを指定', command = self.SetImportPath)
 
@@ -230,10 +232,10 @@ class App(tkinter.Frame): # GUIの設定
         url_type = self.w_url_type.get()
 
         if import_path == '...' or import_path == '':
-            tkinter.messagebox.showinfo('アーカイブが未指定', 'アーカイブのパスが指定されていません。\nGame Maker Studio 2 のインストールディレクトリにある chm2web/YoYoStudioRoboHelp.zip を指定してください。')
+            tkinter.messagebox.showinfo('アーカイブが未指定', 'アーカイブのパスが指定されていません。\nProgramData にある GameMakerStudio2/GMS2-Robohelp-en.zip を指定してください。')
             return
         elif not os.path.isfile(import_path):
-            tkinter.messagebox.showinfo('無効なアーカイブ', 'アーカイブが存在しない、または無効なアーカイブです。\nGame Maker Studio 2 のインストールディレクトリにある chm2web/YoYoStudioRoboHelp.zip を指定してください。')
+            tkinter.messagebox.showinfo('無効なアーカイブ', 'アーカイブが存在しない、または無効なアーカイブです。\nProgramData にある GameMakerStudio2/GMS2-Robohelp-en.zip を指定してください。')
             return
 
         if not os.path.isfile(ignore_files_path):
@@ -309,8 +311,6 @@ class App(tkinter.Frame): # GUIの設定
         html_output_dir = os.path.join(repository_path, dir_name_source_html)
         db_output_dir = os.path.join(repository_path, dir_name_source_db)
         docs_output_dir = os.path.join(repository_path, dir_name_docs)
-
-        zip_output_dir = os.path.join(export_path, os.path.splitext(os.path.split(import_path)[1])[0])
         tmp_dir = os.path.join(export_path, 'tmp')
 
         # 古いディレクトリがあったら掃除
@@ -322,13 +322,19 @@ class App(tkinter.Frame): # GUIの設定
         shutil.rmtree(tmp_dir, ignore_errors=True)
         os.makedirs(tmp_dir, exist_ok=True)
 
+        # キーが変動しないようアーカイブを一時ディレクトリにコピーしてリネーム
+        tmp_archive_path = os.path.join(tmp_dir, archive_name)
+        shutil.copy(import_path, tmp_archive_path)
+        import_path = tmp_archive_path
+
+        zip_output_dir = os.path.join(export_path, os.path.splitext(os.path.split(import_path)[1])[0])
+
         # whxdata関連ファイルをアーカイブから事前に取り出し
         self.lb.insert('end', 'Converting whxdata files...')
         self.update()
 
         with zipfile.ZipFile(import_path) as zip_file:
             infos = zip_file.infolist()
-
 
             for info in infos:
                 if re.match(r'.*/$', info.filename): # ディレクトリは除外
@@ -876,7 +882,7 @@ class format_lines():
     def _csv(self, lines, base_dir, filename, is_add_url, url_en, url_jp, url_type): # CSVの整形
 
         # ParaTranzでのエラー防止のため、キーのディレクトリ名をすべて省略してファイル名のみにする（Importerで後に復元）
-        lines = re.sub(r'"YoYoStudioRoboHelp\\([^"\r\n]+\\)*', '"', lines)
+        lines = re.sub(r'"(GMS2-Robohelp)\\([^"\r\n]+\\)*', '"', lines)
 
         # 不要なエントリを削除
         for key_val in csv_source_remove_key:
