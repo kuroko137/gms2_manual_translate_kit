@@ -13,7 +13,7 @@ from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 1.94'
+title = 'HelpConverter for GMS2 - 1.95'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
@@ -29,6 +29,8 @@ user_settings_path = './user_settings.ini' # オプションの設定履歴
 
 dir_name_output = 'output'
 dir_name_paratranz = 'paratranz'
+dir_name_tr_paratranz = 'paratranz_with_tr'
+dir_name_up_paratranz = 'paratranz_updated'
 dir_name_repository = 'repository'
 
 dir_name_po = 'po'
@@ -142,7 +144,7 @@ class App(tkinter.Frame): # GUIの設定
         e_export_path = Entry(textvariable = self.w_export_path)
         b_export_path = Button(root, text = 'パスを指定', command = self.SetExportPath)
 
-        l_old_path = Label(root, text = '前バージョンの翻訳をコピー（任意指定）:\n[.../utf8/csv/]')
+        l_old_path = Label(root, text = '前バージョンのcsvからアップデート（任意指定）:\n[.../utf8/csv/]')
         e_old_path = Entry(textvariable = self.w_old_path)
         b_old_path = Button(root, text = 'パスを指定', command = self.SetOldPath)
 
@@ -277,6 +279,9 @@ class App(tkinter.Frame): # GUIの設定
             tkinter.messagebox.showinfo('エラー', 'バージョン情報は100（1.0.0）以上にしてください。')
             return
 
+        if old_path and not tkinter.messagebox.askokcancel(title="アップデート用 csv を出力", message="前バージョンと新バージョンの csv を比較し、変更点が見つかったものだけを出力します。\n何も変更されていないものは出力されません。"):
+            return
+
         self.lb.delete(0, tkinter.END) # ログの表示をクリア
 
         # -----------------------------------------------------------------------
@@ -301,6 +306,8 @@ class App(tkinter.Frame): # GUIの設定
         # 各ディレクトリのパスを定義
         export_path = os.path.join(export_path, dir_name_output)
         paratranz_path = os.path.join(export_path, dir_name_paratranz)
+        paratranz_tr_path = os.path.join(export_path, dir_name_tr_paratranz)
+        paratranz_up_path = os.path.join(export_path, dir_name_up_paratranz)
         repository_path = os.path.join(export_path, dir_name_repository)
 
         # pot_output_dir = os.path.join(paratranz_path, dir_name_source_pot)
@@ -315,7 +322,8 @@ class App(tkinter.Frame): # GUIの設定
 
         # 古いディレクトリがあったら掃除
         shutil.rmtree(paratranz_path, ignore_errors=True)
-        shutil.rmtree(paratranz_path + 'with_tr', ignore_errors=True)
+        shutil.rmtree(paratranz_tr_path, ignore_errors=True)
+        shutil.rmtree(paratranz_up_path, ignore_errors=True)
         os.makedirs(paratranz_path, exist_ok=True)
         shutil.rmtree(repository_path, ignore_errors=True)
         os.makedirs(repository_path, exist_ok=True)
@@ -350,18 +358,33 @@ class App(tkinter.Frame): # GUIの設定
                     f_db.write(zip_file.read(info.filename))
 
         # 用語集を抽出してcsvファイル化（whxdata）
+        if old_path:
+            os.makedirs(paratranz_up_path, exist_ok=True)
+
         path_source_glossary = os.path.join(db_output_dir, 'whxdata', 'gdata1.new.js')
         with open(path_source_glossary, "r", encoding="utf_8_sig", newline="\n") as f:
             lines = f.read()
 
-        path_glossary = os.path.join(paratranz_path, 'manual_glossary.csv')
-        with open(path_glossary, "w+", encoding="utf_8_sig", newline="\n") as f:
-            f.write(generate_sub().glossary(lines))
+        lines_glossary = generate_sub().glossary(lines)
+        if old_path:
+            path_glossary = os.path.join(paratranz_up_path, 'manual_glossary.csv')
+            with open(path_glossary, "w+", encoding="utf_8_sig", newline="\n") as f:
+                f.write(lines_glossary)
+        else:
+            path_glossary = os.path.join(paratranz_path, 'manual_glossary.csv')
+            with open(path_glossary, "w+", encoding="utf_8_sig", newline="\n") as f:
+                f.write(lines_glossary)
 
         # 左メニューの.jsファイルをまとめてcsvファイル化（whxdata）
-        path_contents = os.path.join(paratranz_path, 'manual_leftmenu.csv')
-        with open(path_contents, "w+", encoding="utf_8_sig", newline="\n") as f:
-            f.write(generate_sub().table_of_contents(os.path.join(db_output_dir, 'whxdata')))
+        lines_contents = generate_sub().table_of_contents(os.path.join(db_output_dir, 'whxdata'))
+        if old_path:
+            path_contents = os.path.join(paratranz_up_path, 'manual_leftmenu.csv')
+            with open(path_contents, "w+", encoding="utf_8_sig", newline="\n") as f:
+                f.write(lines_contents)
+        else:
+            path_contents = os.path.join(paratranz_path, 'manual_leftmenu.csv')
+            with open(path_contents, "w+", encoding="utf_8_sig", newline="\n") as f:
+                f.write(lines_contents)
 
         self.lb.insert('end', 'All whxdata files have been converted.')
         self.update()
@@ -532,42 +555,46 @@ class App(tkinter.Frame): # GUIの設定
                     f_csv.write(csv_lines)
 
 
-                # 前バージョンの翻訳が指定されている場合、翻訳をマージさせたcsvを出力する
+                # 前バージョンの翻訳が指定されている場合はアップデート処理を行う
                 if old_path:
-                    output_csv_path = os.path.join(paratranz_path + 'with_tr', dir_name_csv, csv_root)
                     old_csv_path = os.path.join(old_path, csv_root)
+                    add_updated = False
 
-                    lines = merge_translation(old_csv_path, path_csv, output_csv_path, tmp_dir)
-
-                    if lines:
-                        # マージ後のCSVを再整形
-                        lines = format_lines()._csv(lines, base_dir, info.filename, url_is_add, url_en, url_jp, url_type)
-
-                        # 変更確認
+                    if not os.path.isfile(old_csv_path):
+                        add_updated = True
+                    else:
                         with open(old_csv_path, "r", encoding="utf_8_sig") as f:
                             old_lines = f.read()
 
-                        old_data = []
-                        for line in comma_replacer.sub(r'\t', old_lines).splitlines(False):
-                            s = line.split('\t')
-                            if len(s) > 1:
-                                old_data.append(s[0].strip('"') + s[1].strip('"'))
+                        if csv_is_diff(old_lines, csv_lines):
+                            add_updated = True
 
-                        new_data = []
-                        for line in comma_replacer.sub(r'\t', lines).splitlines(False):
-                            s = line.split('\t')
-                            if len(s) > 1:
-                                new_data.append(s[0].strip('"') + s[1].strip('"'))
+                            # 翻訳をマージさせたcsvを出力
+                            output_merged_path = os.path.join(paratranz_tr_path, dir_name_csv, csv_root)
 
-                        if old_data == new_data or not isJp.findall(lines):
-                            os.remove(output_csv_path) # 変更がなければ削除
-                            try:
-                                os.removedirs(os.path.split(output_csv_path)[0])
-                            except OSError:
-                                pass
-                        else:
-                            with open(output_csv_path, "w+", encoding="utf_8_sig", newline="\n") as f_output_csv:
-                                f_output_csv.write(lines)
+                            lines = merge_translation(old_csv_path, path_csv, output_merged_path, tmp_dir)
+
+                            if lines:
+                                # マージ後のCSVを再整形
+                                lines = format_lines()._csv(lines, base_dir, info.filename, url_is_add, url_en, url_jp, url_type)
+
+                                # 変更確認
+
+                                if csv_is_diff(old_lines, lines) == False or not isJp.findall(lines):
+                                    os.remove(output_merged_path) # 変更がなければ削除
+                                    try:
+                                        os.removedirs(os.path.split(output_merged_path)[0])
+                                    except OSError:
+                                        pass
+                                else:
+                                    with open(output_merged_path, "w+", encoding="utf_8_sig", newline="\n") as f_output_csv:
+                                        f_output_csv.write(lines)
+
+                    if add_updated:
+                        output_updated_path = os.path.join(paratranz_up_path, dir_name_csv, csv_root)
+                        os.makedirs(os.path.split(output_updated_path)[0], exist_ok=True)
+                        with open(output_updated_path, "w+", encoding="utf_8_sig", newline="\n") as f:
+                            f.write(csv_lines)
 
                 # リストボックスにログを出力
                 path_csv = path_csv.replace('/', os.sep) # スラッシュを\\に置き換え
@@ -592,6 +619,8 @@ class App(tkinter.Frame): # GUIの設定
         os.rename(zip_output_dir, html_output_dir)
         shutil.rmtree(po_output_dir, ignore_errors=True)
         shutil.rmtree(tmp_dir, ignore_errors=True)
+        if old_path:
+            shutil.rmtree(paratranz_path, ignore_errors=True)
 
         # その他のファイルをテンプレートからコピー
         if os.path.exists("./template"):
@@ -606,6 +635,23 @@ class App(tkinter.Frame): # GUIの設定
 
 ##############################################################################################
 
+
+def csv_is_diff(old_read, new_read):
+
+    old_read = comma_replacer.sub(r'\t', old_read)
+    old_read = re.sub(r'"([^\t\r\n]*)"', r'\1', old_read, flags=re.MULTILINE)
+    old_read = re.sub(r'(^[^\t\r\n]+\t[^\t\r\n]+)\t[^\r\n]+', r'\1', old_read, flags=re.MULTILINE)
+    old_lines = old_read.splitlines(False)
+
+    new_read = comma_replacer.sub(r'\t', new_read)
+    new_read = re.sub(r'"([^\t\r\n]*)"', r'\1', new_read, flags=re.MULTILINE)
+    new_read = re.sub(r'(^[^\t\r\n]+\t[^\t\r\n]+)\t[^\r\n]+', r'\1', new_read, flags=re.MULTILINE)
+    new_lines = new_read.splitlines(False)
+
+    if old_read != new_read:
+        return True
+
+    return False
 
 def merge_translation(old_path, new_path, output_path, tmp_path):
 
