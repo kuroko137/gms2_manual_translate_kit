@@ -40,7 +40,7 @@ ENABLE_FULL_TRANSLATION = False
 GENERATE_AS_PREVIEW = True
 
 # IDEの半角スペースをノーブレークスペースに置換
-#  有効にするとメッセージが複数行にまたがった場合、アセット名の前後で行が分けられてしまう問題を修正できます
+#  有効にするとメッセージが複数行にまたがった場合、不自然なポイントで改行されてしまう問題を修正できます。
 SPACE_TO_NO_BREAK = True
 
 input_dir = 'utf8/csv/' # ParaTranzのCSVディレクトリ
@@ -581,7 +581,7 @@ class format_lines():
             lines = restore_format_key[1] + lines
     
         # キーを復元
-        orig_key = 'YoYoStudioRoboHelp'
+        orig_key = 'GMS2-Robohelp'
         if os.path.split(base_path)[0]:
             orig_key = orig_key + '/' + os.path.split(base_path)[0]
         orig_key = orig_key.replace('/', '\\\\')

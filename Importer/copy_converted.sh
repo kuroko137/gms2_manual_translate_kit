@@ -1,10 +1,8 @@
 #!/bin/bash
 
 if [ -e _DISCORD_NOTIFICATION ]; then
-  echo "dicord_send_state=green" > _ENV_DISCORD_SEND_STATE
+  echo "discord_send_state=green" > _ENV_DISCORD_SEND_STATE
 fi
-
-rm -rf _DISCORD_NOTIFICATION
 
 if [ ! -e _COMMIT_RUN ]; then
   # 変更が見つからないため処理を中断
@@ -12,8 +10,6 @@ if [ ! -e _COMMIT_RUN ]; then
   echo 'NO CHANGES FOUND. The process was aborted.'
   exit
 fi
-
-rm -rf _COMMIT_RUN
 
 if [ ! -e _VERSION ]; then
   echo "action_state=yellow" > _ENV_ACTION_STATE

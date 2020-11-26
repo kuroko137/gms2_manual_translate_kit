@@ -98,14 +98,14 @@ jobs:
 
       # コミット処理
       - name: Push
-        if: ${{ env.action_state == 'green'}}
+        if: ${{ env.action_state == 'green' || env.discord_send_state == 'green'}}
         run: sudo sh ./Importer/push.sh # 変更があればコミット&プッシュ
 
       # Discordへの通知
       - name: Discord notification
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        if: ${{ env.notify_message && env.notify_details == null && env.dicord_send_state == 'green' && env.DISCORD_WEBHOOK}}
+        if: ${{ env.notify_message && env.notify_details == null && env.discord_send_state == 'green' && env.DISCORD_WEBHOOK}}
         uses: Ilshidur/action-discord@master
         with:
           args: '${{ env.notify_message }}'
@@ -113,7 +113,7 @@ jobs:
         env:
           DISCORD_WEBHOOK_ID: ${{ secrets.DISCORD_WEBHOOK }}
           DISCORD_WEBHOOK_TOKEN: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
-        if: ${{ env.notify_details && env.dicord_send_state == 'green' && env.DISCORD_WEBHOOK_ID && env.DISCORD_WEBHOOK_TOKEN}}
+        if: ${{ env.notify_details && env.discord_send_state == 'green' && env.DISCORD_WEBHOOK_ID && env.DISCORD_WEBHOOK_TOKEN}}
         uses: "hugoalh/GitHubAction.SendToDiscord@v3.0.0"
         with:
           webhook_id: "${{secrets.DISCORD_WEBHOOK_ID}}"

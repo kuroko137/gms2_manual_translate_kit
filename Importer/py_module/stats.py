@@ -14,6 +14,7 @@ def write_update_stats(log_dir, ver, infos, files):
     latest_path = os.path.join(log_dir, 'discord_latest_notice.log')
     log_path = os.path.join(log_dir, 'update_stats.csv')
     log_lines = []
+    files_log_path = os.path.join(log_dir, 'update_stats_files.csv')
 
     if os.path.exists(log_path):
         with open(log_path, "r") as f:
@@ -45,8 +46,22 @@ def write_update_stats(log_dir, ver, infos, files):
         lines.insert(0, header)
         lines = lines + log_lines
 
-        with open(log_path, "w+") as f:
+        with open(log_path, "w+") as f: # ログに統計を書き込み
             f.write('\n'.join(lines))
+
+        file_log_lines = []
+        str_files = '\t'.join(files)
+        str_files = str_files.strip('\t')
+        str_files = time + '\t' + str_files
+
+        if os.path.exists(files_log_path):
+            with open(files_log_path, "r") as f:
+                file_log_lines = f.read().splitlines(False)
+
+        file_log_lines.insert(0, str_files)
+
+        with open(files_log_path, "w+") as f: # ログに更新ファイル名を書き込み
+            f.write('\n'.join(file_log_lines))
 
 
     # ------------------------------------
@@ -88,8 +103,13 @@ def write_update_stats(log_dir, ver, infos, files):
             if cd < (ld + datetime.timedelta(seconds=(interval - interval_play))): # 現在時間がインターバル未満
                 NOTIFICATION_SKIP = True
 
+            if interval == 0 and len(files) == 0:
+                NOTIFICATION_SKIP = True
+
             if interval > 0 and NOTIFICATION_SKIP == False:
-                for line in log_lines:
+
+                i = 0
+                for line in log_lines: # インターバル間までの統計をメッセージに加算
                     s = line.replace(',', '').split('\t')
                     ps = [int(d) for d in re.split(r'[/ :]', s[0])]
                     nd = datetime.datetime(ps[0], ps[1], ps[2], ps[3], ps[4])
@@ -97,15 +117,24 @@ def write_update_stats(log_dir, ver, infos, files):
                     if nd <= ld or nd < (cd - datetime.timedelta(seconds=interval)):
                         break
 
+                    i += 1
+
                     if len(s) > 9:
                         infos[2] += int(s[8])
                         infos[5] += int(s[9])
 
-                add_lines = '{:,}'.format(infos[2])
-                add_words = '{:,}'.format(infos[5])
+                    pre_files = [line for line in file_log_lines if line.startswith(s[0])]
+                    if pre_files:
+                        files += pre_files[0].split('\t')[1:]
 
-                total_pct = '{:.3f}'.format((infos[1] / infos[0]) * 100)
-                add_pct = '{:.3f}'.format((infos[2] / infos[0]) * 100)
+                if i == 0 and len(files) == 0:
+                    NOTIFICATION_SKIP = True
+                else:
+                    add_lines = '{:,}'.format(infos[2])
+                    add_words = '{:,}'.format(infos[5])
+
+                    total_pct = '{:.3f}'.format((infos[1] / infos[0]) * 100)
+                    add_pct = '{:.3f}'.format((infos[2] / infos[0]) * 100)
 
     if NOTIFICATION_SKIP:
         print('The interval has not passed. Cancel notification.')
@@ -121,7 +150,7 @@ def write_update_stats(log_dir, ver, infos, files):
     # 通知メッセージを設定
     if old_ver > 0 and ver > old_ver:
         message = 'notify_message={0} - 日本語化率: {1}% (バージョン {2} > {3}\n'.format(time, total_pct, old_ver, ver)
-    elif add_lines:
+    elif infos[2] > 0:
         message = 'notify_message={0} - 日本語化率: {1}% (+{2}%, {3} 行, {4} 語)\n'.format(time, total_pct, add_pct, add_lines, add_words)
     else:
         message = 'notify_message={0} - 日本語化率: {1}% (変更のみ)\n'.format(time, total_pct)
