@@ -13,7 +13,7 @@ from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 1.95'
+title = 'HelpConverter for GMS2 - 2.00'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
@@ -24,7 +24,6 @@ GML_SEPARATE = True
 archive_name = 'GMS2-Robohelp.zip' # アーカイブ名＝キー名
 
 ignore_files_path = './ignore_files.ini' # 翻訳対象としないファイル
-del_files_path = './del_files.ini' # docsから削除するファイル
 user_settings_path = './user_settings.ini' # オプションの設定履歴
 
 dir_name_output = 'output'
@@ -53,6 +52,8 @@ csv_source_commentout = [
 re.compile(r'([^\r\n]+Click here to see this page in full context[^\r\n]*)'),
 re.compile(r'([^\r\n]+Copyright YoYo Games Ltd. 2020 All Rights Reserved[^\r\n]*)')
 ]
+
+db_exclude_files = ['search_db.js', 'search_auto_model_0.js', 'search_auto_map_0.js', 'search_topics.js', 'text[/\\][0-9]+.js']
 
 comma_replacer = re.compile(r',(?=(?:[^"\r\n]*"[^"\r\n]*")*[^"\r\n]*$)', re.MULTILINE | re.DOTALL)
 isJp = regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])')
@@ -244,10 +245,6 @@ class App(tkinter.Frame): # GUIの設定
             tkinter.messagebox.showinfo('エラー', '無視ファイルリスト（ignore_files.ini）が存在しません。')
             return
 
-        if not os.path.isfile(del_files_path):
-            tkinter.messagebox.showinfo('エラー', '削除ファイルリスト（del_files.ini）が存在しません。')
-            return
-
         if export_path == '...' or export_path == '':
             export_path = os.getcwd()
             self.w_export_path.set(str(export_path))
@@ -298,11 +295,6 @@ class App(tkinter.Frame): # GUIの設定
             lines = f.read()
         ignore_files = [file for file in lines.splitlines(False)]
 
-        # docsから削除するファイルを追加
-        with open(del_files_path, "r") as f:
-            lines = f.read()
-        del_files = [file for file in lines.splitlines(False)]
-
         # 各ディレクトリのパスを定義
         export_path = os.path.join(export_path, dir_name_output)
         paratranz_path = os.path.join(export_path, dir_name_paratranz)
@@ -348,6 +340,15 @@ class App(tkinter.Frame): # GUIの設定
                 if re.match(r'.*/$', info.filename): # ディレクトリは除外
                     continue
                 if info.filename.startswith('whxdata') is False:
+                    continue
+
+                SKIP = False
+                for file in db_exclude_files:
+                    print('search {0} in {1} : {2}'.format(info.filename, file, re.search(file, info.filename)))
+                    if re.search(file, info.filename): # 除外するファイルを検索
+                        SKIP = True
+                        break
+                if SKIP:
                     continue
 
                 path_db = os.path.join(export_path, db_output_dir, info.filename)
@@ -415,16 +416,12 @@ class App(tkinter.Frame): # GUIの設定
 
                 # 翻訳対象ファイルでないためdocs（GitHub Pagesのディレクトリ）にコピー
                 if passed == True:
-                    for del_f in del_files:
-                        if re.search(del_f, info.filename): # docsから削除（除外）するファイルを検索
-                            break
-                    else:
-                        path_others = os.path.join(export_path, docs_output_dir, os.path.join(os.path.split(info.filename)[0]), os.path.split(info.filename)[1])
+                    path_others = os.path.join(export_path, docs_output_dir, os.path.join(os.path.split(info.filename)[0]), os.path.split(info.filename)[1])
+                    os.makedirs(os.path.split(path_others)[0], exist_ok=True)
 
-                        os.makedirs(os.path.split(path_others)[0], exist_ok=True)
+                    with open(path_others, "wb+") as f:
+                        f.write(zip_file.read(info.filename))
 
-                        with open(path_others, "wb+") as f:
-                            f.write(zip_file.read(info.filename))
                     continue
 
                 # 基本パス

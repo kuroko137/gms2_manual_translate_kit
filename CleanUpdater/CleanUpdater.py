@@ -5,7 +5,7 @@ import shutil
 import filecmp
 from pathlib import Path
 
-title = 'Clean Updater for GMS2 Manual - 1.01'
+title = 'Clean Updater for GMS2 Manual - 1.10'
 
 user_settings_path = 'user_settings.ini' # オプションの設定履歴
 log_path = 'log.txt'
@@ -222,6 +222,7 @@ class update_dir():
                 if source_files.get(key, ''):
 
                     if mode == 'Override' and not filecmp.cmp(source_files.get(key, ''), path):
+                        os.makedirs(os.path.split(path)[0], exist_ok=True)
                         shutil.copy2(source_files.get(key, ''), path)
                         msg = 'override file "{0}" of "{1}"'.format(os.path.basename(path), path)
                         self.root.lb.insert('end', msg)
@@ -241,8 +242,12 @@ class update_dir():
         if mode != 'RemoveOnly':
             for k in source_files:
                 if not dest_files.get(k, ''):
-                    shutil.copy2(source_files.get(k, ''), os.path.join(dest_dir, k))
-                    msg = 'copy file "{0}" to "{1}"'.format(os.path.basename(source_files.get(k, '')), os.path.join(dest_dir, k))
+                    source_path = source_files.get(k, '')
+                    path = os.path.join(dest_dir, k)
+                    os.makedirs(os.path.split(path)[0], exist_ok=True)
+                    shutil.copy2(source_path, path)
+
+                    msg = 'copy file "{0}" to "{1}"'.format(os.path.basename(source_path), path)
                     self.root.lb.insert('end', msg)
                     self.root.lb.see('end')
                     self.root.update()

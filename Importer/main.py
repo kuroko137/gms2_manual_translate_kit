@@ -1031,6 +1031,7 @@ def extract_exist_topics(): # 既存のトピック名を辞書に代入
 class whx(): # whxdataディレクトリ以下にあるファイルの処理
     def __init__(self):
         self.db_base_dir = os.path.join(template_db_dir, 'whxdata')
+        self.db_base_docs_dir = os.path.join(doc_dir, 'whxdata')
         self.db_dest_dir = os.path.join(output_dir, output_manual_dirname, doc_dir, 'whxdata')
         self.db_dest_ex_dir = os.path.join(output_ex_dir, output_manual_dirname, doc_dir, 'whxdata')
         os.makedirs(self.db_dest_dir, exist_ok=True)
@@ -1122,7 +1123,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
         separate_pat = r'([^\}]+{\\)("title\\":\\"[^"]+)(\\",\\)("summary\\":\\"[^"]+)(\\"[^\}]+\})'
         keys = ['"title\\":\\"', '"summary\\":\\"']
         whx_filename = 'search_topics.js'
-        source_path = os.path.join(self.db_base_dir, whx_filename)
+        source_path = os.path.join(self.db_base_docs_dir, whx_filename)
         dest_path = os.path.join(self.db_dest_dir, whx_filename)
 
         self.translate_from_file(source_path, dest_path, separate_pat, keys, {x[0]:x[1] for x in search_keywords}, {x[0]:x[1] for x in search_results})
@@ -1386,7 +1387,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
 
 
     def mapping_js_by_topics(self): # {js名 : htmファイル名} の対応辞書を作成
-        whx_path = os.path.join(self.db_base_dir, 'search_topics.js')
+        whx_path = os.path.join(self.db_base_docs_dir, 'search_topics.js')
 
         result = {}
 
@@ -1401,7 +1402,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
 
 
     def write_text_js(self, dic, data, files, dest_dir_path): # text/jsファイル群に書き込み
-        source_dir_path = os.path.join(self.db_base_dir, 'text')
+        source_dir_path = os.path.join(self.db_base_docs_dir, 'text')
         os.makedirs(dest_dir_path, exist_ok=True)
 
         for current, subfolders, subfiles in os.walk(source_dir_path):
@@ -1507,7 +1508,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
 
     def write_search_automap(self, dic, dir_path):
         whx_filename = 'search_auto_map_0.js'
-        source_path = os.path.join(self.db_base_dir, whx_filename)
+        source_path = os.path.join(self.db_base_docs_dir, whx_filename)
         dest_path = os.path.join(dir_path, whx_filename)
 
         edges = ['rh._.exports({', '})']
@@ -1558,7 +1559,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
 
     def write_search_db(self, dic, dir_path):
         whx_filename = 'search_db.js'
-        source_path = os.path.join(self.db_base_dir, whx_filename)
+        source_path = os.path.join(self.db_base_docs_dir, whx_filename)
         dest_path = os.path.join(dir_path, whx_filename)
 
         with open(source_path, "r", encoding="utf_8_sig") as f:

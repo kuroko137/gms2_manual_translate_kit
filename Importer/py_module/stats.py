@@ -41,6 +41,8 @@ def write_update_stats(log_dir, ver, infos, files):
     else:
         line = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}'.format(time, ver, total_lines, tr_lines, total_words, tr_words, total_pct)
 
+    files = list(dict.fromkeys(files)) # 重複行を削除
+
     if len(files) > 0:
         lines.insert(0, line)
         lines.insert(0, header)

@@ -48,6 +48,15 @@ if [ ! -e ./generated ]; then
   mkdir -p ./generated
 fi
 
+if [ -e ./Preview ]; then # 容量の大きいjsファイルはリリースのみに反映させるためいったん退避
+  mkdir -p ./docs_db_saver/whxdata/text
+  mv ./docs/whxdata/search_db.js ./docs_db_saver/whxdata/search_db.js
+  mv ./docs/whxdata/search_auto_map_0.js ./docs_db_saver/whxdata/search_auto_map_0.js
+  mv ./docs/whxdata/search_auto_model_0.js ./docs_db_saver/whxdata/search_auto_model_0.js
+  mv ./docs/whxdata/search_topics.js ./docs_db_saver/whxdata/search_topics.js
+  mv ./docs/whxdata/text ./docs_db_saver/whxdata
+fi
+
 cp ./Converted/* ./generated -arf
 cp generated/manual/docs ./ -arf
 rm -rf generated/manual/docs
@@ -151,10 +160,7 @@ cd ../
 
 
 if [ -e ./Preview ]; then
+  cp ./docs_db_saver/whxdata/* ./docs/whxdata -arf
+  rm -rf ./docs_db_saver
   cp ./Preview/* ./docs -arf
-  rm -rf ./docs/whxdata/search_db.js
-  rm -rf ./docs/whxdata/search_auto_map_0.js
-  rm -rf ./docs/whxdata/search_auto_model_0.js
-  rm -rf ./docs/whxdata/search_topics.js
-  rm -rf ./docs/whxdata/text
 fi
