@@ -53,12 +53,12 @@ ParaTranzの翻訳データを一定時間おきに取得し、ミラーサイ�
   * Gamemaker Studio 2のアップデートによってマニュアルに変更が加えられた場合、ParaTranzとリポジトリの関連ファイルを新バージョンのものに差し替える必要があります。   
   注: 意図せぬ動作を防ぐため、**アップデート作業中はGitHub Actionsを無効**にしてください。リポジトリのSettings > Actions > Disable Actionsでアクションを無効にできます。  
   
-  * まずHelpConverterで新バージョンのファイルを出力します。このとき**前バージョンの翻訳をコピー**欄に、ParaTranzからダウンロードした前バージョンのcsvディレクトリを指定すると翻訳を引き継ぐことができます。  
+  * まずHelpConverterで新バージョンのファイルを出力します。このとき**前バージョンのcsvからアップデート**欄に、ParaTranzからダウンロードした前バージョンのcsvディレクトリを指定すると翻訳を引き継ぐことができます。  
   
   * リリースからダウンロードしたCleanUpdaterを実行し、HelpConverterの出力先、前バージョンのローカルリポジトリを指定してアップデートを開始してください。新バージョンで変更されたファイルがリポジトリにコピーされ、不要となったファイルは削除されます。処理が終わったらリモートに変更をコミットしましょう。  
   
-  * ParaTranzのファイルをアップデートする際は、HelpConverterで出力された**ParaTranz**以下のcsvを**Add Files**で追加してファイルをアップデートしてください。また、不要となったファイルはCleanUpdaterの**log_paratranz.txt**を参考に削除しておきましょう。  
-    前バージョンの翻訳を反映させるには、**paratranzwith_tr**以下のcsvを**Import Translations**で追加し、**Force Import**を実行してください。
+  * ParaTranzのファイルをアップデートする際は、HelpConverterで出力された**paratranz_update**以下のcsvを**Add Files**で追加してファイルをアップデートしてください。また、不要となったファイルはCleanUpdaterの**log_paratranz.txt**を参考に削除しておきましょう。  
+    前バージョンの翻訳を反映させるには、**paratranz_with_tr**以下のcsvを**Import Translations**で追加し、**Force Import**を実行してください。
   
 
   * それぞれの_VERSIONファイルが更新されるまでoverride、override_extraのコピー機能は無効となります。
