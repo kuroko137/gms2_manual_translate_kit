@@ -13,7 +13,7 @@ from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 2.00'
+title = 'HelpConverter for GMS2 - 2.01'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
@@ -276,7 +276,7 @@ class App(tkinter.Frame): # GUIの設定
             tkinter.messagebox.showinfo('エラー', 'バージョン情報は100（1.0.0）以上にしてください。')
             return
 
-        if old_path and not tkinter.messagebox.askokcancel(title="アップデート用 csv を出力", message="前バージョンと新バージョンの csv を比較し、変更点が見つかったものだけを出力します。\n何も変更されていないものは出力されません。"):
+        if old_path and not tkinter.messagebox.askokcancel(title="アップデート用 csv を出力", message="前バージョンと新バージョンの csv を比較し、変更点がある csv を 'paratranz_updated' に出力します。\nさらに翻訳をコピーした csv を 'paratranz_with_tr' に出力します。"):
             return
 
         self.lb.delete(0, tkinter.END) # ログの表示をクリア
@@ -344,7 +344,6 @@ class App(tkinter.Frame): # GUIの設定
 
                 SKIP = False
                 for file in db_exclude_files:
-                    print('search {0} in {1} : {2}'.format(info.filename, file, re.search(file, info.filename)))
                     if re.search(file, info.filename): # 除外するファイルを検索
                         SKIP = True
                         break
@@ -367,23 +366,21 @@ class App(tkinter.Frame): # GUIの設定
             lines = f.read()
 
         lines_glossary = generate_sub().glossary(lines)
+        path_glossary = os.path.join(paratranz_path, 'manual_glossary.csv')
+        with open(path_glossary, "w+", encoding="utf_8_sig", newline="\n") as f:
+            f.write(lines_glossary)
         if old_path:
             path_glossary = os.path.join(paratranz_up_path, 'manual_glossary.csv')
-            with open(path_glossary, "w+", encoding="utf_8_sig", newline="\n") as f:
-                f.write(lines_glossary)
-        else:
-            path_glossary = os.path.join(paratranz_path, 'manual_glossary.csv')
             with open(path_glossary, "w+", encoding="utf_8_sig", newline="\n") as f:
                 f.write(lines_glossary)
 
         # 左メニューの.jsファイルをまとめてcsvファイル化（whxdata）
         lines_contents = generate_sub().table_of_contents(os.path.join(db_output_dir, 'whxdata'))
+        path_contents = os.path.join(paratranz_path, 'manual_leftmenu.csv')
+        with open(path_contents, "w+", encoding="utf_8_sig", newline="\n") as f:
+            f.write(lines_contents)
         if old_path:
             path_contents = os.path.join(paratranz_up_path, 'manual_leftmenu.csv')
-            with open(path_contents, "w+", encoding="utf_8_sig", newline="\n") as f:
-                f.write(lines_contents)
-        else:
-            path_contents = os.path.join(paratranz_path, 'manual_leftmenu.csv')
             with open(path_contents, "w+", encoding="utf_8_sig", newline="\n") as f:
                 f.write(lines_contents)
 
@@ -616,8 +613,6 @@ class App(tkinter.Frame): # GUIの設定
         os.rename(zip_output_dir, html_output_dir)
         shutil.rmtree(po_output_dir, ignore_errors=True)
         shutil.rmtree(tmp_dir, ignore_errors=True)
-        if old_path:
-            shutil.rmtree(paratranz_path, ignore_errors=True)
 
         # その他のファイルをテンプレートからコピー
         if os.path.exists("./template"):
