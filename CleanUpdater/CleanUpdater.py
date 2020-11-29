@@ -3,9 +3,10 @@ import tkinter.filedialog, tkinter.messagebox
 import os
 import shutil
 import filecmp
+import re
 from pathlib import Path
 
-title = 'Clean Updater for GMS2 Manual - 1.10'
+title = 'Clean Updater for GMS2 Manual - 1.20'
 
 user_settings_path = 'user_settings.ini' # オプションの設定履歴
 log_path = 'log.txt'

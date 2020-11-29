@@ -4,7 +4,7 @@ import os
 import shutil
 import zipfile
 import urllib.parse
-import regex
+import regex as re
 import Levenshtein
 import time
 from pathlib import Path
@@ -13,7 +13,7 @@ from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 2.01'
+title = 'HelpConverter for GMS2 - 2.10'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
@@ -56,7 +56,7 @@ re.compile(r'([^\r\n]+Copyright YoYo Games Ltd. 2020 All Rights Reserved[^\r\n]*
 db_exclude_files = ['search_db.js', 'search_auto_model_0.js', 'search_auto_map_0.js', 'search_topics.js', 'text[/\\][0-9]+.js']
 
 comma_replacer = re.compile(r',(?=(?:[^"\r\n]*"[^"\r\n]*")*[^"\r\n]*$)', re.MULTILINE | re.DOTALL)
-isJp = regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])')
+isJp = re.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])')
 
 
 ##############################################################################################
@@ -811,7 +811,7 @@ class format_lines():
             s_comma = []
             for s in re.split(r',', contents):
 
-                if re.search(r'^[a-zA-Z0-9_]*_[a-zA-Z0-9_]*$', s) or regex.search(r'^[\p{S}\p{P}]+$', s): # 関数名/記号のみは除外
+                if re.search(r'^[a-zA-Z0-9_]*_[a-zA-Z0-9_]*$', s) or re.search(r'^[\p{S}\p{P}]+$', s): # 関数名/記号のみは除外
                     continue
                 s = '<p>{SEARCH_RESULT} ' + s + '</p>'
                 s_comma.append(s)
@@ -824,7 +824,7 @@ class format_lines():
             contents = matched.group(1)
             s_comma = []
             for s in re.split(r',', contents):
-                if re.search(r'^[a-zA-Z0-9_]*_[a-zA-Z0-9_]*$', s) or regex.search(r'^[\p{S}\p{P}]+$', s): # 関数名/記号のみは除外
+                if re.search(r'^[a-zA-Z0-9_]*_[a-zA-Z0-9_]*$', s) or re.search(r'^[\p{S}\p{P}]+$', s): # 関数名/記号のみは除外
                     continue
                 s = '<p>{INDEX_KEYWORD} ' + s + '</p>'
                 s_comma.append(s)
@@ -890,31 +890,31 @@ class format_lines():
 
     def _po(self, lines, import_path): # POの整形
 
-        new_lines = ''
-        separated = lines.splitlines(True)
+        new_lines = []
         pat = [re.compile(r'^#: ([^\r\n]+)$'), re.compile(r'^msgctxt ([^\r\n]+)$')]
 
         archive_name = os.path.splitext(os.path.basename(import_path))[0]
         archive_name_decoded = urllib.parse.quote(archive_name)
 
         po_replace_fullpath_key = [
-        re.compile(r'^#: [^\r\n]+%5C' + archive_name_decoded + r'%5'), r'#: ' + archive_name_decoded + r'%5',
-        re.compile(r'^msgctxt [^\r\n]+' + archive_name + r'\\'), r'msgctxt "' + archive_name + r'\\'
+        [re.compile(r'^#: [^\r\n]+%5C' + archive_name_decoded + r'%5'), r'#: ' + archive_name_decoded + r'%5'],
+        [re.compile(r'^msgctxt [^\r\n]+' + archive_name + r'\\'), r'msgctxt "' + archive_name + r'\\'],
+        [re.compile(r'^"[^\r\n]+' + archive_name + r'\\'), r'"' + archive_name + r'\\']
         ]
 
-        for m in separated:
+        for m in lines.splitlines(True):
             # 文字列位置のパスを相対パスに整形
-            m = re.sub(po_replace_fullpath_key[0], po_replace_fullpath_key[1], m)
-            m = re.sub(po_replace_fullpath_key[2], po_replace_fullpath_key[3], m)
+            for path_key in po_replace_fullpath_key:
+                m = path_key[0].sub(path_key[1], m)
 
             if pat[0].match(m):
                 m = m.replace('/', '%5C') # スラッシュをurlエンコード
             if pat[1].match(m):
                 m = m.replace('/', os.sep + os.sep) # スラッシュを\\に置き換え
 
-            new_lines += m
+            new_lines.append(m)
 
-        return new_lines
+        return ''.join(new_lines)
 
 
     def _csv(self, lines, base_dir, filename, is_add_url, url_en, url_jp, url_type): # CSVの整形
