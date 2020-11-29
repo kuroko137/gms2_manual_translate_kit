@@ -104,11 +104,11 @@ shopt -s dotglob
 
 cp ./docs ./Release -arf
 find ./Release/docs -name "*.gitkeep" -or -name "*.gitattributes" -or -name "*.nojekyll" | xargs rm
-mv ./Release/docs ./Release/YoYoStudioRoboHelp
-cd Release/YoYoStudioRoboHelp
-zip -r ../YoYoStudioRoboHelp.zip ./
+mv ./Release/docs ./Release/GMS2-Robohelp-ja -f
+cd Release/GMS2-Robohelp-ja
+zip -r ../GMS2-Robohelp-ja.zip ./
 cd ../../
-rm -rf ./Release/YoYoStudioRoboHelp
+rm -rf ./Release/GMS2-Robohelp-ja
 
 echo "action_state=green" > _ENV_ACTION_STATE
 
@@ -117,11 +117,11 @@ if [ $GENERATE_EX -eq 1 ]; then
   cp ./docs ./Release -arf
   cp ./ex_tmp/docs ./Release -arf
   find ./Release/docs -name "*.gitkeep" -or -name "*.gitattributes" -or -name "*.nojekyll" | xargs rm
-  mv ./Release/docs ./Release/YoYoStudioRoboHelp
-  cd Release/YoYoStudioRoboHelp
-  zip -r ../YoYoStudioRoboHelp_Alt.zip ./
+  mv ./Release/docs ./Release/GMS2-Robohelp-ja -f
+  cd Release/GMS2-Robohelp-ja
+  zip -r ../GMS2-Robohelp-ja-alt.zip ./
   cd ../../
-  rm -rf ./Release/YoYoStudioRoboHelp
+  rm -rf ./Release/GMS2-Robohelp-ja
 fi
 
 shopt -u dotglob
