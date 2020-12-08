@@ -1,7 +1,6 @@
 import os
 import sys
-import re
-import regex
+import regex as re
 import urllib.request
 import shutil
 import zipfile
@@ -19,7 +18,7 @@ REPO_VERSION = [0, [0, 0]]
 
 ################# 各種設定 ###############
 
-# 日本語と英数字の間に半角スペースを自動で挿入するかどうか
+# 日本語と英数記号の間に半角スペースを自動で挿入するかどうか
 #  0で無効、1でスペースを挿入、2でスペースを削除
 SPACE_ADJUSTMENT = 1
 
@@ -429,21 +428,29 @@ class format_lines():
     def _csv(self, lines, base_path): # CSVの整形
     
         # 正規表現パターン定義
+        JP_PAT = r'[…ー\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}]'
+
         insert_pat = [ # 半角スペースの挿入パターン
-#        regex.compile(r'([^ \p{Ps}\p{Pe}">])((<[^>]+>)*)(<b>|<strong>)((<[^>]+>)*)'),
-#        regex.compile(r'((<[^>]+>)*)(</b>|</strong>)((<[^>]+>)*)([^ \p{Ps}\p{Pe}"<])'),
-#        regex.compile(r'([^ \p{Ps}\p{Pe}">])((<[^>]+>)*)(<a href=[^>]+>)((<[^>]+>)*)'),
-#        regex.compile(r'((<[^>]+>)*)(</a>)((<[^>]+>)*)([^ \p{Ps}\p{Pe}"<])'),
-        regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])((<[^>]+>)*)((\p{Ps})?)([a-zA-Z0-9™°])'),
-        regex.compile(r'(([a-zA-Z0-9™°])(\p{Pe}?))((<[^>]+>)*)((\p{Ps})?)([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])'),
-        re.compile(r'(、|。|！|？) '),
-        re.compile(r' (、|。|！|？)'),
-        re.compile(r'\\n ')
+#        re.compile(r'([^ \p{Ps}\p{Pe}">])((<[^>]+>)*)(<b>|<strong>)((<[^>]+>)*)'),
+#        re.compile(r'((<[^>]+>)*)(</b>|</strong>)((<[^>]+>)*)([^ \p{Ps}\p{Pe}"<])'),
+#        re.compile(r'([^ \p{Ps}\p{Pe}">])((<[^>]+>)*)(<a href=[^>]+>)((<[^>]+>)*)'),
+#        re.compile(r'((<[^>]+>)*)(</a>)((<[^>]+>)*)([^ \p{Ps}\p{Pe}"<])'),
+        [re.compile(r'(' + JP_PAT + r')((<[^>]+>)*)((\p{Ps})?)([a-zA-Z0-9™°\/])'), r'\1 \2\4\6'], # 日本語|英数字|日本語 > 日本語 |英数字| 日本語
+        [re.compile(r'(([a-zA-Z0-9™°\/])(\p{Pe}?))((<[^>]+>)*)((\p{Ps})?)(' + JP_PAT + r')'), r'\1\4 \6\8'], 
+        [re.compile(r'(' + JP_PAT + r')\(([^\) ]*)\)'), r'\1 (\2)'], # 日本語(*)日本語 > 日本語 (*) 日本語
+        [re.compile(r'\(([^\) ]*)\)(' + JP_PAT + r')'), r'(\1) \2'], 
+        [re.compile(r'(' + JP_PAT + r')\[([^\] ]*)\]'), r'\1 (\2)'], # 日本語[*]日本語 > 日本語 [*] 日本語
+        [re.compile(r'\[([^\] ]*)\](' + JP_PAT + r')'), r'(\1) \2'], 
+        [re.compile(r'(' + JP_PAT + r')([\"]+)([^\" ]*)([\"]+)'), r'\1 \2\3\4'], # 日本語"*"日本語 > 日本語 "*" 日本語
+        [re.compile(r'([\"]+)([^\" ^]*)([\"]+)(' + JP_PAT + r')'), r'\1\2\3 \4'], 
+        [re.compile(r'(、|。|！|？|…) '), r'\1'], 
+        [re.compile(r' (、|。|！|？|…)'), r'\1'], 
+        [re.compile(r'\\n '), r'\\n']
         ]
     
         remove_pat = [ # 半角スペースの削除パターン
-        regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}]) ?((<[^>]+>)*) ?((\p{Ps})?)([a-zA-Z0-9™°])'),
-        regex.compile(r'(([a-zA-Z0-9™°])(\p{Pe}?)) ?((<[^>]+>)*)((\p{Ps})?) ?([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])')
+        [re.compile(r'(' + JP_PAT + r') ?((<[^>]+>)*) ?((\p{Ps})?)([a-zA-Z0-9™°])'), r'\1\2\4\6'], 
+        [re.compile(r'(([a-zA-Z0-9™°])(\p{Pe}?)) ?((<[^>]+>)*)((\p{Ps})?) ?(' + JP_PAT + r')'), r'\1\4\6\8']
         ]
     
         base_path = base_path.replace('\\', '\\\\')
@@ -469,19 +476,12 @@ class format_lines():
         
                 # 日本語/英数字、および<b>, <a href>タグの間に半角スペースを挿入・削除
                 if SPACE_ADJUSTMENT == 1: # 半角スペースを挿入する場合
-#                    translation = insert_pat[0].sub(r'\1 \2\4\5', translation)
-#                    translation = insert_pat[1].sub(r'\1\3\4 \6', translation)
-#                    translation = insert_pat[2].sub(r'\1 \2\4\5', translation)
-#                    translation = insert_pat[3].sub(r'\1\3\4 \6', translation)
-                    translation = insert_pat[0].sub(r'\1 \2\4\6', translation)
-                    translation = insert_pat[1].sub(r'\1\4 \6\8', translation)
-                    translation = insert_pat[2].sub(r'\1', translation)
-                    translation = insert_pat[3].sub(r'\1', translation)
-                    translation = insert_pat[4].sub(r'\\n', translation)
+                    for pat in insert_pat:
+                        translation = pat[0].sub(pat[1], translation)
         
                 elif SPACE_ADJUSTMENT == 2: # 半角スペースを削除する場合
-                    translation = remove_pat[0].sub(r'\1\2\4\6', translation)
-                    translation = remove_pat[1].sub(r'\1\4\6\8', translation)
+                    for pat in remove_pat:
+                        translation = pat[0].sub(pat[1], translation)
         
                 # 翻訳行をタグで分離
                 notags = re.split(r'((?:<[^>]+>)|(?:\([a-zA-Z0-9 ]+\))|(?:（[a-zA-Z0-9 ]+）)|(?:\[[a-zA-Z0-9 ]+\]))', translation)
@@ -898,7 +898,7 @@ class namedict(): # DnDアクション、イベント名の辞書
 
                     if len(dict_var) >= 3: # 正規表現パターンが存在する場合はコンパイル
                         try:
-                            dict_var[2] = regex.compile(dict_var[2], flags=re_flags)
+                            dict_var[2] = re.compile(dict_var[2], flags=re_flags)
                         except:
                             print('ERROR! {0} {1}: "{2}" failed to compile. The regular expression pattern is incorrect.'.format(path, idx, dict_var[2]))
                             continue
@@ -944,7 +944,7 @@ class namedict(): # DnDアクション、イベント名の辞書
                     re_m = m.replace(tr[0], tr[1]) # 単純置換
 
                 if '{WITH_ENG}' in re_m: # 対訳置換
-                    re_m = regex.sub(r'{WITH_ENG} *' + tr[0], ' ' + tr[1] + ' : ' + tr[0], m, flags=re_flags)
+                    re_m = re.sub(r'{WITH_ENG} *' + tr[0], ' ' + tr[1] + ' : ' + tr[0], m, flags=re_flags)
 
                 if m != re_m:
                     m = re_m
@@ -1041,12 +1041,12 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
         if ENABLE_FULL_TRANSLATION:
             os.makedirs(self.db_dest_ex_dir, exist_ok=True)
 
-        self.isJp = regex.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])')
-        self.isEn = regex.compile(r'^[A-Za-z0-9\!-\/:-@\[-\^\{-\~_ ©]+$')
-        self.isSymbol = regex.compile(r'^[\!-\*\.\,\/:-@\[-\^\{-\~\p{InCJKSymbolsAndPunctuation}]+$')
-        self.isSymbolEx = regex.compile(r'^[\+\-_]+$')
-        self.isHiragana = regex.compile(r'^[\p{Hiragana}]+$')
-        self.isKana = regex.compile(r'^[\p{Katakana}]+$')
+        self.isJp = re.compile(r'([\p{Hiragana}\p{Katakana}\p{Han}\p{InCJKSymbolsAndPunctuation}\p{InHalfwidthAndFullwidthForms}])')
+        self.isEn = re.compile(r'^[A-Za-z0-9\!-\/:-@\[-\^\{-\~_ ©]+$')
+        self.isSymbol = re.compile(r'^[\!-\*\.\,\/:-@\[-\^\{-\~\p{InCJKSymbolsAndPunctuation}]+$')
+        self.isSymbolEx = re.compile(r'^[\+\-_]+$')
+        self.isHiragana = re.compile(r'^[\p{Hiragana}]+$')
+        self.isKana = re.compile(r'^[\p{Katakana}]+$')
 
         self.search_dict = {}
         self.search_fulltr_dict = {}
@@ -1339,33 +1339,34 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
                         result.append(output)
 
                         # 区切り文字で分解し、それぞれのパーツを追加
+                        I_TAG = '{_IGNORE_AUTO_MAP}'
                         s_output = []
                         for i in range(len(parts)):
                             if any(parts[i].startswith(pat) for pat in p_separate):
 
                                 s = ''.join(s_output).strip(' "')
                                 if s:
-                                    result.append(s)
+                                    result.append(I_TAG + s)
                                 s_output = []
                             else:
                                 s_output.append(surfaces[i])
                                 s = surfaces[i].strip(' "')
                                 if s and not self.isHiragana.match(surfaces[i]) and any(parts[i].startswith(pat) for pat in p_noun):
-                                    result.append(s) # 名詞を単体で抽出
+                                    result.append(I_TAG + s) # 名詞を単体で抽出
                         else:
                             if len(s_output) > 1: # ループの余りを追加
                                 s = ''.join(s_output)
                                 if s:
-                                    result.append(''.join(s_output))
+                                    result.append(I_TAG + ''.join(s_output))
 
                         # スペースで分割
                         for s in output.split():
                             if s and not s in result:
 
                                 if s != ''.join(self.separate_by_janome(s)):
-                                    result.append('{_SPLIT_BY_SPACE}' + s) # '～の'などで終わっているキーワードは入力候補に出ないようにする
+                                    result.append(I_TAG + s) # '～の'などで終わっているキーワードは入力候補に出ないようにする
                                 else:
-                                    result.append(s)
+                                    result.append(I_TAG + s)
 
                     surfaces = []
                     parts = []
@@ -1485,8 +1486,8 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
                                     d = d.replace('\\', '')
 
                                     no_automap = False
-                                    if '{_SPLIT_BY_SPACE}' in d: # 入力候補から除外するキーワード
-                                        d = d.replace(r'{_SPLIT_BY_SPACE}', r'')
+                                    if '{_IGNORE_AUTO_MAP}' in d: # 入力候補から除外するキーワード
+                                        d = d.replace(r'{_IGNORE_AUTO_MAP}', r'')
                                         no_automap = True
 
                                     d_body = d.replace(r'"', r'\"')
