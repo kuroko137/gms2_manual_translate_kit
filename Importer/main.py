@@ -43,6 +43,9 @@ GENERATE_AS_PREVIEW = True
 #  有効にするとメッセージが複数行にまたがった場合、不自然なポイントで改行されてしまう問題を修正できます。
 SPACE_TO_NO_BREAK = True
 
+# 形態素解析に用いるユーザー辞書のパス
+JANOME_SIMPLE_DICT = 'Importer/dict/janome_dict_simple.csv' # IPADICではなくjanomeの簡略化辞書として読み込まれます
+
 input_dir = 'utf8/csv/' # ParaTranzのCSVディレクトリ
 ide_path = ['utf8/english.csv', 'utf8/ide_english_dnd.csv'] # ParaTranzのIDE言語ファイル
 glossary_path = 'utf8/manual_glossary.csv' # マニュアルの用語集
@@ -195,7 +198,7 @@ def set_translation_count(old_lines, new_lines, file):
     translation_info[4] = translation_info[4] + tr_word[0] # 翻訳ワード数
     translation_info[5] = translation_info[5] + tr_word[1] # 追加された翻訳ワード数
 
-    return
+    return tr_line[0]
 
 
 def convert_from_zip(paratranz_zip_path):
@@ -1043,11 +1046,17 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
         self.isSymbol = regex.compile(r'^[\!-\*\.\,\/:-@\[-\^\{-\~\p{InCJKSymbolsAndPunctuation}]+$')
         self.isSymbolEx = regex.compile(r'^[\+\-_]+$')
         self.isHiragana = regex.compile(r'^[\p{Hiragana}]+$')
+        self.isKana = regex.compile(r'^[\p{Katakana}]+$')
 
         self.search_dict = {}
         self.search_fulltr_dict = {}
         self.js_dict = {}
-        self.t = Tokenizer()
+
+        if os.path.isfile(JANOME_SIMPLE_DICT):
+            print('User dict for Janome: {0}'.format(JANOME_SIMPLE_DICT))
+            self.t = Tokenizer(JANOME_SIMPLE_DICT, udic_enc='utf8', udic_type='simpledic')
+        else:
+            self.t = Tokenizer()
 
     def translate_from_file(self, source_path, dest_path, separate_pat, keys, *tr_dict): # ファイルを翻訳して出力
 
@@ -1226,7 +1235,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
 
 
     def separate_by_janome(self, lines):
-        p_noun = ['名詞,']
+        p_noun = ['名詞']
         p_ignore = ['名詞,代名詞'] # 無視する品詞
         p_ignore_single = ['形容詞', '助詞,連体化'] #単体NG（直前・直後が名詞ならOK）
         p_ignore_single_hiragana = ['名詞,非自立', '名詞,代名詞', '名詞,副詞可能', '名詞,形容動詞語幹', '名詞,接尾', '名詞,副詞可能', '名詞,動詞非自立的'] #ひらがなの場合は単体NG
@@ -1234,12 +1243,32 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
         p_allowed = ['名詞', '記号,空白', '記号,連体化', '助詞,連体化', '形容詞'] # 許可する品詞
         p_separate = ['助詞,連体化', '記号', '形容詞'] # 区切りとなる品詞
 
+        ignore_phrase = ['アクション構文:', 'アクションの構文:', '構文:', '引数:', '例:', '用例:', '戻る:', '次へ:', '返り値:', '戻り値:']
+
         result = []
 
         lines = re.sub(r'^ *{[^\}]+\}.*', r'', lines, flags=re.MULTILINE) # htmlの外で使われるテキストは除外
         lines = re.sub(r'\{[^\}]+\}', r'', lines) # ダミータグは除外
         lines = re.sub(r'<img alt=[^>]+>', r'', lines) # IMG_TXTは除外
         lines = re.sub(r'<span data-close-text=[^>]+>[^<]+</span>', r'', lines) # クローズボタンは除外
+
+        tmp_lines = []
+        for line in lines.splitlines(True):
+            SKIP = False
+
+            for pat in csv_commentout_tr:
+                if line.startswith(pat[1]):
+                    SKIP = True
+                    break
+            for pat in ignore_phrase:
+                if line.startswith(pat):
+                    SKIP = True
+                    break
+
+            if SKIP == False:
+                tmp_lines.append(line)
+
+        lines = ''.join(tmp_lines)
 
         # 見出し（タグ区切りのテキスト）を辞書に追加
         for line in lines.splitlines(False):
@@ -1274,11 +1303,14 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
                     token[1] = '記号,その他,*,*'
                 elif self.isSymbolEx.match(token[0]):
                     token[1] = '記号,連体化,*,*'
+                elif self.isKana.match(token[0]) and all(not token[0].startswith(pat) for pat in p_allowed):
+                    token[1] = '名詞,一般,*,*'
 
+                # 連結できないパターンが検出されたため分割を開始
                 if all(not token[1].startswith(pat) for pat in p_allowed) or any(token[1].startswith(pat) for pat in p_ignore):
                     SKIP = False
 
-                    # パターン精査
+                    # 前後の不要な文字を取る
                     while len(parts) > 0 and any(parts[-1].startswith(pat) for pat in p_strip):
                         parts.pop(-1)
                         surfaces.pop(-1)
@@ -1291,6 +1323,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
                     output = output.rstrip('-')
                     output = output.strip(' "')
 
+                    # パターン精査
                     if len(parts) == 1 and any(parts[0].startswith(pat) for pat in p_ignore_single):
                         SKIP = True
 
@@ -1300,7 +1333,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
                     if len(output) <= 1:
                         SKIP = True
 
-                    # キーワードの辞書への追加
+                    # キーワードを辞書に追加
                     if SKIP == False:
                         # 全文を追加
                         result.append(output)
