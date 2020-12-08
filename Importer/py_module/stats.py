@@ -43,6 +43,8 @@ def write_update_stats(log_dir, ver, infos, files):
 
     files = list(dict.fromkeys(files)) # 重複行を削除
 
+    file_log_lines = []
+
     if len(files) > 0:
         lines.insert(0, line)
         lines.insert(0, header)
@@ -51,7 +53,6 @@ def write_update_stats(log_dir, ver, infos, files):
         with open(log_path, "w+") as f: # ログに統計を書き込み
             f.write('\n'.join(lines))
 
-        file_log_lines = []
         str_files = '\t'.join(files)
         str_files = str_files.strip('\t')
         str_files = time + '\t' + str_files
@@ -103,10 +104,12 @@ def write_update_stats(log_dir, ver, infos, files):
             ld = datetime.datetime(ls[0], ls[1], ls[2], ls[3], ls[4])
 
             if cd < (ld + datetime.timedelta(seconds=(interval - interval_play))): # 現在時間がインターバル未満
+                print('NOTIFICATION_SKIP: The interval is not over')
                 NOTIFICATION_SKIP = True
 
             if interval == 0 and len(files) == 0:
                 NOTIFICATION_SKIP = True
+                print('NOTIFICATION_SKIP: No file found')
 
             if interval > 0 and NOTIFICATION_SKIP == False:
 
@@ -131,6 +134,7 @@ def write_update_stats(log_dir, ver, infos, files):
 
                 if i == 0 and len(files) == 0:
                     NOTIFICATION_SKIP = True
+                    print('NOTIFICATION_SKIP: No file found for DETAILS.')
                 else:
                     add_lines = '{:,}'.format(infos[2])
                     add_words = '{:,}'.format(infos[5])
@@ -139,15 +143,25 @@ def write_update_stats(log_dir, ver, infos, files):
                     add_pct = '{:.3f}'.format((infos[2] / infos[0]) * 100)
 
     if NOTIFICATION_SKIP:
-        print('The interval has not passed. Cancel notification.')
         return
-    else:
-        with open(latest_path, "w+") as f:
-            f.write(time)
 
-        notify_file = '_DISCORD_NOTIFICATION'
-        with open(notify_file, "w+") as f:
-            f.write(notify_file)
+    files = list(dict.fromkeys(files))
+    
+    DETAILS = os.environ.get("DISCORD_DETAILS")
+    if DETAILS == None or DETAILS == '' or DETAILS.lower() == 'false':
+        DETAILS = False
+    else:
+        if len(files) == 0:
+            return
+        DETAILS = True
+
+    # 通知フラグファイルを作成
+    with open(latest_path, "w+") as f:
+        f.write(time)
+
+    notify_file = '_DISCORD_NOTIFICATION'
+    with open(notify_file, "w+") as f:
+        f.write(notify_file)
 
     # 通知メッセージを設定
     if old_ver > 0 and ver > old_ver:
@@ -161,14 +175,8 @@ def write_update_stats(log_dir, ver, infos, files):
     with open(msg_path, "w+", encoding='utf_8') as f: # 環境変数に代入できなくなるためBOM無しで出力する
         f.write(message)
 
-    # 変更されたファイルの名前を通知するかどうか
-    DETAILS = os.environ.get("DISCORD_DETAILS")
-    if DETAILS == None or DETAILS == '' or DETAILS.lower() == 'false':
-        DETAILS = False
-    else:
-        DETAILS = True
-
-    if DETAILS and len(files) > 0:
+    # 変更されたファイルの名前を通知
+    if DETAILS:
         detail_path = '_ENV_NOTIFY_DETAILS'
         str_files = ''
 
