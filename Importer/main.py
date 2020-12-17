@@ -979,6 +979,9 @@ def read_glossary(paratranz_zip_path): # 用語集のファイル内容をリス
             source = separated[2]
             translation = separated[3]
 
+        source = source.replace(r'""', r'\\\"')
+        translation = translation.replace(r'""', r'\\\"')
+
         if separated[1] == 'Name':
             l_line[0] = 'TITLE_KEY::' + separated[0]
             l_line[1] = source.strip('"')

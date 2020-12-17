@@ -13,7 +13,7 @@ if sys.platform == 'win32':
 exe = Executable(script = "HelpConverter.pyw", base= base, icon='icons/icon.ico')
  
 setup(name = 'HelpConverter',
-    version = '2.10',
+    version = '2.11',
     description = 'HelpConverter',
       options = {"build_exe": {"excludes":excludes}},
     executables = [exe])

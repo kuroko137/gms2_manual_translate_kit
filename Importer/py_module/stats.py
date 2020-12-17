@@ -3,18 +3,20 @@ import sys
 import re
 import datetime
 
+NOTIFICATION_BY_WORD = False # 通知における進捗率をワード数から算出するかどうか
+DAYS_MERGIN = 365 # グラフ用の空項目を何日先に作成するか
 
 def write_update_stats(log_dir, ver, infos, files):
     lines = []
-    header = 'time\tver\tlines\ttr_lines\twords\ttr_words\tpct_lines\tadd_pct_lines\tadd_lines\tadd_words'
+    header = 'time\tver\tlines\ttr_lines\tpct_lines\twords\ttr_words\tpct_words\tadd_lines\tadd_pct_lines\tadd_words\tadd_pct_words'
     old_ver = 0
 
     # ログから前の統計を取得
-
     latest_path = os.path.join(log_dir, 'discord_latest_notice.log')
     log_path = os.path.join(log_dir, 'update_stats.csv')
     log_lines = []
     files_log_path = os.path.join(log_dir, 'update_stats_files.csv')
+    log_graph_path = os.path.join(log_dir, 'update_stats_graph.log')
 
     if os.path.exists(log_path):
         with open(log_path, "r") as f:
@@ -30,16 +32,18 @@ def write_update_stats(log_dir, ver, infos, files):
     add_lines = '{:,}'.format(infos[2])
     add_words = '{:,}'.format(infos[5])
 
-    total_pct = '{:.3f}'.format((infos[1] / infos[0]) * 100)
-    add_pct = '{:.3f}'.format((infos[2] / infos[0]) * 100)
+    total_pct_lines = '{:.3f}'.format((infos[1] / infos[0]) * 100)
+    total_pct_words = '{:.3f}'.format((infos[4] / infos[3]) * 100)
+    add_pct_lines = '{:.3f}'.format((infos[2] / infos[0]) * 100)
+    add_pct_words = '{:.3f}'.format((infos[5] / infos[3]) * 100)
 
     dt = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
     time = dt.strftime('%Y/%m/%d %H:%M:%S')
 
     if infos[2] > 0:
-        line = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}'.format(time, ver, total_lines, tr_lines, total_words, tr_words, total_pct, add_pct, add_lines, add_words)
+        line = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}'.format(time, ver, total_lines, tr_lines, total_pct_lines, total_words, tr_words, total_pct_words, add_lines, add_pct_lines, add_words, add_pct_words)
     else:
-        line = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}'.format(time, ver, total_lines, tr_lines, total_words, tr_words, total_pct)
+        line = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}'.format(time, ver, total_lines, tr_lines, total_pct_lines, total_words, tr_words, total_pct_words)
 
     files = list(dict.fromkeys(files)) # 重複行を削除
 
@@ -65,6 +69,58 @@ def write_update_stats(log_dir, ver, infos, files):
 
         with open(files_log_path, "w+") as f: # ログに更新ファイル名を書き込み
             f.write('\n'.join(file_log_lines))
+
+
+    # ------------------------------------
+    # グラフ用のCSVを出力
+    if len(files) > 0:
+
+        lines_dict = {}
+        old_header = ''
+
+        for line in lines:
+            line = re.sub(r'(^[^ ]+) [0-9:]+', r'\1', line)
+            header = line.split('\t')[0]
+
+            if header != old_header:
+                stats = [0, 0.0, 0, 0.0]
+
+            s = line.split('\t')
+
+            if len(s) >= 12:
+                for idx in range(len(stats)):
+                    adds = idx + 8
+
+                    if not s[adds].replace('.', '', 1).isdigit():
+                        break
+
+                    if isinstance(stats[idx], float):
+                        adds_var = float(s[adds])
+                        stats[idx] += adds_var
+                        stats[idx] = round(stats[idx], 3)
+                    else:
+                        adds_var = int(s[adds])
+                        stats[idx] += adds_var
+
+                    s[adds] = str(stats[idx])
+            line = '\t'.join(s)
+
+            lines_dict[header] = line
+            old_header = header
+
+        graph_lines = [line for line in lines_dict.values()]
+
+
+        if DAYS_MERGIN > 0:
+            dt_max = dt + datetime.timedelta(days=DAYS_MERGIN)
+        else:
+            dt_max = dt + datetime.timedelta(days=1)
+        line_max_time = dt_max.strftime('%Y/%m/%d')
+        graph_lines.insert(1, line_max_time)
+
+
+        with open(log_graph_path, "w+") as f: # ログに更新ファイル名を書き込み
+            f.write('\n'.join(graph_lines))
 
 
     # ------------------------------------
@@ -125,8 +181,8 @@ def write_update_stats(log_dir, ver, infos, files):
                     i += 1
 
                     if len(s) > 9:
-                        infos[2] += int(s[8])
-                        infos[5] += int(s[9])
+                        infos[2] += int(s[8]) # 行数（追加）
+                        infos[5] += int(s[10]) # ワード数（追加）
 
                     pre_files = [line for line in file_log_lines if line.startswith(s[0])]
                     if pre_files:
@@ -164,12 +220,19 @@ def write_update_stats(log_dir, ver, infos, files):
         f.write(notify_file)
 
     # 通知メッセージを設定
-    if old_ver > 0 and ver > old_ver:
-        message = 'notify_message={0} - 日本語化率: {1}% (バージョン {2} > {3}\n'.format(time, total_pct, old_ver, ver)
-    elif infos[2] > 0:
-        message = 'notify_message={0} - 日本語化率: {1}% (+{2}%, {3} 行, {4} 語)\n'.format(time, total_pct, add_pct, add_lines, add_words)
+    if NOTIFICATION_BY_WORD:
+        disc_total_pct = total_pct_words
+        disc_add_pct = add_pct_words
     else:
-        message = 'notify_message={0} - 日本語化率: {1}% (変更のみ)\n'.format(time, total_pct)
+        disc_total_pct = total_pct_lines
+        disc_add_pct = add_pct_lines
+
+    if old_ver > 0 and ver > old_ver:
+        message = 'notify_message={0} - 日本語化率: {1}% (バージョン {2} > {3}\n'.format(time, disc_total_pct, old_ver, ver)
+    elif infos[2] > 0:
+        message = 'notify_message={0} - 日本語化率: {1}% (+{2}%, {3} 行, {4} 語)\n'.format(time, disc_total_pct, disc_add_pct, add_lines, add_words)
+    else:
+        message = 'notify_message={0} - 日本語化率: {1}% (変更のみ)\n'.format(time, disc_total_pct)
 
     msg_path = '_ENV_NOTIFY_MESSAGE'
     with open(msg_path, "w+", encoding='utf_8') as f: # 環境変数に代入できなくなるためBOM無しで出力する

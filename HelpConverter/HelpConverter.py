@@ -13,7 +13,7 @@ from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 2.10'
+title = 'HelpConverter for GMS2 - 2.11'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
@@ -954,7 +954,7 @@ class format_lines():
 class generate_sub(): # whxdataのファイル用データを生成
 
     def glossary(self, lines): # 用語集の生成
-        separated = re.split(r'(?:{[^}]+)("name":"[^"]+)(?:",)("value":"[^"]+)(?:"},*)', lines)
+        separated = re.split(r'(?:{[^}]+)("name":"[^"]+)(?:",)("value":"[^\}]+)(\"\},*)', lines)
 
         current_key = ''
         new_lines = []
@@ -964,10 +964,14 @@ class generate_sub(): # whxdataのファイル用データを生成
             value_key = '"value":"'
 
             if item.startswith(name_key):
-                current_key = re.sub(r'[ ,]', '_', item[len(name_key):])
-                new_lines.append(current_key + '_Name,"' + item[len(name_key):] + '"')
+                data = item[len(name_key):]
+                data = data.replace(r'\\\"', '""')
+                current_key = re.sub(r'[ ,]', '_', data)
+                new_lines.append(current_key + '_Name,"' + data + '"')
             elif item.startswith(value_key):
-                new_lines.append(current_key + '_Desc,"' + item[len(value_key):] + '"')
+                data = item[len(value_key):]
+                data = data.replace(r'\\\"', '""')
+                new_lines.append(current_key + '_Desc,"' + data + '"')
 
         new_lines.append('')
 
