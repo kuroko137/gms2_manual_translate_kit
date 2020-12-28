@@ -443,8 +443,8 @@ class format_lines():
         [re.compile(r'\[([^\] ]*)\](' + JP_PAT + r')'), r'(\1) \2'], 
         [re.compile(r'(' + JP_PAT + r')([\"]+)([^\" ]*)([\"]+)'), r'\1 \2\3\4'], # 日本語"*"日本語 > 日本語 "*" 日本語
         [re.compile(r'([\"]+)([^\" ^]*)([\"]+)(' + JP_PAT + r')'), r'\1\2\3 \4'], 
-        [re.compile(r'(、|。|！|？|…) '), r'\1'], 
-        [re.compile(r' (、|。|！|？|…)'), r'\1'], 
+        [re.compile(r'([、。！？…）」】》≫＞]) '), r'\1'], 
+        [re.compile(r'( [、。！？…（「【《≪＜])'), r'\1'], 
         [re.compile(r'\\n '), r'\\n']
         ]
     
@@ -452,16 +452,50 @@ class format_lines():
         [re.compile(r'(' + JP_PAT + r') ?((<[^>]+>)*) ?((\p{Ps})?)([a-zA-Z0-9™°])'), r'\1\2\4\6'], 
         [re.compile(r'(([a-zA-Z0-9™°])(\p{Pe}?)) ?((<[^>]+>)*)((\p{Ps})?) ?(' + JP_PAT + r')'), r'\1\4\6\8']
         ]
-    
-        base_path = base_path.replace('\\', '\\\\')
 
-    
-        ############# 一行ごとの処理 #############
+
         lines = comma_replacer.sub(r'\t', lines)
+
+        # バックアップから画像タグの中身を読み込み
+        img_tags_path = os.path.join(template_csv_dir, base_path + '_ImgTAG.csv')
+        img_tags_base = {}
+        img_tags_tr = {}
+
+        if os.path.isfile(img_tags_path):
+
+            with open(img_tags_path, 'r', encoding='utf_8_sig') as f:
+                img_lines = f.read()
+
+            img_lines = comma_replacer.sub(r'\t', img_lines)
+
+            for line in img_lines.splitlines(False):
+                s = line.split('\t')
+                tag_name = re.sub(r'.*\.img_tag\+(.*)', r'\1', s[0])
+                tag_name = tag_name.strip('"')
+                base_string = s[1].strip('"')
+                img_tags_base[tag_name] = base_string
+
+                tr_data = re.findall(r'\.img_tag\+' + tag_name + r'"?\t"?([^\t\r\n]+)"?\t"?([^\t\r\n]+)"?', lines)
+                if tr_data:
+                    tr_string = base_string.replace(tr_data[0][0], '[' + tr_data[0][1] + ']')
+                    tr_string = tr_string.replace('""', '"')
+                    img_tags_tr[tag_name] = tr_string
+
+
+        ############# 一行ごとの処理 #############
         new_lines = []
+
+        base_path = base_path.replace('\\', '\\\\')
     
         for line in lines.splitlines(False):
             separated = re.split(r'\t', line)
+            source = separated[1] # 原文
+
+            # 画像タグを復元
+            if 'img_tag=' in source:
+                for pat in img_tags_base:
+                    tag_pattern = '<img_tag= ' + pat +'>'
+                    source = source.replace(tag_pattern, img_tags_base.get(pat))
     
             SKIP = False
     
@@ -471,9 +505,14 @@ class format_lines():
                 SKIP = True
 
             if SKIP == False:
-                source = separated[1] # 原文
                 translation = separated[2] # 翻訳
-        
+
+                # 画像タグを日本語化
+                if 'img_tag=' in translation:
+                    for pat in img_tags_tr:
+                        tag_pattern = '<img_tag=' + pat + '>'
+                        translation = translation.replace(tag_pattern, img_tags_tr.get(pat))
+
                 # 日本語/英数字、および<b>, <a href>タグの間に半角スペースを挿入・削除
                 if SPACE_ADJUSTMENT == 1: # 半角スペースを挿入する場合
                     for pat in insert_pat:
@@ -568,11 +607,14 @@ class format_lines():
                             index_exist_name[s.upper()] = True
                             index_data[tr] = filename
 
-
-                separated[1] = source
                 separated[2] = translation
+            separated[1] = source
 
-            new_lines.append(','.join(separated))
+            line = ','.join(separated)
+            if '.img_tag+' in line:
+                continue
+
+            new_lines.append(line)
 
         lines = '\n'.join(new_lines)
         ######################################
@@ -1252,7 +1294,7 @@ class whx(): # whxdataディレクトリ以下にあるファイルの処理
 
         lines = re.sub(r'^ *{[^\}]+\}.*', r'', lines, flags=re.MULTILINE) # htmlの外で使われるテキストは除外
         lines = re.sub(r'\{[^\}]+\}', r'', lines) # ダミータグは除外
-        lines = re.sub(r'<img alt=[^>]+>', r'', lines) # IMG_TXTは除外
+        lines = re.sub(r'<(img alt=|img data\-cke\-saved\-src=)[^>]+>', r'', lines) # IMG_TXTは除外
         lines = re.sub(r'<span data-close-text=[^>]+>[^<]+</span>', r'', lines) # クローズボタンは除外
 
         tmp_lines = []

@@ -13,7 +13,7 @@ from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 2.11'
+title = 'HelpConverter for GMS2 - 2.20'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
@@ -536,7 +536,7 @@ class App(tkinter.Frame): # GUIの設定
                 with open(path_source_csv, "r", encoding="utf_8_sig") as f_csv:
                     csv_lines = f_csv.read()
 
-                csv_lines = format_lines()._csv(csv_lines, base_dir, info.filename, url_is_add, url_en, url_jp, url_type)
+                csv_lines = format_lines()._csv(csv_lines, source_csv_output_dir, info.filename, url_is_add, url_en, url_jp, url_type)
 
                 with open(path_source_csv, "w", encoding="utf_8_sig", newline="\n") as f_csv:
                     f_csv.write(csv_lines)
@@ -570,7 +570,7 @@ class App(tkinter.Frame): # GUIの設定
 
                             if lines:
                                 # マージ後のCSVを再整形
-                                lines = format_lines()._csv(lines, base_dir, info.filename, url_is_add, url_en, url_jp, url_type)
+                                lines = format_lines()._csv(lines, source_csv_output_dir, info.filename, url_is_add, url_en, url_jp, url_type)
 
                                 # 変更確認
 
@@ -917,7 +917,9 @@ class format_lines():
         return ''.join(new_lines)
 
 
-    def _csv(self, lines, base_dir, filename, is_add_url, url_en, url_jp, url_type): # CSVの整形
+    def _csv(self, lines, output_dir, filename, is_add_url, url_en, url_jp, url_type): # CSVの整形
+
+        base_dir = os.path.join(os.path.split(filename)[0])
 
         # ParaTranzでのエラー防止のため、キーのディレクトリ名をすべて省略してファイル名のみにする（Importerで後に復元）
         lines = re.sub(r'"(GMS2-Robohelp)\\([^"\r\n]+\\)*', '"', lines)
@@ -947,6 +949,45 @@ class format_lines():
             # URLを挿入
             context = r',"URL_EN : ' + urls[0] + r' \\n\\nURL_JP : ' + urls[1] + '"'
             lines = re.sub(r'(^|[\r\n])([^#][^\r\n]+)', r'\1\2' + context, lines)
+
+        # 画像タグの置き換えを開始
+        lines = comma_replacer.sub(r'\t', lines)
+        imgs_data = [[], [], []]
+
+        for line in lines.splitlines(False):
+            s = line.split('\t')
+            if len(s) > 1 and ('<img alt=' in s[1] or '<img data-cke-saved-src' in s[1]):
+
+                for img in re.findall(r'<img alt=[^>]+>|<img data\-cke\-saved\-src=[^>]+>', s[1]):
+                    string = re.sub(r'.*\{IMG_TXT\} ([^=]+)"".*', r'\1', img)
+                    imgs_data[0].append(string)
+                    imgs_data[1].append(imgs_data[0].count(string) - 1)
+                    imgs_data[2].append(img)
+
+        if len(imgs_data[0]) > 0:
+            img_csv_data = []
+            lines_adds = []
+
+            for idx in range(len(imgs_data[0])):
+                tag_name = '{0}:{1}'.format(imgs_data[0][idx].replace(' ', '_'), imgs_data[1][idx])
+                key_name = os.path.basename(filename)
+
+                lines = lines.replace(imgs_data[2][idx], '<{0}{1}>'.format('img_tag=', tag_name), 1)
+
+                lines_adds.append('"{0}.img_tag+{1}"\t"{2}{3}"'.format(key_name, tag_name, '{IMG_TXT} ', imgs_data[0][idx]))
+                img_csv_data.append('"{0}.img_tag+{1}","{2}"'.format(key_name, tag_name, imgs_data[2][idx]))
+
+            lines_adds.sort()
+            lines = '\n'.join(lines.splitlines(False) + lines_adds) + '\n'
+
+            if len(img_csv_data) > 0:
+                img_tags_path = os.path.join(output_dir, os.path.splitext(filename)[0] + '_ImgTAG.csv')
+                os.makedirs(os.path.split(img_tags_path)[0], exist_ok=True)
+                with open(img_tags_path, "w+", encoding="utf_8_sig", newline="\n") as f:
+                    f.write('\n'.join(img_csv_data) + '\n')
+
+        # 出力
+        lines = re.sub('\t', ',', lines)
 
         return lines
 
