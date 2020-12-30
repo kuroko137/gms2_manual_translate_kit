@@ -478,7 +478,6 @@ class format_lines():
                 tr_data = re.findall(r'\.img_tag\+' + tag_name + r'"?\t"?([^\t\r\n]+)"?\t"?([^\t\r\n]+)"?', lines)
                 if tr_data:
                     tr_string = base_string.replace(tr_data[0][0], '[' + tr_data[0][1] + ']')
-                    tr_string = tr_string.replace('""', '"')
                     img_tags_tr[tag_name] = tr_string
 
 
@@ -607,6 +606,8 @@ class format_lines():
                             index_exist_name[s.upper()] = True
                             index_data[tr] = filename
 
+                if not translation.startswith('"'):
+                    translation = '"' + translation + '"'
                 separated[2] = translation
             separated[1] = source
 
@@ -631,7 +632,7 @@ class format_lines():
             orig_key = orig_key + '/' + os.path.split(base_path)[0]
         orig_key = orig_key.replace('/', '\\\\')
         lines = re.sub(r'([^"\r\n]+\.html?\+[^:]+:[0-9]+\-[0-9]+)', orig_key + '\\\\' + r'\1', lines)
-    
+
         # ダウンロード後にコメント列が削除されてしまうため空の列を挿入
         lines = re.sub(r'([\r\n]+)', r',""\1', lines)
     
