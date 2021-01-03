@@ -78,37 +78,40 @@ def write_update_stats(log_dir, ver, infos, files):
         lines_dict = {}
         old_header = ''
 
-        for line in lines:
-            line = re.sub(r'(^[^ ]+) [0-9:]+', r'\1', line)
+        for line in reversed(lines):
+            line = re.sub(r'(^[^ ]+) [0-9:]+', r'\1', line) # 時刻を日数のみに置換
             header = line.split('\t')[0]
 
             if header != old_header:
                 stats = [0, 0.0, 0, 0.0]
-
+            
             s = line.split('\t')
+            if len(s) < (len(stats) + 8):
+                s += ['0'] * len(stats)
 
-            if len(s) >= 12:
-                for idx in range(len(stats)):
-                    adds = idx + 8
+            # 同じ日の追加翻訳数を合算
+            for idx in range(len(stats)):
+                adds = idx + 8 # 追加翻訳数の開始インデックス
 
-                    if not s[adds].replace('.', '', 1).isdigit():
-                        break
+                if not s[adds].replace('.', '', 1).isdigit():
+                    break # 数字でないため中断
 
-                    if isinstance(stats[idx], float):
-                        adds_var = float(s[adds])
-                        stats[idx] += adds_var
-                        stats[idx] = round(stats[idx], 3)
-                    else:
-                        adds_var = int(s[adds])
-                        stats[idx] += adds_var
+                if isinstance(stats[idx], float): # 小数点
+                    formatted_var = float(s[adds])
+                    stats[idx] += formatted_var
+                    stats[idx] = round(stats[idx], 3)
+                else:
+                    formatted_var = int(s[adds])
+                    stats[idx] += formatted_var
 
-                    s[adds] = str(stats[idx])
+                s[adds] = str(stats[idx])
+
             line = '\t'.join(s)
-
             lines_dict[header] = line
             old_header = header
 
-        graph_lines = [line for line in lines_dict.values()]
+        lines_dict = sorted(lines_dict.items(), reverse=True)
+        graph_lines = [line[1] for line in lines_dict]
 
 
         if DAYS_MERGIN > 0:
