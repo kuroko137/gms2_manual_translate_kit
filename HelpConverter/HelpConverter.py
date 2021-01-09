@@ -13,7 +13,7 @@ from translate.convert.html2po import converthtml
 from translate.convert.po2csv import convertcsv
 from translate.tools.pretranslate import pretranslate_file
 
-title = 'HelpConverter for GMS2 - 2.20'
+title = 'HelpConverter for GMS2 - 2.21'
 
 # DnDアクション、Event名のラベルに対訳表示用のタグを追加するかどうか
 COUNTER_TRANSLATION = True
@@ -960,6 +960,9 @@ class format_lines():
 
                 for img in re.findall(r'<img alt=[^>]+>|<img data\-cke\-saved\-src=[^>]+>', s[1]):
                     string = re.sub(r'.*\{IMG_TXT\} ([^=]+)"".*', r'\1', img)
+
+                    if img in imgs_data[2]:
+                        continue
                     imgs_data[0].append(string)
                     imgs_data[1].append(imgs_data[0].count(string) - 1)
                     imgs_data[2].append(img)
@@ -970,9 +973,11 @@ class format_lines():
 
             for idx in range(len(imgs_data[0])):
                 tag_name = '{0}:{1}'.format(imgs_data[0][idx].replace(' ', '_'), imgs_data[1][idx])
+                # tag_name = '{0}'.format(imgs_data[0][idx].replace(' ', '_'))
                 key_name = os.path.basename(filename)
 
-                lines = lines.replace(imgs_data[2][idx], '<{0}{1}>'.format('img_tag=', tag_name), 1)
+                # lines = lines.replace(imgs_data[2][idx], '<{0}{1}>'.format('img_tag=', tag_name), 1)
+                lines = lines.replace(imgs_data[2][idx], '<{0}{1}>'.format('img_tag=', tag_name))
 
                 lines_adds.append('"{0}.img_tag+{1}"\t"{2}{3}"'.format(key_name, tag_name, '{IMG_TXT} ', imgs_data[0][idx]))
                 img_csv_data.append('"{0}.img_tag+{1}","{2}"'.format(key_name, tag_name, imgs_data[2][idx]))
