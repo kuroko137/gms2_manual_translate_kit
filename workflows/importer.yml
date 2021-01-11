@@ -29,6 +29,22 @@ jobs:
 
     steps:
       # 環境のセットアップ
+      - name: Get current time
+        uses: 1466587594/get-current-time@v2
+        id: current-time
+        with:
+          format: YYYYMMDD-HH
+          utcOffset: "+08:00"
+      - name: Use current time
+        env:
+          YEAR: "${{ steps.current-time.outputs.year }}"
+        run: echo "run_years=$YEAR" >> $GITHUB_ENV
+      - name: Check current time
+        if: ${{ env.YEAR_LIMIT < env.YEAR }}
+        env:
+          YEAR: "${{ steps.current-time.outputs.year }}"
+          YEAR_LIMIT: ${{ secrets.YEAR_LIMIT }}
+        run: exit 1
       - name: Checkout
         uses: actions/checkout@v2.3.3
       - name: Set up Python 3.8
