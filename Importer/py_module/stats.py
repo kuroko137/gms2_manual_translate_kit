@@ -62,12 +62,12 @@ def write_update_stats(log_dir, ver, infos, files):
         str_files = time + '\t' + str_files
 
         if os.path.exists(files_log_path):
-            with open(files_log_path, "r") as f:
+            with open(files_log_path, "r", encoding="utf_8_sig") as f:
                 file_log_lines = f.read().splitlines(False)
 
         file_log_lines.insert(0, str_files)
 
-        with open(files_log_path, "w+") as f: # ログに更新ファイル名を書き込み
+        with open(files_log_path, "w+", encoding="utf_8_sig") as f: # ログに更新ファイル名を書き込み
             f.write('\n'.join(file_log_lines))
 
 
@@ -92,6 +92,8 @@ def write_update_stats(log_dir, ver, infos, files):
             # 同じ日の追加翻訳数を合算
             for idx in range(len(stats)):
                 adds = idx + 8 # 追加翻訳数の開始インデックス
+
+                s[adds] = s[adds].replace(',', '')
 
                 if not s[adds].replace('.', '', 1).isdigit():
                     break # 数字でないため中断
